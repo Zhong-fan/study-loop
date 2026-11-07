@@ -1,0 +1,67 @@
+# ---- Java / Maven ----
+target/
+build/
+out/
+*.class
+*.jar
+*.war
+!.mvn/wrapper/maven-wrapper.jar
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.properties
+
+# ---- IDE ----
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+!.vscode/extensions.json
+*.swp
+*.swo
+
+# ---- Node / 前端 ----
+node_modules/
+dist/
+dist-ssr/
+.vite/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---- 配置与密钥（绝不入库）----
+.env
+.env.*
+!.env.example
+application-local.yml
+application-local.yaml
+application-local.properties
+*.pem
+*.key
+*.p12
+*.jks
+
+# ---- 运行时产物 ----
+logs/
+*.log
+uploads/
+tmp/
+temp/
+*.tmp
+hs_err_pid*
+
+# ---- 数据库本地文件 ----
+*.sqlite
+*.db
+*.mv.db
+*.trace.db
+
+# ---- 操作系统 ----
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- 文档导出物（按需保留源文件）----
+*.pdf.bak
+~$*.docx
+~$*.pptx
+~$*.xlsx

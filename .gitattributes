@@ -1,0 +1,29 @@
+# 统一换行符：仓库内一律 LF，检出时按平台适配
+* text=auto eol=lf
+
+# 二进制文件不做行尾转换
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.ico  binary
+*.pdf  binary
+*.zip  binary
+*.jar  binary
+*.docx binary
+*.xlsx binary
+*.pptx binary
+*.mp4  binary
+
+# Windows 脚本保持 CRLF
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.ps1  text eol=crlf
+
+# Shell 脚本必须 LF，否则容器里跑不起来
+*.sh   text eol=lf
+
+# 锁文件不参与 diff 统计
+pnpm-lock.yaml linguist-generated=true
+package-lock.json linguist-generated=true
