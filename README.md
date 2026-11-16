@@ -39,6 +39,7 @@
 | 资料 | ✅ | 上传、下载、归类；**PDF 上传后自动逐页抽文字，可按页查看与关键词搜索** |
 | 错题 | ✅ | 六种题型、按题型校验、客观题服务端判分；**支持从资料页划词出题，记录来源页码与原文** |
 | 复习 | ✅ | 今日队列、SM-2 排期、复习流水、手动标掌握 |
+| 自测 | ✅ | 按课程随机抽客观题组卷，交卷自动判分，结果回流复习卡 |
 | 统计 | ✅ | 总览数字、连续复习天数、薄弱章节 Top5、复习趋势 |
 | 前端 | ✅ | 基于 vue-manage-system 改造：登录、今日复习、课程与资料、题库、统计 |
 
@@ -201,6 +202,9 @@ curl -X POST http://localhost:8080/api/courses \
 | GET | `/api/review/today` | 今日待复习 | 是 |
 | POST | `/api/review/cards/{id}/answer` | 提交作答（自动判分） | 是 |
 | POST | `/api/review/cards/{id}/rate` | 自评（主观题） | 是 |
+| POST | `/api/quizzes` | 按课程随机组卷 | 是 |
+| GET | `/api/quizzes/{id}` | 查看试卷（不含答案） | 是 |
+| POST | `/api/quizzes/{id}/submit` | 交卷判分 | 是 |
 | GET | `/api/review/stats/overview` | 总览：题数、待复习、连续天数 | 是 |
 | GET | `/api/review/stats/weak-chapters` | 薄弱章节 Top5 | 是 |
 | GET | `/api/review/stats/trend?days=30` | 复习趋势 | 是 |
