@@ -8,14 +8,17 @@ import com.studyloop.course.entity.Course;
 import com.studyloop.course.entity.Material;
 import com.studyloop.course.mapper.CourseMapper;
 import com.studyloop.course.mapper.MaterialMapper;
+import com.studyloop.course.service.MaterialPageService;
 import com.studyloop.course.service.MaterialService;
 import com.studyloop.course.storage.FileStorage;
 import com.studyloop.course.storage.LocalFileStorage;
 import com.studyloop.course.vo.DownloadFile;
 import com.studyloop.course.vo.MaterialVO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,6 +30,7 @@ import java.util.List;
  * 上传顺序：先校验课程归属 → 校验后缀 → 存文件 → 写数据库。
  * 反过来的话，文件存失败会在数据库里留下一条打不开的记录。
  */
+@Slf4j
 @Service
 public class MaterialServiceImpl implements MaterialService {
 
@@ -38,11 +42,16 @@ public class MaterialServiceImpl implements MaterialService {
     private final MaterialMapper materialMapper;
     private final CourseMapper courseMapper;
     private final FileStorage fileStorage;
+    private final MaterialPageService pageService;
 
-    public MaterialServiceImpl(MaterialMapper materialMapper, CourseMapper courseMapper, FileStorage fileStorage) {
+    public MaterialServiceImpl(MaterialMapper materialMapper,
+                               CourseMapper courseMapper,
+                               FileStorage fileStorage,
+                               MaterialPageService pageService) {
         this.materialMapper = materialMapper;
         this.courseMapper = courseMapper;
         this.fileStorage = fileStorage;
+        this.pageService = pageService;
     }
 
     @Override
@@ -74,6 +83,16 @@ public class MaterialServiceImpl implements MaterialService {
         material.setDeleted(0);
 
         materialMapper.insert(material);
+
+        // PDF 顺手抽一次文字；解析失败不影响上传结果，只记日志
+        if ("pdf".equals(extension)) {
+            try (InputStream in = fileStorage.open(fileKey)) {
+                pageService.parsePdf(material.getId(), course.getUserId(), in);
+            } catch (Exception e) {
+                log.warn("资料解析失败，materialId={}", material.getId(), e);
+            }
+        }
+
         return material.getId();
     }
 

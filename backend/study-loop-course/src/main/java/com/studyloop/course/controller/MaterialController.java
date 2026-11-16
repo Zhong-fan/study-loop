@@ -1,9 +1,12 @@
 package com.studyloop.course.controller;
 
 import com.studyloop.common.result.Result;
+import com.studyloop.course.service.MaterialPageService;
 import com.studyloop.course.service.MaterialService;
 import com.studyloop.course.vo.DownloadFile;
+import com.studyloop.course.vo.MaterialPageVO;
 import com.studyloop.course.vo.MaterialVO;
+import com.studyloop.course.vo.PageSearchHitVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.core.io.InputStreamResource;
@@ -36,9 +39,11 @@ import java.util.List;
 public class MaterialController {
 
     private final MaterialService materialService;
+    private final MaterialPageService pageService;
 
-    public MaterialController(MaterialService materialService) {
+    public MaterialController(MaterialService materialService, MaterialPageService pageService) {
         this.materialService = materialService;
+        this.pageService = pageService;
     }
 
     @Operation(summary = "上传资料")
@@ -76,5 +81,17 @@ public class MaterialController {
                 .contentLength(file.size())
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(new InputStreamResource(file.stream()));
+    }
+
+    @Operation(summary = "查看资料逐页文字（PDF 解析结果）")
+    @GetMapping("/{id}/pages")
+    public Result<List<MaterialPageVO>> pages(@PathVariable Long id) {
+        return Result.ok(pageService.listByMaterial(id));
+    }
+
+    @Operation(summary = "在资料文字里搜关键词")
+    @GetMapping("/{id}/search")
+    public Result<List<PageSearchHitVO>> search(@PathVariable Long id, @RequestParam String keyword) {
+        return Result.ok(pageService.search(id, keyword));
     }
 }

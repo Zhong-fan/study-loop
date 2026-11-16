@@ -33,6 +33,11 @@ export const uploadMaterial = (form: FormData) =>
 
 export const deleteMaterial = (id: number) => http.delete(`/materials/${id}`);
 
+export const getMaterialPages = (id: number) => http.get(`/materials/${id}/pages`);
+
+export const searchMaterial = (id: number, keyword: string) =>
+    http.get(`/materials/${id}/search`, { keyword });
+
 /** 题目 */
 export const getQuestions = (params: object) => http.get('/questions', params);
 

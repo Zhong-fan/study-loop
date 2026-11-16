@@ -36,7 +36,7 @@
 | 账号 | ✅ | 注册、登录，密码 BCrypt 加密，签发 JWT |
 | 网关 | ✅ | 统一入口，校验 token 后把 `X-User-Id` 传给下游 |
 | 课程 | ✅ | 增删改查、分页、按名称搜索、软删除，数据按用户隔离 |
-| 资料 | 🟡 | 上传、下载、按课程/章节归类已完成；在线预览与文本检索待做 |
+| 资料 | ✅ | 上传、下载、归类；**PDF 上传后自动逐页抽文字，可按页查看与关键词搜索** |
 | 错题 | ✅ | 六种题型、按题型校验、客观题服务端判分（多选漏选半分） |
 | 复习 | ✅ | 今日队列、SM-2 排期、复习流水、手动标掌握 |
 | 统计 | ✅ | 总览数字、连续复习天数、薄弱章节 Top5、复习趋势 |
@@ -190,6 +190,8 @@ curl -X POST http://localhost:8080/api/courses \
 | POST | `/api/materials` | 上传资料（multipart） | 是 |
 | GET | `/api/materials?courseId=` | 资料列表 | 是 |
 | GET | `/api/materials/{id}/download` | 下载资料 | 是 |
+| GET | `/api/materials/{id}/pages` | 查看逐页文字 | 是 |
+| GET | `/api/materials/{id}/search?keyword=` | 在文档内搜关键词 | 是 |
 | DELETE | `/api/materials/{id}` | 删除资料（软删） | 是 |
 | POST | `/api/questions` | 新建题目（自动生成复习卡） | 是 |
 | GET | `/api/questions` | 分页查询题目 | 是 |

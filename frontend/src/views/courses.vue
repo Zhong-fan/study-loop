@@ -86,12 +86,42 @@
                 <el-table-column prop="fileType" label="类型" width="80" />
                 <el-table-column label="操作" width="150">
                     <template #default="{ row }">
+                        <el-button link type="primary" @click="openPages(row)">文字</el-button>
                         <el-button link type="primary" @click="download(row)">下载</el-button>
                         <el-button link type="danger" @click="removeMaterial(row)">删除</el-button>
                     </template>
                 </el-table-column>
             </el-table>
         </el-drawer>
+
+        <!-- 资料文字：PDF 解析结果，可搜索 -->
+        <el-dialog v-model="pageVisible" :title="`文字内容 · ${pageMaterial?.title || ''}`" width="760px">
+            <div class="row" style="margin-bottom: 12px">
+                <el-input
+                    v-model="pageKeyword"
+                    placeholder="在本文档里搜关键词（至少 2 个字）"
+                    style="width: 320px"
+                    clearable
+                    @keyup.enter="doSearch"
+                />
+                <el-button type="primary" @click="doSearch">搜索</el-button>
+                <el-button @click="clearSearch">看全文</el-button>
+            </div>
+
+            <el-empty v-if="!hitMode && pages.length === 0" description="这份文件没有抽到文字，可能是扫描件" />
+
+            <el-table v-if="hitMode" :data="hits" size="small" border max-height="420">
+                <el-table-column prop="pageNo" label="页" width="60" />
+                <el-table-column prop="snippet" label="命中片段" show-overflow-tooltip />
+            </el-table>
+
+            <div v-else class="pages">
+                <div v-for="p in pages" :key="p.pageNo" class="page-item">
+                    <div class="page-no">第 {{ p.pageNo }} 页</div>
+                    <div class="page-text">{{ p.content }}</div>
+                </div>
+            </div>
+        </el-dialog>
     </div>
 </template>
 
@@ -107,7 +137,9 @@ import {
     deleteMaterial,
     getChapters,
     getCourses,
+    getMaterialPages,
     getMaterials,
+    searchMaterial,
     updateCourse,
     uploadMaterial
 } from '@/api';
@@ -128,6 +160,36 @@ const current = ref<any>(null);
 const chapters = ref<any[]>([]);
 const materials = ref<any[]>([]);
 const chapterTitle = ref('');
+
+const pageVisible = ref(false);
+const pageMaterial = ref<any>(null);
+const pages = ref<any[]>([]);
+const hits = ref<any[]>([]);
+const hitMode = ref(false);
+const pageKeyword = ref('');
+
+const openPages = async (row: any) => {
+    pageMaterial.value = row;
+    pageVisible.value = true;
+    pages.value = await getMaterialPages(row.id);
+    hits.value = [];
+    hitMode.value = false;
+    pageKeyword.value = '';
+};
+
+const doSearch = async () => {
+    if (pageKeyword.value.trim().length < 2) {
+        ElMessage.warning('关键词至少 2 个字');
+        return;
+    }
+    hits.value = await searchMaterial(pageMaterial.value.id, pageKeyword.value.trim());
+    hitMode.value = true;
+};
+
+const clearSearch = () => {
+    hitMode.value = false;
+    hits.value = [];
+};
 
 const load = async () => {
     loading.value = true;
@@ -254,5 +316,24 @@ onMounted(load);
 .muted {
     color: #909399;
     font-size: 12px;
+}
+.pages {
+    max-height: 420px;
+    overflow-y: auto;
+}
+.page-item {
+    padding: 8px 0;
+    border-bottom: 1px dashed #ebeef5;
+}
+.page-no {
+    font-weight: 600;
+    color: #409eff;
+    margin-bottom: 4px;
+}
+.page-text {
+    white-space: pre-wrap;
+    line-height: 1.7;
+    font-size: 13px;
+    color: #303133;
 }
 </style>
