@@ -40,6 +40,7 @@
 | 错题 | ✅ | 六种题型、按题型校验、客观题服务端判分（多选漏选半分） |
 | 复习 | ✅ | 今日队列、SM-2 排期、复习流水、手动标掌握 |
 | 统计 | ✅ | 总览数字、连续复习天数、薄弱章节 Top5、复习趋势 |
+| 前端 | ✅ | 基于 vue-manage-system 改造：登录、今日复习、课程与资料、题库、统计 |
 
 ## 技术栈
 
@@ -85,7 +86,7 @@ Spring Boot · Spring Cloud Alibaba（Nacos / Gateway / OpenFeign）· MyBatis-P
 │  ├─ study-loop-course/     8082 课程（完整样板）
 │  ├─ study-loop-review/     8083 空壳，等待填业务
 │  └─ deploy/                docker-compose、建库脚本
-└─ frontend/                 前端（待建）
+└─ frontend/                 前端（Vue3 + Element Plus，基于 vue-manage-system 改造）
 ```
 
 <details>
@@ -134,7 +135,20 @@ java -jar backend/study-loop-gateway/target/study-loop-gateway-1.0.0.jar
 | course | 8082 | 课程 |
 | review | 8083 | 错题（空壳） |
 
-### 4. 验证
+### 4. 启动前端
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+打开 <http://127.0.0.1:5173>，注册一个账号就能用。
+开发服务器已配置代理，`/api` 会被转发到 `http://localhost:8080`（网关），不需要处理跨域。
+
+> 前端模板来自 [vue-manage-system](https://github.com/lin-xin/vue-manage-system)：保留了它的布局、菜单、标签页和请求封装，路由与业务页面换成了本项目的。
+
+### 5. 验证
 
 ```bash
 # 注册

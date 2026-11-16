@@ -73,3 +73,6 @@ notes/
 .pnpm-store/
 DeepSeekHarness生成/
 系统集成开题/
+
+dev.log
+
