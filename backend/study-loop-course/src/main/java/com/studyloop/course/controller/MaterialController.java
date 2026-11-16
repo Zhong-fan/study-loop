@@ -3,6 +3,7 @@ package com.studyloop.course.controller;
 import com.studyloop.common.result.Result;
 import com.studyloop.course.service.MaterialPageService;
 import com.studyloop.course.service.MaterialService;
+import com.studyloop.course.storage.LocalFileStorage;
 import com.studyloop.course.vo.DownloadFile;
 import com.studyloop.course.vo.MaterialPageVO;
 import com.studyloop.course.vo.MaterialVO;
@@ -81,6 +82,41 @@ public class MaterialController {
                 .contentLength(file.size())
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(new InputStreamResource(file.stream()));
+    }
+
+    @Operation(summary = "预览资料（浏览器内直接打开，不下载）")
+    @GetMapping("/{id}/preview")
+    public ResponseEntity<Resource> preview(@PathVariable Long id) {
+        DownloadFile file = materialService.download(id);
+        String encoded = URLEncoder.encode(file.fileName(), StandardCharsets.UTF_8).replace("+", "%20");
+
+        // inline 让浏览器直接渲染：PDF 和图片能看，zip 这类仍会变成下载
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename*=UTF-8''" + encoded)
+                .contentLength(file.size())
+                .contentType(MediaType.parseMediaType(contentTypeOf(file.fileName())))
+                .body(new InputStreamResource(file.stream()));
+    }
+
+    /** 按后缀给浏览器一个能识别的类型，认不出来就当二进制流 */
+    private String contentTypeOf(String fileName) {
+        String ext = LocalFileStorage.getExtension(fileName);
+        switch (ext) {
+            case "pdf":
+                return "application/pdf";
+            case "png":
+                return "image/png";
+            case "jpg":
+            case "jpeg":
+                return "image/jpeg";
+            case "webp":
+                return "image/webp";
+            case "txt":
+            case "md":
+                return "text/plain;charset=UTF-8";
+            default:
+                return "application/octet-stream";
+        }
     }
 
     @Operation(summary = "查看资料逐页文字（PDF 解析结果）")
