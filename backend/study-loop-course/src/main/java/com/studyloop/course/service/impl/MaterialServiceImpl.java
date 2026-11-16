@@ -11,11 +11,11 @@ import com.studyloop.course.mapper.MaterialMapper;
 import com.studyloop.course.service.MaterialService;
 import com.studyloop.course.storage.FileStorage;
 import com.studyloop.course.storage.LocalFileStorage;
+import com.studyloop.course.vo.DownloadFile;
 import com.studyloop.course.vo.MaterialVO;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -103,9 +103,13 @@ public class MaterialServiceImpl implements MaterialService {
     }
 
     @Override
-    public Path loadPath(Long id) {
+    public DownloadFile download(Long id) {
         Material material = findOwnedMaterial(id);
-        return fileStorage.load(material.getFileKey());
+        return new DownloadFile(
+                material.getFileName(),
+                material.getFileSize() == null ? 0L : material.getFileSize(),
+                fileStorage.open(material.getFileKey())
+        );
     }
 
     private Course checkCourse(Long courseId) {

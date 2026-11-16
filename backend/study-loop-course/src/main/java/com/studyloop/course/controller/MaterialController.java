@@ -2,10 +2,11 @@ package com.studyloop.course.controller;
 
 import com.studyloop.common.result.Result;
 import com.studyloop.course.service.MaterialService;
+import com.studyloop.course.vo.DownloadFile;
 import com.studyloop.course.vo.MaterialVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -21,7 +22,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.util.List;
 
 /**
@@ -66,15 +66,15 @@ public class MaterialController {
     @Operation(summary = "下载资料")
     @GetMapping("/{id}/download")
     public ResponseEntity<Resource> download(@PathVariable Long id) {
-        Path path = materialService.loadPath(id);
+        DownloadFile file = materialService.download(id);
 
         // 中文文件名要编码，否则浏览器下载下来是乱码
-        String fileName = path.getFileName().toString();
-        String encoded = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
+        String encoded = URLEncoder.encode(file.fileName(), StandardCharsets.UTF_8).replace("+", "%20");
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encoded)
+                .contentLength(file.size())
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .body(new FileSystemResource(path));
+                .body(new InputStreamResource(file.stream()));
     }
 }

@@ -39,7 +39,7 @@
 | 资料 | 🟡 | 上传、下载、按课程/章节归类已完成；在线预览与文本检索待做 |
 | 错题 | ✅ | 六种题型、按题型校验、客观题服务端判分（多选漏选半分） |
 | 复习 | ✅ | 今日队列、SM-2 排期、复习流水、手动标掌握 |
-| 统计 | ⬜ | 薄弱章节、复习趋势（待实现） |
+| 统计 | ✅ | 总览数字、连续复习天数、薄弱章节 Top5、复习趋势 |
 
 ## 技术栈
 
@@ -54,6 +54,7 @@ Spring Boot · Spring Cloud Alibaba（Nacos / Gateway / OpenFeign）· MyBatis-P
 | 网关 | Spring Cloud Gateway | 随 Cloud |
 | 数据访问 | MyBatis-Plus | 3.5.7 |
 | 数据库 | MySQL | 8.0 |
+| 文件存储 | 本地磁盘（默认）/ MinIO（`app.storage=minio`） | 8.5.12 |
 | 工具 | Hutool（JWT / BCrypt）、Lombok | 5.8.32 |
 | 接口文档 | Knife4j（OpenAPI 3） | 4.5.0 |
 
@@ -184,6 +185,9 @@ curl -X POST http://localhost:8080/api/courses \
 | GET | `/api/review/today` | 今日待复习 | 是 |
 | POST | `/api/review/cards/{id}/answer` | 提交作答（自动判分） | 是 |
 | POST | `/api/review/cards/{id}/rate` | 自评（主观题） | 是 |
+| GET | `/api/review/stats/overview` | 总览：题数、待复习、连续天数 | 是 |
+| GET | `/api/review/stats/weak-chapters` | 薄弱章节 Top5 | 是 |
+| GET | `/api/review/stats/trend?days=30` | 复习趋势 | 是 |
 | GET | `/api/review/ping` | 连通性检查 | 是 |
 
 ## 持续集成

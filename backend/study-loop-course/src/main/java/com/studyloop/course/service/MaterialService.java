@@ -1,9 +1,9 @@
 package com.studyloop.course.service;
 
+import com.studyloop.course.vo.DownloadFile;
 import com.studyloop.course.vo.MaterialVO;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.nio.file.Path;
 import java.util.List;
 
 /**
@@ -17,6 +17,6 @@ public interface MaterialService {
 
     void delete(Long id);
 
-    /** 下载时用：先校验归属，再返回磁盘路径 */
-    Path loadPath(Long id);
+    /** 下载用：先校验归属，再打开文件流（本地磁盘和 MinIO 都走这里） */
+    DownloadFile download(Long id);
 }
