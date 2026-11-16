@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: study-loop-course
+  servlet:
+    multipart:
+      # 单个文件上限，超过会抛 MaxUploadSizeExceededException
+      max-file-size: 50MB
+      max-request-size: 60MB
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://127.0.0.1:3306/study_course?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
@@ -23,6 +28,10 @@ mybatis-plus:
 
 knife4j:
   enable: true
+
+app:
+  # 上传文件的落盘目录，相对服务启动目录
+  upload-dir: ./uploads
 
 logging:
   level:

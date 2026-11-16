@@ -17,7 +17,8 @@ spring:
         - id: course
           uri: lb://study-loop-course
           predicates:
-            - Path=/api/courses/**
+            # 一个服务可以有多个路径前缀，逗号分隔
+            - Path=/api/courses/**,/api/chapters/**,/api/materials/**
         - id: review
           uri: lb://study-loop-review
           predicates:

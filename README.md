@@ -24,6 +24,7 @@
 - [仓库结构](#仓库结构)
 - [快速开始](#快速开始)
 - [接口一览](#接口一览)
+- [持续集成](#持续集成)
 - [分支与基线](#分支与基线)
 - [命名规范](#命名规范)
 - [开发约定](#开发约定)
@@ -35,7 +36,7 @@
 | 账号 | ✅ | 注册、登录，密码 BCrypt 加密，签发 JWT |
 | 网关 | ✅ | 统一入口，校验 token 后把 `X-User-Id` 传给下游 |
 | 课程 | ✅ | 增删改查、分页、按名称搜索、软删除，数据按用户隔离 |
-| 资料 | ⬜ | 上传课件、在线预览、文本检索（待实现） |
+| 资料 | 🟡 | 上传、下载、按课程/章节归类已完成；在线预览与文本检索待做 |
 | 错题 | ⬜ | 录题、分类型判分、复习排期（待实现） |
 | 统计 | ⬜ | 薄弱章节、复习趋势（待实现） |
 
@@ -166,7 +167,34 @@ curl -X POST http://localhost:8080/api/courses \
 | POST | `/api/courses` | 新建课程 | 是 |
 | PUT | `/api/courses/{id}` | 修改课程 | 是 |
 | DELETE | `/api/courses/{id}` | 删除课程（软删） | 是 |
+| GET | `/api/courses/{courseId}/chapters` | 章节列表 | 是 |
+| POST | `/api/courses/{courseId}/chapters` | 新增章节 | 是 |
+| PUT | `/api/chapters/{id}` | 修改章节 | 是 |
+| DELETE | `/api/chapters/{id}` | 删除章节 | 是 |
+| POST | `/api/materials` | 上传资料（multipart） | 是 |
+| GET | `/api/materials?courseId=` | 资料列表 | 是 |
+| GET | `/api/materials/{id}/download` | 下载资料 | 是 |
+| DELETE | `/api/materials/{id}` | 删除资料（软删） | 是 |
 | GET | `/api/review/ping` | 连通性检查 | 是 |
+
+## 持续集成
+
+CI 配置在 `.github/workflows/ci.yml`，PR 以及推送到 `main` / `dev` 时自动运行：
+
+| Job | 检查内容 |
+| --- | --- |
+| `build · backend` | JDK 17 编译打包五个模块，成功后把 jar 作为 artifact 保留 7 天 |
+| `guard · 约定检查` | 模块清单完整、禁止 `System.out`、禁止字段注入、禁止跨服务 import、每个服务必须有启动类 |
+| `check · docker-compose` | `docker compose config` 校验编排文件 |
+
+同一分支连续提交时，旧任务会自动取消（`concurrency` + `cancel-in-progress`），不会白跑。
+
+> **注意**：GitHub Actions 只在 GitHub 上执行。当前主仓库在 Gitee，需要在 GitHub 上保留镜像仓库，把分支同时推到两边：
+>
+> ```bash
+> git push origin <branch>    # Gitee
+> git push github <branch>    # GitHub，触发 CI
+> ```
 
 ## 分支与基线
 
