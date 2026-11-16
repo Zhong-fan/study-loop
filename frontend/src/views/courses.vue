@@ -98,6 +98,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { downloadFile } from '@/utils/request';
 import {
     createChapter,
     createCourse,
@@ -220,9 +221,8 @@ const doUpload = async (options: any) => {
     await loadDetail();
 };
 
-const download = (row: any) => {
-    // 下载要走网关并带 token，这里用 a 标签 + 后端短链不适用，直接新窗口打开
-    window.open(`/api/materials/${row.id}/download?token=${localStorage.getItem('token')}`, '_blank');
+const download = async (row: any) => {
+    await downloadFile(`/materials/${row.id}/download`, row.fileName);
 };
 
 const removeMaterial = async (row: any) => {

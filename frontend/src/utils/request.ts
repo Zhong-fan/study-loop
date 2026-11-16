@@ -62,4 +62,18 @@ export const http = {
     delete: (url: string) => service.delete(url) as unknown as Promise<any>
 };
 
+/**
+ * 下载文件。
+ * 不能直接把带 token 的地址丢给 window.open —— 网关只认 Authorization 请求头，
+ * 所以必须用 axios 带着头去拿 blob，再在前端触发保存。
+ */
+export const downloadFile = async (url: string, fileName: string) => {
+    const blob = (await service.get(url, { responseType: 'blob' })) as unknown as Blob;
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(link.href);
+};
+
 export default service;
