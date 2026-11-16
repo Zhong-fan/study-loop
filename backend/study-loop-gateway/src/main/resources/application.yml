@@ -1,0 +1,28 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: study-loop-gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+    gateway:
+      routes:
+        - id: auth
+          uri: lb://study-loop-auth
+          predicates:
+            - Path=/api/auth/**
+        - id: course
+          uri: lb://study-loop-course
+          predicates:
+            - Path=/api/courses/**
+        - id: review
+          uri: lb://study-loop-review
+          predicates:
+            - Path=/api/review/**
+
+logging:
+  level:
+    org.springframework.cloud.gateway: info

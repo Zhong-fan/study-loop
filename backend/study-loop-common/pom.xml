@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.studyloop</groupId>
+        <artifactId>study-loop</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>study-loop-common</artifactId>
+    <name>study-loop-common</name>
+    <description>公共返回体、异常、当前登录用户</description>
+
+    <dependencies>
+        <!-- 统一返回体和全局异常处理要用到 Spring MVC 的注解 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+</project>
