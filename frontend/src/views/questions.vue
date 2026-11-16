@@ -37,8 +37,9 @@
                     </template>
                 </el-table-column>
                 <el-table-column prop="createdAt" label="创建时间" width="180" />
-                <el-table-column label="操作" width="90">
+                <el-table-column label="操作" width="130">
                     <template #default="{ row }">
+                        <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
                         <el-button link type="danger" @click="remove(row)">删除</el-button>
                     </template>
                 </el-table-column>
@@ -54,11 +55,24 @@
             />
         </el-card>
 
-        <el-dialog v-model="formVisible" title="新建题目" width="620px">
+        <el-dialog v-model="formVisible" :title="form.id ? '编辑题目' : '新建题目'" width="620px">
             <el-form :model="form" label-width="80px">
                 <el-form-item label="课程" required>
-                    <el-select v-model="form.courseId" placeholder="选择课程" style="width: 100%">
+                    <el-select
+                        v-model="form.courseId"
+                        placeholder="选择课程"
+                        style="width: 100%"
+                        :disabled="!!form.id"
+                        @change="onCourseChange"
+                    >
                         <el-option v-for="c in courses" :key="c.id" :label="c.name" :value="c.id" />
+                    </el-select>
+                    <div v-if="form.id" class="hint">题目已生成复习卡，不允许换课程</div>
+                </el-form-item>
+
+                <el-form-item label="章节">
+                    <el-select v-model="form.chapterId" placeholder="可不选" clearable style="width: 100%">
+                        <el-option v-for="ch in chapters" :key="ch.id" :label="ch.title" :value="ch.id" />
                     </el-select>
                 </el-form-item>
 
@@ -122,7 +136,7 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { createQuestion, deleteQuestion, getCourses, getQuestions } from '@/api';
+import { createQuestion, deleteQuestion, getChapters, getCourses, getQuestion, getQuestions, updateQuestion } from '@/api';
 
 const route = useRoute();
 
@@ -145,8 +159,11 @@ const size = ref(10);
 
 const filter = reactive<any>({ courseId: null, type: null });
 const formVisible = ref(false);
+const chapters = ref<any[]>([]);
 const form = reactive<any>({
+    id: null,
     courseId: null,
+    chapterId: null,
     type: 'SINGLE',
     stem: '',
     optionsText: '',
@@ -201,7 +218,9 @@ const onPageChange = (p: number) => {
 };
 
 const openCreate = () => {
+    form.id = null;
     form.courseId = courses.value[0]?.id ?? null;
+    form.chapterId = null;
     form.type = 'SINGLE';
     form.stem = '';
     form.optionsText = '';
@@ -212,6 +231,41 @@ const openCreate = () => {
     form.pageNo = null;
     form.quote = '';
     formVisible.value = true;
+    loadChapters();
+};
+
+/** 编辑：先拉详情，把选项和答案还原成文本框里的写法 */
+const openEdit = async (row: any) => {
+    const detail = await getQuestion(row.id);
+
+    form.id = detail.id;
+    form.courseId = detail.courseId;
+    form.chapterId = detail.chapterId || null;
+    form.type = detail.type;
+    form.stem = detail.stem;
+    form.optionsText = (detail.options || []).join('\n');
+    form.answerText = (detail.answer || []).join(',');
+    form.analysis = detail.analysis || '';
+    form.difficulty = detail.difficulty || 3;
+    form.materialId = detail.materialId || null;
+    form.pageNo = detail.pageNo || null;
+    form.quote = detail.quote || '';
+
+    formVisible.value = true;
+    await loadChapters();
+};
+
+const loadChapters = async () => {
+    if (!form.courseId) {
+        chapters.value = [];
+        return;
+    }
+    chapters.value = await getChapters(form.courseId);
+};
+
+const onCourseChange = () => {
+    form.chapterId = null;
+    loadChapters();
 };
 
 const save = async () => {
@@ -245,19 +299,30 @@ const save = async () => {
 
     saving.value = true;
     try {
-        await createQuestion({
-            courseId: form.courseId,
+        const payload = {
+            chapterId: form.chapterId,
             type: form.type,
             stem: form.stem,
             options: ['SINGLE', 'MULTIPLE'].includes(form.type) ? options : [],
             answer,
             analysis: form.analysis,
-            difficulty: form.difficulty,
-            materialId: form.materialId,
-            pageNo: form.pageNo,
-            quote: form.quote
-        });
-        ElMessage.success('已保存，已自动生成复习卡');
+            difficulty: form.difficulty
+        };
+
+        if (form.id) {
+            await updateQuestion(form.id, payload);
+            ElMessage.success('已保存');
+        } else {
+            await createQuestion({
+                ...payload,
+                courseId: form.courseId,
+                materialId: form.materialId,
+                pageNo: form.pageNo,
+                quote: form.quote
+            });
+            ElMessage.success('已保存，已自动生成复习卡');
+        }
+
         formVisible.value = false;
         load();
     } finally {

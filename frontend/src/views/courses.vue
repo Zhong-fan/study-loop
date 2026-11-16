@@ -86,6 +86,7 @@
                 <el-table-column prop="fileType" label="类型" width="80" />
                 <el-table-column label="操作" width="150">
                     <template #default="{ row }">
+                        <el-button link type="primary" @click="preview(row)">预览</el-button>
                         <el-button link type="primary" @click="openPages(row)">文字</el-button>
                         <el-button link type="primary" @click="download(row)">下载</el-button>
                         <el-button link type="danger" @click="removeMaterial(row)">删除</el-button>
@@ -134,7 +135,7 @@
 import { onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { downloadFile } from '@/utils/request';
+import { downloadFile, openBlob } from '@/utils/request';
 import {
     createChapter,
     createCourse,
@@ -316,6 +317,10 @@ const doUpload = async (options: any) => {
 
 const download = async (row: any) => {
     await downloadFile(`/materials/${row.id}/download`, row.fileName);
+};
+
+const preview = async (row: any) => {
+    await openBlob(`/materials/${row.id}/preview`);
 };
 
 const removeMaterial = async (row: any) => {

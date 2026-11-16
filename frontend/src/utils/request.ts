@@ -76,4 +76,16 @@ export const downloadFile = async (url: string, fileName: string) => {
     URL.revokeObjectURL(link.href);
 };
 
+/**
+ * 预览：拉成 blob 后在新标签页打开。
+ * 同样不能直接 window.open 带 token 的 URL，网关只认请求头。
+ */
+export const openBlob = async (url: string) => {
+    const blob = (await service.get(url, { responseType: 'blob' })) as unknown as Blob;
+    const objectUrl = URL.createObjectURL(blob);
+    window.open(objectUrl, '_blank');
+    // 一分钟后释放，太早释放会把还在加载的页面掐断
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+};
+
 export default service;

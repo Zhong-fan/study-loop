@@ -43,6 +43,10 @@ export const getQuestions = (params: object) => http.get('/questions', params);
 
 export const createQuestion = (data: object) => http.post('/questions', data);
 
+export const getQuestion = (id: number) => http.get(`/questions/${id}`);
+
+export const updateQuestion = (id: number, data: object) => http.put(`/questions/${id}`, data);
+
 export const deleteQuestion = (id: number) => http.delete(`/questions/${id}`);
 
 /** 复习 */
