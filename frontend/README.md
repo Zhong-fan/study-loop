@@ -1,80 +1,45 @@
-# vue-manage-system
+# CMMR 前端
 
-  <a href="https://github.com/lin-xin/vue-manage-system/releases">
-    <img src="https://img.shields.io/github/release/lin-xin/vue-manage-system.svg" alt="GitHub release">
-  </a>
-   <a href="https://github.com/lin-xin/vue-manage-system/blob/master/LICENSE">
-    <img src="https://img.shields.io/github/license/mashape/apistatus.svg" alt="license">
-  </a>
+课程资料管理与错题复习系统的前端，Vue 3 + Element Plus + Vite + TypeScript。
 
-基于 Vue3 + pinia + Element Plus 的后台管理系统解决方案。[线上演示](https://lin-xin.github.io/example/vue-manage-system/)
+## 跑起来
 
-> Vue2 版本请看 [tag-V4.2.0](https://github.com/lin-xin/vue-manage-system/tree/V4.2.0)，带后台功能请看 [tsrpc-manage-system](https://github.com/lin-xin/tsrpc-manage-system)
-
-[文档地址](https://lin-xin.github.io/example/vuems-doc/)
-[English document](https://github.com/lin-xin/manage-system/blob/master/README_EN.md)
-
-## 赞助商
-
-### 好问
-
-[<img src="https://static.bestqa.net/logo/bestqa_haowen.png" width="220" height="100">](https://www.bestqa.net/home/index.html)
-
-专业问卷服务，一对一客服，按需定制
-
-## 支持作者
-
-请作者喝杯咖啡吧！(微信号：linxin_20)
-
-![微信扫一扫](https://lin-xin.github.io/images/weixin.jpg)
-
-## 前言
-
-该方案作为一套多功能的后台框架模板，适用于绝大部分的后台管理系统开发。基于 Vue3 + pinia + typescript，引用 Element Plus 组件库，方便开发。实现逻辑简单，适合外包项目，快速交付。
-
-## 功能
-
--   [x] Element Plus
--   [x] vite 3
--   [x] pinia
--   [x] typescript
--   [x] 登录/注册
--   [x] Dashboard
--   [x] 表格/表单
--   [x] 图表 :bar_chart:
--   [x] 富文本/markdown 编辑器
--   [x] 图片拖拽/裁剪上传
--   [x] 权限管理
--   [x] 三级菜单
--   [x] 自定义图标
--   [x] 主题切换
-
-## 安装步骤
-
-> 因为使用 vite3，node 版本需要 14.18+
-
-```
-git clone https://github.com/lin-xin/vue-manage-system.git      // 把模板下载到本地
-cd vue-manage-system    // 进入模板目录
-npm install         // 安装项目依赖，等待安装完成之后，安装失败可用 cnpm 或 yarn
-
-// 运行
-npm run dev
-
-// 执行构建命令，生成的dist文件夹放在服务器下即可访问
-npm run build
+```bash
+npm install
+npm run dev      # http://127.0.0.1:5173
 ```
 
-## 项目截图
+开发服务器会把 `/api` 代理到 `http://localhost:8080`（网关），所以不需要处理跨域。
+先把后端起起来：MySQL / Nacos / MinIO 用 `docker compose -f ../backend/deploy/docker-compose.yml up -d`。
 
-### 首页
+## 页面
 
-![Image text](https://github.com/lin-xin/manage-system/raw/master/screenshots/wms1.png)
+| 路由 | 页面 | 说明 |
+| --- | --- | --- |
+| `/login` | 登录 | 登录 / 注册 |
+| `/dashboard` | 今日复习 | 逐题作答，客观题自动判分，主观题自评 |
+| `/courses` | 课程与资料 | 课程、章节、上传下载、PDF 逐页文字与文档内搜索、划词出题 |
+| `/questions` | 题库 | 筛选、新建、删除 |
+| `/quiz` | 自测 | 随机组卷、交卷判分 |
+| `/stats` | 统计 | 总览、薄弱章节、趋势 |
 
-### 登录
+## 目录
 
-![Image text](https://github.com/lin-xin/manage-system/raw/master/screenshots/wms3.png)
+```
+src/
+├─ api/index.ts        所有后端接口，一个文件看完
+├─ utils/request.ts    axios 封装：带 token、拆 Result、统一报错
+├─ router/index.ts     静态路由 + 登录守卫
+├─ components/         布局：header / sidebar / tabs / menu
+├─ store/              sidebar / tabs / theme
+└─ views/              6 个页面
+```
 
-## License
+## 约定
 
-[MIT](https://github.com/lin-xin/vue-manage-system/blob/master/LICENSE)
+- 接口统一返回 `{ code, message, data }`，`code = 0` 为成功；`request.ts` 已经把 `data` 拆出来，页面里 `await getCourses()` 拿到的就是数据。
+- 新增页面：在 `views/` 建 `.vue` → 在 `router/index.ts` 加路由 → 在 `components/menu.ts` 加菜单项。
+
+## 来源
+
+界面骨架来自 [vue-manage-system](https://github.com/lin-xin/vue-manage-system)（MIT License，Copyright © 2019-present lin-xin），保留了它的布局、菜单、标签页与请求封装；路由、接口层和全部业务页面为本项目改写。
