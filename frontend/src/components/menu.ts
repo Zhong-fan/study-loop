@@ -22,6 +22,12 @@ export const menuData: Menus[] = [
     },
     {
         id: '3',
+        title: '自测',
+        index: '/quiz',
+        icon: 'Tickets'
+    },
+    {
+        id: '4',
         title: '统计',
         index: '/stats',
         icon: 'PieChart'

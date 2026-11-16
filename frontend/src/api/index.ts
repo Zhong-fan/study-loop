@@ -56,7 +56,15 @@ export const rateCard = (cardId: number, rating: number, costMs: number) =>
 
 /** 统计 */
 export const getOverview = () => http.get('/review/stats/overview');
-
 export const getWeakChapters = () => http.get('/review/stats/weak-chapters');
 
 export const getTrend = (days = 30) => http.get('/review/stats/trend', { days });
+
+/** 自测组卷 */
+export const createQuiz = (data: { courseId: number; count: number; title?: string }) =>
+    http.post('/quizzes', data);
+
+export const getQuiz = (id: number) => http.get(`/quizzes/${id}`);
+
+export const submitQuiz = (id: number, answers: object[]) =>
+    http.post(`/quizzes/${id}/submit`, { answers });
