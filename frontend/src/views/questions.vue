@@ -22,6 +22,12 @@
                 <el-table-column label="题型" width="90">
                     <template #default="{ row }">{{ typeText(row.type) }}</template>
                 </el-table-column>
+                <el-table-column label="来源" width="110">
+                    <template #default="{ row }">
+                        <span v-if="row.materialId">资料第 {{ row.pageNo }} 页</span>
+                        <span v-else class="hint">—</span>
+                    </template>
+                </el-table-column>
                 <el-table-column prop="difficulty" label="难度" width="70" />
                 <el-table-column label="状态" width="90">
                     <template #default="{ row }">
@@ -66,6 +72,16 @@
                     <el-input v-model="form.stem" type="textarea" :rows="3" />
                 </el-form-item>
 
+                <el-alert
+                    v-if="form.materialId"
+                    class="source-tip"
+                    type="info"
+                    :closable="false"
+                    :title="`来源：资料第 ${form.pageNo} 页`"
+                >
+                    <div class="quote">{{ form.quote }}</div>
+                </el-alert>
+
                 <template v-if="form.type === 'SINGLE' || form.type === 'MULTIPLE'">
                     <el-form-item label="选项">
                         <el-input
@@ -104,8 +120,11 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { createQuestion, deleteQuestion, getCourses, getQuestions } from '@/api';
+
+const route = useRoute();
 
 const types = [
     { value: 'SINGLE', label: '单选' },
@@ -133,7 +152,10 @@ const form = reactive<any>({
     optionsText: '',
     answerText: '',
     analysis: '',
-    difficulty: 3
+    difficulty: 3,
+    materialId: null,
+    pageNo: null,
+    quote: ''
 });
 
 const typeMap: Record<string, string> = {
@@ -186,6 +208,9 @@ const openCreate = () => {
     form.answerText = '';
     form.analysis = '';
     form.difficulty = 3;
+    form.materialId = null;
+    form.pageNo = null;
+    form.quote = '';
     formVisible.value = true;
 };
 
@@ -227,7 +252,10 @@ const save = async () => {
             options: ['SINGLE', 'MULTIPLE'].includes(form.type) ? options : [],
             answer,
             analysis: form.analysis,
-            difficulty: form.difficulty
+            difficulty: form.difficulty,
+            materialId: form.materialId,
+            pageNo: form.pageNo,
+            quote: form.quote
         });
         ElMessage.success('已保存，已自动生成复习卡');
         formVisible.value = false;
@@ -247,6 +275,17 @@ const remove = async (row: any) => {
 onMounted(async () => {
     const data = await getCourses({ page: 1, size: 100 });
     courses.value = data.records;
+
+    // 从"划词出题"跳过来时，带着资料、页码和原文
+    if (route.query.quote) {
+        openCreate();
+        form.courseId = route.query.courseId ? Number(route.query.courseId) : form.courseId;
+        form.stem = String(route.query.quote);
+        form.materialId = route.query.materialId ? Number(route.query.materialId) : null;
+        form.pageNo = route.query.pageNo ? Number(route.query.pageNo) : null;
+        form.quote = String(route.query.quote);
+    }
+
     await load();
 });
 </script>
@@ -267,6 +306,15 @@ onMounted(async () => {
 .hint {
     color: #909399;
     font-size: 12px;
+    line-height: 1.6;
+}
+.source-tip {
+    margin-bottom: 16px;
+}
+.quote {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #606266;
     line-height: 1.6;
 }
 </style>

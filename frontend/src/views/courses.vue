@@ -116,10 +116,15 @@
             </el-table>
 
             <div v-else class="pages">
-                <div v-for="p in pages" :key="p.pageNo" class="page-item">
+                <div v-for="p in pages" :key="p.pageNo" class="page-item" @mouseup="onSelect(p.pageNo)">
                     <div class="page-no">第 {{ p.pageNo }} 页</div>
                     <div class="page-text">{{ p.content }}</div>
                 </div>
+            </div>
+
+            <div v-if="selectedText" class="select-bar">
+                <span>已选 {{ selectedText.length }} 字 · 第 {{ selectedPage }} 页</span>
+                <el-button type="primary" size="small" @click="goCreateQuestion">用这段出题</el-button>
             </div>
         </el-dialog>
     </div>
@@ -127,6 +132,7 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { downloadFile } from '@/utils/request';
 import {
@@ -167,6 +173,31 @@ const pages = ref<any[]>([]);
 const hits = ref<any[]>([]);
 const hitMode = ref(false);
 const pageKeyword = ref('');
+const selectedText = ref('');
+const selectedPage = ref(0);
+const router = useRouter();
+
+/** 鼠标在页文本上松开时，看看有没有选中文字 */
+const onSelect = (pageNo: number) => {
+    const text = window.getSelection()?.toString().trim() || '';
+    if (text) {
+        selectedText.value = text;
+        selectedPage.value = pageNo;
+    }
+};
+
+const goCreateQuestion = () => {
+    pageVisible.value = false;
+    router.push({
+        path: '/questions',
+        query: {
+            courseId: String(pageMaterial.value.courseId),
+            materialId: String(pageMaterial.value.id),
+            pageNo: String(selectedPage.value),
+            quote: selectedText.value.slice(0, 500)
+        }
+    });
+};
 
 const openPages = async (row: any) => {
     pageMaterial.value = row;
@@ -335,5 +366,15 @@ onMounted(load);
     line-height: 1.7;
     font-size: 13px;
     color: #303133;
+}
+.select-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+    padding: 8px 12px;
+    background: #ecf5ff;
+    border-radius: 4px;
+    font-size: 13px;
 }
 </style>

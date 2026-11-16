@@ -56,6 +56,9 @@ public class QuestionServiceImpl implements QuestionService {
         question.setUserId(userId);
         question.setCourseId(request.getCourseId());
         question.setChapterId(request.getChapterId());
+        question.setMaterialId(request.getMaterialId());
+        question.setPageNo(request.getPageNo());
+        question.setQuote(request.getQuote());
         question.setType(request.getType());
         question.setStem(request.getStem().trim());
         question.setOptions(JsonConverter.toJson(request.getOptions()));
@@ -210,6 +213,9 @@ public class QuestionServiceImpl implements QuestionService {
         vo.setId(question.getId());
         vo.setCourseId(question.getCourseId());
         vo.setChapterId(question.getChapterId());
+        vo.setMaterialId(question.getMaterialId());
+        vo.setPageNo(question.getPageNo());
+        vo.setQuote(question.getQuote());
         vo.setType(question.getType());
         vo.setStem(question.getStem());
         vo.setOptions(JsonConverter.toList(question.getOptions()));

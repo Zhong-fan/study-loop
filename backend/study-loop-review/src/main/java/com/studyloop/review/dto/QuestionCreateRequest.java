@@ -24,6 +24,14 @@ public class QuestionCreateRequest {
 
     private Long chapterId;
 
+    /** 来源资料，从"划词出题"进来时会带上 */
+    private Long materialId;
+
+    private Integer pageNo;
+
+    /** 选中出题的原文片段 */
+    private String quote;
+
     @NotBlank(message = "题型不能为空")
     private String type;
 

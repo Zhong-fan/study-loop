@@ -27,6 +27,15 @@ public class Question {
 
     private Long chapterId;
 
+    /** 题目来自哪份资料（可选）。存 id 而不是标题，资料改名不影响 */
+    private Long materialId;
+
+    /** 来自第几页，和资料解析出的页码一致 */
+    private Integer pageNo;
+
+    /** 出题时选中的那段原文，复习时用来"回看原文" */
+    private String quote;
+
     /** SINGLE 单选 / MULTIPLE 多选 / JUDGE 判断 / BLANK 填空 / SUBJECTIVE 主观 / IMAGE 图片 */
     private String type;
 
