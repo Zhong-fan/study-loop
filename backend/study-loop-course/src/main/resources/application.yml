@@ -1,0 +1,46 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: study-loop-course
+  servlet:
+    multipart:
+      # 单个文件上限，超过会抛 MaxUploadSizeExceededException
+      max-file-size: 50MB
+      max-request-size: 60MB
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/study_course?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: root
+    password: root123456
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+
+mybatis-plus:
+  configuration:
+    # 数据库字段 course_name 自动映射到 Java 的 courseName
+    map-underscore-to-camel-case: true
+    # 开发阶段打印 SQL，上线要关掉
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+knife4j:
+  enable: true
+
+app:
+  # 存储方式：local 存本地磁盘；minio 存对象存储
+  storage: local
+  # 上传文件的落盘目录，相对服务启动目录
+  upload-dir: ./uploads
+  # 用 minio 时填这里
+  minio:
+    endpoint: http://127.0.0.1:9000
+    access-key: minioadmin
+    secret-key: minioadmin
+    bucket: study-loop
+
+logging:
+  level:
+    com.studyloop.course: debug

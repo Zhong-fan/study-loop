@@ -1,0 +1,132 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [ main, dev ]
+  workflow_dispatch:
+
+# 同一个分支连推多次时，取消上一次还没跑完的任务：
+# 旧代码的检查结果对最新的提交没有意义，白占 runner。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------- 编译
+  backend:
+    name: build · backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+          cache-dependency-path: |
+            backend/pom.xml
+            backend/*/pom.xml
+
+      # 先把父 POM 装进本地仓库，再编译子模块，
+      # 否则子模块找不到 parent 会报 "Non-resolvable parent POM"。
+      # 这里不跳过测试：判分和排期算法是最值得回归的部分。
+      - name: Build & test
+        run: mvn -B -ntp -f backend/pom.xml install
+
+      - name: Upload jars
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jars
+          path: backend/*/target/*.jar
+          retention-days: 7
+
+  # ---------------------------------------------------------------- 约定检查
+  # 这几条是团队约定，写进 CI 比写在文档里管用：
+  # 文档没人看，CI 红了所有人都得改。
+  conventions:
+    name: guard · 约定检查
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 模块清单完整
+        run: |
+          missing=0
+          for m in common gateway auth course review; do
+            if [ ! -f "backend/study-loop-$m/pom.xml" ]; then
+              echo "::error::缺少模块 backend/study-loop-$m/pom.xml"
+              missing=1
+            fi
+          done
+          exit $missing
+
+      - name: 禁止 System.out / printStackTrace
+        run: |
+          if grep -rn --include='*.java' -E 'System\.out\.(print|printf)|printStackTrace\(' backend; then
+            echo "::error::请改用 slf4j 日志（log.info / log.error），不要直接往控制台打"
+            exit 1
+          fi
+
+      - name: 禁止字段注入
+        run: |
+          # 构造器注入是约定；@Autowired 标在字段上会让依赖关系藏起来
+          if grep -rn --include='*.java' -B1 '@Autowired' backend | grep -E '^\S+-[0-9]+-\s+(private|protected)\s'; then
+            echo "::error::请用构造器注入，不要把 @Autowired 标在字段上"
+            exit 1
+          fi
+
+      - name: 禁止跨服务引用
+        run: |
+          # 课程服务不能 import 账号服务的类，否则编译期就耦合了
+          if grep -rn --include='*.java' 'com\.studyloop\.auth' backend/study-loop-course backend/study-loop-review; then
+            echo "::error::服务之间不能直接 import 对方的类，请改用接口或快照字段"
+            exit 1
+          fi
+
+      - name: 每个服务都有启动类
+        run: |
+          for m in gateway auth course review; do
+            if ! ls backend/study-loop-$m/src/main/java/com/studyloop/$m/*Application.java >/dev/null 2>&1; then
+              echo "::error::backend/study-loop-$m 下没有 XxxApplication.java"
+              exit 1
+            fi
+          done
+
+  # ---------------------------------------------------------------- 前端
+  frontend:
+    name: build · frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+
+      - name: Type check
+        working-directory: frontend
+        run: npx vue-tsc --noEmit
+
+  # ---------------------------------------------------------------- 部署文件
+  compose:
+    name: check · docker-compose
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate compose file
+        run: docker compose -f backend/deploy/docker-compose.yml config --quiet

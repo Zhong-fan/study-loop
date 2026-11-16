@@ -1,0 +1,35 @@
+{
+	"name": "cmmr-frontend",
+	"version": "0.1.0",
+	"private": true,
+	"description": "CMMR 课程资料管理与错题复习系统 · 前端",
+	"scripts": {
+		"dev": "vite",
+		"build": "vue-tsc --noEmit && vite build",
+		"serve": "vite preview"
+	},
+	"dependencies": {
+		"@element-plus/icons-vue": "^2.3.1",
+		"axios": "^1.6.3",
+		"element-plus": "^2.6.3",
+		"nprogress": "^0.2.0",
+		"pinia": "^2.1.7",
+		"vue": "^3.4.5",
+		"vue-router": "^4.2.5"
+	},
+	"devDependencies": {
+		"@vitejs/plugin-vue": "^3.0.0",
+		"@vue/compiler-sfc": "^3.1.2",
+		"typescript": "^4.6.4",
+		"unplugin-auto-import": "^0.11.2",
+		"unplugin-vue-components": "^0.22.4",
+		"vite": "^3.2.11",
+		"vite-plugin-vue-setup-extend": "^0.4.0",
+		"vue-tsc": "^0.38.4"
+	},
+	"browserslist": [
+		"> 1%",
+		"last 2 versions",
+		"not dead"
+	]
+}

@@ -68,3 +68,11 @@ desktop.ini
 
 # ---- 本地笔记与截图（不入库）----
 notes/
+
+# ---- 与仓库无关的本地目录 ----
+.pnpm-store/
+DeepSeekHarness生成/
+系统集成开题/
+
+dev.log
+
