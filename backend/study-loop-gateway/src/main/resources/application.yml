@@ -22,7 +22,7 @@ spring:
         - id: review
           uri: lb://study-loop-review
           predicates:
-            - Path=/api/review/**
+            - Path=/api/review/**,/api/questions/**
 
 logging:
   level:

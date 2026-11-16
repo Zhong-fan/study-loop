@@ -37,7 +37,8 @@
 | 网关 | ✅ | 统一入口，校验 token 后把 `X-User-Id` 传给下游 |
 | 课程 | ✅ | 增删改查、分页、按名称搜索、软删除，数据按用户隔离 |
 | 资料 | 🟡 | 上传、下载、按课程/章节归类已完成；在线预览与文本检索待做 |
-| 错题 | ⬜ | 录题、分类型判分、复习排期（待实现） |
+| 错题 | ✅ | 六种题型、按题型校验、客观题服务端判分（多选漏选半分） |
+| 复习 | ✅ | 今日队列、SM-2 排期、复习流水、手动标掌握 |
 | 统计 | ⬜ | 薄弱章节、复习趋势（待实现） |
 
 ## 技术栈
@@ -175,6 +176,14 @@ curl -X POST http://localhost:8080/api/courses \
 | GET | `/api/materials?courseId=` | 资料列表 | 是 |
 | GET | `/api/materials/{id}/download` | 下载资料 | 是 |
 | DELETE | `/api/materials/{id}` | 删除资料（软删） | 是 |
+| POST | `/api/questions` | 新建题目（自动生成复习卡） | 是 |
+| GET | `/api/questions` | 分页查询题目 | 是 |
+| GET | `/api/questions/{id}` | 题目详情（含答案） | 是 |
+| PUT | `/api/questions/{id}` | 修改题目 | 是 |
+| DELETE | `/api/questions/{id}` | 删除题目 | 是 |
+| GET | `/api/review/today` | 今日待复习 | 是 |
+| POST | `/api/review/cards/{id}/answer` | 提交作答（自动判分） | 是 |
+| POST | `/api/review/cards/{id}/rate` | 自评（主观题） | 是 |
 | GET | `/api/review/ping` | 连通性检查 | 是 |
 
 ## 持续集成
@@ -183,7 +192,7 @@ CI 配置在 `.github/workflows/ci.yml`，PR 以及推送到 `main` / `dev` 时�
 
 | Job | 检查内容 |
 | --- | --- |
-| `build · backend` | JDK 17 编译打包五个模块，成功后把 jar 作为 artifact 保留 7 天 |
+| `build · backend` | JDK 17 编译五个模块并**运行单元测试**（判分规则、SM-2 排期），成功后把 jar 作为 artifact 保留 7 天 |
 | `guard · 约定检查` | 模块清单完整、禁止 `System.out`、禁止字段注入、禁止跨服务 import、每个服务必须有启动类 |
 | `check · docker-compose` | `docker compose config` 校验编排文件 |
 

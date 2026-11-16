@@ -33,8 +33,9 @@ jobs:
 
       # 先把父 POM 装进本地仓库，再编译子模块，
       # 否则子模块找不到 parent 会报 "Non-resolvable parent POM"。
-      - name: Build
-        run: mvn -B -ntp -f backend/pom.xml -DskipTests install
+      # 这里不跳过测试：判分和排期算法是最值得回归的部分。
+      - name: Build & test
+        run: mvn -B -ntp -f backend/pom.xml install
 
       - name: Upload jars
         if: success()
