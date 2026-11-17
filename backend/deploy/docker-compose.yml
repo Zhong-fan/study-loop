@@ -39,6 +39,17 @@ services:
       timeout: 5s
       retries: 10
 
+  seata:
+    image: seataio/seata-server:2.1.0
+    container_name: study-loop-seata
+    restart: unless-stopped
+    environment:
+      SEATA_PORT: 8091
+      STORE_MODE: file
+    ports:
+      - "8091:8091"
+      - "7091:7091"
+
   redis:
     image: redis:7-alpine
     container_name: study-loop-redis

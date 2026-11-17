@@ -29,5 +29,20 @@ mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
 
+# 全局事务参与者：被 practice 的 @GlobalTransactional 带进来
+seata:
+  enabled: ${SEATA_ENABLED:true}
+  application-id: insight-service
+  tx-service-group: study-loop-tx
+  service:
+    vgroup-mapping:
+      study-loop-tx: default
+    grouplist:
+      default: 127.0.0.1:8091
+  registry:
+    type: file
+  config:
+    type: file
+
 knife4j:
   enable: true

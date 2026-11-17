@@ -17,6 +17,7 @@ import com.studyloop.practice.service.ReviewService;
 import com.studyloop.practice.util.JsonConverter;
 import com.studyloop.practice.vo.AnswerResultVO;
 import com.studyloop.practice.vo.DueQuestionVO;
+import io.seata.spring.annotation.GlobalTransactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -96,6 +97,7 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     @Override
+    @GlobalTransactional
     @Transactional
     public AnswerResultVO answerQuestion(Long questionId, List<String> answer, Long costMs) {
         Question question = findOwned(questionId);
@@ -142,16 +144,13 @@ public class ReviewServiceImpl implements ReviewService {
 
         LocalDate next = LocalDate.now().plusDays(1);
         if (question.getKnowledgeId() != null) {
-            try {
-                Result<MasteryDue> response = insightClient.record(
-                        question.getUserId(),
-                        new AttemptPayload(question.getKnowledgeId(), rating >= 1));
-                if (response != null && response.getData() != null && response.getData().getNextReview() != null) {
-                    next = response.getData().getNextReview();
-                }
-            } catch (Exception e) {
-                // 统计晚一点补没关系，作答本身已经成功
-                LOG.warn("回调覆盖服务失败，掌握度稍后补: {}", e.getMessage());
+            // 这里不吞异常：覆盖服务失败就整体回滚，
+            // 否则 attempt 写进去了、掌握度没更新，账就对不上。
+            Result<MasteryDue> response = insightClient.record(
+                    question.getUserId(),
+                    new AttemptPayload(question.getKnowledgeId(), rating >= 1));
+            if (response != null && response.getData() != null && response.getData().getNextReview() != null) {
+                next = response.getData().getNextReview();
             }
         }
 
