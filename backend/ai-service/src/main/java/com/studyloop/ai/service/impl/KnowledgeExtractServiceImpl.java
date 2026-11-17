@@ -124,6 +124,7 @@ public class KnowledgeExtractServiceImpl implements KnowledgeExtractService {
                 - 一个知识点至少一条 evidence，quote 必须是原文里真实出现的片段；
                 - 出现「重点/必考/掌握」的知识点，confidence 给高一些，signal 用 KEYWORD；
                 - 不要把整章标题当成知识点，粒度控制在「一节/一个概念/一种方法」；
+                - name 要像教材目录条目，不超过 20 字，不要整句照抄原文，不要带「重点：」这类前缀；
                 - 没有依据的不要输出，宁可少抽。
 
                 资料内容：

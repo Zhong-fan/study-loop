@@ -29,14 +29,17 @@ public class AiController {
     private final AiService aiService;
     private final PageParseService pageParseService;
     private final com.studyloop.ai.service.KnowledgeExtractService knowledgeExtractService;
+    private final com.studyloop.ai.service.DraftGenerateService draftGenerateService;
     private final AiProperties properties;
 
     public AiController(AiService aiService, PageParseService pageParseService,
                         com.studyloop.ai.service.KnowledgeExtractService knowledgeExtractService,
+                        com.studyloop.ai.service.DraftGenerateService draftGenerateService,
                         AiProperties properties) {
         this.aiService = aiService;
         this.pageParseService = pageParseService;
         this.knowledgeExtractService = knowledgeExtractService;
+        this.draftGenerateService = draftGenerateService;
         this.properties = properties;
     }
 
@@ -60,6 +63,13 @@ public class AiController {
     public Result<List<JsonNode>> extractKnowledge(
             @RequestBody @Valid com.studyloop.ai.dto.KnowledgeExtractRequest request) {
         return Result.ok(knowledgeExtractService.extract(request));
+    }
+
+    @Operation(summary = "按知识点生成题目草稿（严格 Schema + 业务校验）")
+    @PostMapping("/generate-drafts")
+    public Result<List<JsonNode>> generateDrafts(
+            @RequestBody @Valid com.studyloop.ai.dto.DraftGenerateRequest request) {
+        return Result.ok(draftGenerateService.generate(request));
     }
 
     @Operation(summary = "按知识点生成题目草稿")
