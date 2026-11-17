@@ -31,7 +31,7 @@ mybatis-plus:
 
 # 全局事务参与者：被 practice 的 @GlobalTransactional 带进来
 seata:
-  enabled: ${SEATA_ENABLED:true}
+  enabled: ${SEATA_ENABLED:false}
   application-id: insight-service
   tx-service-group: study-loop-tx
   service:

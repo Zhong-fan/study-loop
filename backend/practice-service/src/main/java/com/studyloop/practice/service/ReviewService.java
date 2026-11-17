@@ -1,7 +1,7 @@
 package com.studyloop.practice.service;
 
 import com.studyloop.practice.vo.AnswerResultVO;
-import com.studyloop.practice.vo.DueQuestionVO;
+import com.studyloop.practice.vo.DueQueueVO;
 
 import java.util.List;
 
@@ -13,8 +13,8 @@ import java.util.List;
  */
 public interface ReviewService {
 
-    /** 今日待练：从覆盖服务拿到期知识点，再取这些知识点下的题 */
-    List<DueQuestionVO> dueQuestions(int limit);
+    /** 今日待练：到期的知识点里有题的返回题目，没题的返回知识点 id */
+    DueQueueVO dueQuestions(int limit);
 
     /** 客观题：提交作答，服务端判分 */
     AnswerResultVO answerQuestion(Long questionId, List<String> answer, Long costMs);

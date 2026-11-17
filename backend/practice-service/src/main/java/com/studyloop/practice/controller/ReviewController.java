@@ -5,7 +5,7 @@ import com.studyloop.practice.dto.AnswerSubmitRequest;
 import com.studyloop.practice.dto.RateRequest;
 import com.studyloop.practice.service.ReviewService;
 import com.studyloop.practice.vo.AnswerResultVO;
-import com.studyloop.practice.vo.DueQuestionVO;
+import com.studyloop.practice.vo.DueQueueVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -36,9 +36,9 @@ public class ReviewController {
         this.reviewService = reviewService;
     }
 
-    @Operation(summary = "今日待练（按知识点排期）")
+    @Operation(summary = "今日待练（按知识点排期，附带没有题目的知识点）")
     @GetMapping("/due-questions")
-    public Result<List<DueQuestionVO>> dueQuestions(@RequestParam(defaultValue = "20") int limit) {
+    public Result<DueQueueVO> dueQuestions(@RequestParam(defaultValue = "20") int limit) {
         return Result.ok(reviewService.dueQuestions(limit));
     }
 

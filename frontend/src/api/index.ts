@@ -90,6 +90,10 @@ export const getDueMastery = () => http.get('/insight/due');
 
 export const getWeakKnowledge = () => http.get('/insight/weak');
 
+export const getNotifications = () => http.get('/insight/notifications');
+
+export const markNotificationsRead = () => http.post('/insight/notifications/read-all');
+
 /** 教育 AI */
 export const getAiStatus = () => http.get('/ai/status');
 

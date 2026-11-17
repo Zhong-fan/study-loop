@@ -45,6 +45,8 @@
 | 缓存 | ✅ | 今日待练写 Redis（60 秒），作答后失效；Redis 不可用自动退回数据库 |
 | 解析任务 | ✅ | 每次 PDF 解析写 `task` 表（RUNNING→SUCCESS/FAILED），OCR 未配置时记 FAILED 并降级为图片浏览 |
 | 全局事务 | ✅ | 作答同时写 `attempt` 与 `mastery`，用 Seata AT 保证要么都成功、要么都回滚 |
+| 站内信 | ✅ | 今日待练提醒写 `notification` 表，顶栏显示未读数，可一键全部已读 |
+| 待练队列 | ✅ | 到期的知识点如果有题就出题；没题会单独返回知识点 id，提示去 AI 出题 |
 | 前端 | ✅ | 登录、今日复习、课程与资料（含知识点）、题库、自测、AI 出题、统计、用户管理 |
 
 ## 技术栈
@@ -149,7 +151,8 @@ java -jar backend/study-loop-gateway/target/study-loop-gateway-1.0.0.jar
 
 AI 需要 key：在仓库根目录建 `.env`（已被 git 忽略），参考 `.env.example` 填 `AI_API_KEY`。
 Spring 本身不读 `.env`，需要在启动 ai-service 前把里面的变量导出成环境变量（仓库里的启动脚本会解析它）。不填也能启动，接口会返回「AI 未配置」。
-Seata 同理：`SEATA_ENABLED=true` 时作答走全局事务，前提是 `docker compose` 里的 seata 已启动。
+Seata 同理：默认关闭（`seata.enabled: ${SEATA_ENABLED:false}`），这样只起 MySQL + Nacos 也能跑通作答；
+把 `SEATA_ENABLED=true` 打开后，作答走全局事务，前提是 `docker compose` 里的 seata 已启动。
 
 ### 4. 启动前端
 
@@ -235,6 +238,8 @@ curl -X POST http://localhost:8080/api/courses \
 | GET | `/api/insight/weak` | 盲区清单 | 是 |
 | GET | `/api/insight/coverage?courseId=` | 覆盖率 | 是 |
 | GET | `/api/insight/summary` | 练过 / 掌握 / 今日到期 | 是 |
+| GET | `/api/insight/notifications` | 站内信列表（顺便生成今日待练提醒） | 是 |
+| POST | `/api/insight/notifications/read-all` | 全部标为已读 | 是 |
 | GET | `/api/ai/status` | AI 是否可用 | 是 |
 | POST | `/api/ai/questions` | 按知识点生成题目草稿 | 是 |
 | POST | `/api/ai/grade` | 主观题按要点判分 | 是 |

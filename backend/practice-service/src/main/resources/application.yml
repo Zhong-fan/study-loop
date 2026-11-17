@@ -21,7 +21,7 @@ mybatis-plus:
 # 全局事务：作答要同时写 practice 的 attempt 和 insight 的 mastery。
 # 默认关闭，起 seata-server 后把 SEATA_ENABLED 设为 true 再启动服务。
 seata:
-  enabled: ${SEATA_ENABLED:true}
+  enabled: ${SEATA_ENABLED:false}
   application-id: practice-service
   tx-service-group: study-loop-tx
   service:

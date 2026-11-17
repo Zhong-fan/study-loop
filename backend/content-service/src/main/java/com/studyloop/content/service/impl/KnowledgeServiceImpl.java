@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.studyloop.common.context.UserContext;
 import com.studyloop.common.exception.BizException;
 import com.studyloop.common.result.ErrorCode;
+import com.studyloop.content.client.InsightCleanupClient;
 import com.studyloop.content.dto.KnowledgeRequest;
 import com.studyloop.content.entity.Chapter;
 import com.studyloop.content.entity.Knowledge;
@@ -11,6 +12,8 @@ import com.studyloop.content.mapper.ChapterMapper;
 import com.studyloop.content.mapper.KnowledgeMapper;
 import com.studyloop.content.service.KnowledgeService;
 import com.studyloop.content.vo.KnowledgeVO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -25,12 +28,17 @@ import java.util.List;
 @Service
 public class KnowledgeServiceImpl implements KnowledgeService {
 
+    private static final Logger LOG = LoggerFactory.getLogger(KnowledgeServiceImpl.class);
+
     private final KnowledgeMapper knowledgeMapper;
     private final ChapterMapper chapterMapper;
+    private final InsightCleanupClient insightCleanupClient;
 
-    public KnowledgeServiceImpl(KnowledgeMapper knowledgeMapper, ChapterMapper chapterMapper) {
+    public KnowledgeServiceImpl(KnowledgeMapper knowledgeMapper, ChapterMapper chapterMapper,
+                                InsightCleanupClient insightCleanupClient) {
         this.knowledgeMapper = knowledgeMapper;
         this.chapterMapper = chapterMapper;
+        this.insightCleanupClient = insightCleanupClient;
     }
 
     @Override
@@ -105,6 +113,13 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         Knowledge knowledge = findOwned(id);
         knowledge.setDeleted(1);
         knowledgeMapper.updateById(knowledge);
+
+        // 顺手清掉掌握记录；失败只记日志，不影响删除结果
+        try {
+            insightCleanupClient.deleteMastery(id, knowledge.getUserId());
+        } catch (Exception e) {
+            LOG.warn("清理知识点掌握记录失败，knowledgeId={}: {}", id, e.getMessage());
+        }
     }
 
     @Override

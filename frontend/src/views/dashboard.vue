@@ -3,8 +3,11 @@
         <el-card v-if="loading" v-loading="true" style="height: 200px" />
 
         <el-card v-else-if="!current">
-            <el-empty description="今天没有需要复习的题目">
-                <el-button type="primary" @click="load">刷新</el-button>
+            <el-empty :description="pending.length > 0
+                ? `有 ${pending.length} 个知识点到期，但还没有题目`
+                : '今天没有需要复习的题目'">
+                <el-button v-if="pending.length > 0" type="primary" @click="router.push('/ai')">去 AI 出题</el-button>
+                <el-button @click="load">刷新</el-button>
             </el-empty>
         </el-card>
 
@@ -104,12 +107,16 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
+import { useRouter } from 'vue-router';
 import { getDueQuestions, rateQuestion, submitQuestionAnswer } from '@/api';
 import { http } from '@/utils/request';
+
+const router = useRouter();
 
 const loading = ref(false);
 const submitting = ref(false);
 const cards = ref<any[]>([]);
+const pending = ref<number[]>([]);
 const index = ref(0);
 const single = ref('');
 const multiple = ref<string[]>([]);
@@ -153,7 +160,9 @@ const typeText = (type: string) => typeMap[type] || type;
 const load = async () => {
     loading.value = true;
     try {
-        cards.value = await getDueQuestions();
+        const data = await getDueQuestions();
+        cards.value = data.questions || [];
+        pending.value = data.pendingKnowledgeIds || [];
         index.value = 0;
         resetCard();
     } finally {

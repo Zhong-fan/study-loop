@@ -9,7 +9,9 @@ import com.studyloop.insight.vo.MasteryVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -60,5 +62,12 @@ public class MasteryController {
     @GetMapping("/summary")
     public Result<Map<String, Object>> summary() {
         return Result.ok(masteryService.summary(UserContext.requireUserId()));
+    }
+
+    @Operation(summary = "知识点删除后清理掌握记录（服务间调用）")
+    @DeleteMapping("/mastery/knowledge/{knowledgeId}")
+    public Result<Void> deleteByKnowledge(@PathVariable Long knowledgeId) {
+        masteryService.deleteByKnowledge(UserContext.requireUserId(), knowledgeId);
+        return Result.ok();
     }
 }

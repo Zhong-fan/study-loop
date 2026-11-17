@@ -220,6 +220,15 @@ public class MasteryServiceImpl implements MasteryService {
         return result;
     }
 
+    @Override
+    public void deleteByKnowledge(Long userId, Long knowledgeId) {
+        QueryWrapper<Mastery> wrapper = new QueryWrapper<>();
+        wrapper.eq("user_id", userId);
+        wrapper.eq("knowledge_id", knowledgeId);
+        masteryMapper.delete(wrapper);
+        evictDueCache(userId);
+    }
+
     private Mastery findByUserAndKnowledge(Long userId, Long knowledgeId) {
         QueryWrapper<Mastery> wrapper = new QueryWrapper<>();
         wrapper.eq("user_id", userId);

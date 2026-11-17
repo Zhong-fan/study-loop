@@ -21,4 +21,7 @@ public interface MasteryService {
 
     /** 给练习服务的看板用：练过多少、掌握多少、今天到期多少 */
     java.util.Map<String, Object> summary(Long userId);
+
+    /** 知识点删除后清掉它的掌握记录，避免覆盖率里出现孤儿数据 */
+    void deleteByKnowledge(Long userId, Long knowledgeId);
 }

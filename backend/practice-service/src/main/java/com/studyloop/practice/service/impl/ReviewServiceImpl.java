@@ -16,6 +16,7 @@ import com.studyloop.practice.mapper.QuestionMapper;
 import com.studyloop.practice.service.ReviewService;
 import com.studyloop.practice.util.JsonConverter;
 import com.studyloop.practice.vo.AnswerResultVO;
+import com.studyloop.practice.vo.DueQueueVO;
 import com.studyloop.practice.vo.DueQuestionVO;
 import io.seata.spring.annotation.GlobalTransactional;
 import org.slf4j.Logger;
@@ -25,8 +26,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 练习业务。
@@ -55,24 +57,25 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     @Override
-    public List<DueQuestionVO> dueQuestions(int limit) {
+    public DueQueueVO dueQuestions(int limit) {
         Long userId = UserContext.requireUserId();
         int size = limit <= 0 ? 20 : Math.min(limit, MAX_LIMIT);
+        DueQueueVO queue = new DueQueueVO();
 
         List<Long> knowledgeIds;
         try {
             Result<List<MasteryDue>> response = insightClient.due(userId);
             if (response == null || response.getData() == null || response.getData().isEmpty()) {
-                return new ArrayList<>();
+                return queue;
             }
             knowledgeIds = response.getData().stream()
                     .map(MasteryDue::getKnowledgeId)
                     .distinct()
                     .toList();
         } catch (Exception e) {
-            // 覆盖服务不可用时返回空列表，不要在练习服务里硬编码一套排期
+            // 覆盖服务不可用时返回空队列，不要在练习服务里硬编码一套排期
             LOG.warn("取今日待练失败: {}", e.getMessage());
-            return new ArrayList<>();
+            return queue;
         }
 
         QueryWrapper<Question> wrapper = new QueryWrapper<>();
@@ -82,7 +85,7 @@ public class ReviewServiceImpl implements ReviewService {
         wrapper.orderByAsc("knowledge_id");
         wrapper.last("limit " + size);
 
-        List<DueQuestionVO> result = new ArrayList<>();
+        Set<Long> withQuestion = new HashSet<>();
         for (Question question : questionMapper.selectList(wrapper)) {
             DueQuestionVO vo = new DueQuestionVO();
             vo.setQuestionId(question.getId());
@@ -91,9 +94,16 @@ public class ReviewServiceImpl implements ReviewService {
             vo.setStem(question.getStem());
             vo.setOptions(JsonConverter.toList(question.getOptions()));
             vo.setDifficulty(question.getDifficulty());
-            result.add(vo);
+            queue.getQuestions().add(vo);
+            withQuestion.add(question.getKnowledgeId());
         }
-        return result;
+
+        for (Long knowledgeId : knowledgeIds) {
+            if (!withQuestion.contains(knowledgeId)) {
+                queue.getPendingKnowledgeIds().add(knowledgeId);
+            }
+        }
+        return queue;
     }
 
     @Override
