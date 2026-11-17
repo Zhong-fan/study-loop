@@ -36,6 +36,13 @@ public class MasteryController {
     @PostMapping("/attempts")
     public Result<MasteryVO> record(@RequestBody @Valid AttemptRequest request) {
         Long userId = UserContext.requireUserId();
+        if (request.getDetails() != null && !request.getDetails().isEmpty()) {
+            return Result.ok(masteryService.recordDetails(userId, request.getCourseId(), request.getDetails()));
+        }
+        if (request.getKnowledgeId() == null || request.getCorrect() == null) {
+            throw new com.studyloop.common.exception.BizException(
+                    com.studyloop.common.result.ErrorCode.PARAM_ERROR, "knowledgeId 与 correct 不能为空");
+        }
         return Result.ok(masteryService.record(userId, request.getKnowledgeId(),
                 request.getCourseId(), request.getCorrect()));
     }

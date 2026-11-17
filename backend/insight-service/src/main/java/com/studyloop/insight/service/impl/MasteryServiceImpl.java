@@ -3,8 +3,11 @@ package com.studyloop.insight.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.studyloop.common.exception.BizException;
+import com.studyloop.common.result.ErrorCode;
 import com.studyloop.common.result.Result;
 import com.studyloop.insight.client.ContentClient;
+import com.studyloop.insight.dto.AttemptRequest;
 import com.studyloop.insight.entity.Mastery;
 import com.studyloop.insight.mapper.MasteryMapper;
 import com.studyloop.insight.schedule.ReviewScheduler;
@@ -92,6 +95,97 @@ public class MasteryServiceImpl implements MasteryService {
         }
         evictDueCache(userId);
         return toVO(mastery);
+    }
+
+    @Override
+    @Transactional
+    public MasteryVO recordDetails(Long userId, Long courseId, List<AttemptRequest.Detail> details) {
+        if (details == null || details.isEmpty()) {
+            throw new BizException(ErrorCode.PARAM_ERROR, "没有可记录的作答明细");
+        }
+        MasteryVO first = null;
+        for (AttemptRequest.Detail detail : details) {
+            MasteryVO vo = applyDetail(userId, courseId, detail);
+            if (first == null) {
+                first = vo;
+            }
+        }
+        evictDueCache(userId);
+        return first;
+    }
+
+    /**
+     * 单点题只动 surface，综合题只动 deep。
+     * 两轨都要有数据才判"会背不会用"：单点正确率高、综合得分明显低。
+     */
+    private MasteryVO applyDetail(Long userId, Long courseId, AttemptRequest.Detail detail) {
+        Mastery mastery = findByUserAndKnowledge(userId, detail.getKnowledgeId());
+        if (mastery == null) {
+            mastery = new Mastery();
+            mastery.setUserId(userId);
+            mastery.setKnowledgeId(detail.getKnowledgeId());
+            mastery.setCourseId(courseId);
+            mastery.setTotalCount(0);
+            mastery.setCorrectCount(0);
+            mastery.setAccuracy(0.0);
+            mastery.setStage(0);
+            mastery.setSurfaceAccuracy(0.0);
+            mastery.setDeepAccuracy(0.0);
+            mastery.setSurfaceCount(0);
+            mastery.setDeepCount(0);
+            mastery.setTransferFlag(0);
+        } else if (courseId != null) {
+            mastery.setCourseId(courseId);
+        }
+
+        double score = detail.getScore() == null ? 0 : Math.max(0, Math.min(1, detail.getScore()));
+        boolean single = !"COMPOSITE".equalsIgnoreCase(detail.getContext());
+
+        if (single) {
+            int count = (mastery.getSurfaceCount() == null ? 0 : mastery.getSurfaceCount()) + 1;
+            double acc = (value(mastery.getSurfaceAccuracy()) * (count - 1) + score) / count;
+            mastery.setSurfaceCount(count);
+            mastery.setSurfaceAccuracy(acc);
+        } else {
+            int count = (mastery.getDeepCount() == null ? 0 : mastery.getDeepCount()) + 1;
+            double acc = (value(mastery.getDeepAccuracy()) * (count - 1) + score) / count;
+            mastery.setDeepCount(count);
+            mastery.setDeepAccuracy(acc);
+        }
+
+        int surfaceCount = mastery.getSurfaceCount() == null ? 0 : mastery.getSurfaceCount();
+        int deepCount = mastery.getDeepCount() == null ? 0 : mastery.getDeepCount();
+        double overall = (value(mastery.getSurfaceAccuracy()) * surfaceCount
+                + value(mastery.getDeepAccuracy()) * deepCount) / Math.max(1, surfaceCount + deepCount);
+
+        boolean transfer = surfaceCount >= 2 && deepCount >= 1
+                && value(mastery.getSurfaceAccuracy()) - value(mastery.getDeepAccuracy()) >= 0.3;
+
+        mastery.setAccuracy(overall);
+        mastery.setTotalCount(mastery.getTotalCount() + 1);
+        mastery.setCorrectCount(mastery.getCorrectCount() + (score >= 1 ? 1 : 0));
+        mastery.setTransferFlag(transfer ? 1 : 0);
+
+        int stage = mastery.getStage() == null ? 0 : mastery.getStage();
+        if (score >= 1 && !transfer) {
+            stage = ReviewScheduler.nextStage(stage, true);
+        } else if (score < 0.5) {
+            stage = 0;
+        }
+        mastery.setStage(stage);
+        mastery.setNextReview(ReviewScheduler.nextDate(stage, LocalDate.now()));
+        mastery.setUpdatedAt(LocalDateTime.now());
+
+        if (mastery.getId() == null) {
+            masteryMapper.insert(mastery);
+        } else {
+            masteryMapper.updateById(mastery);
+        }
+        return toVO(mastery);
+    }
+
+    private double value(Double number) {
+        return number == null ? 0.0 : number;
     }
 
     @Override

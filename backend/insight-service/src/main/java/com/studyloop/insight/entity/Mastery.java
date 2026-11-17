@@ -39,5 +39,18 @@ public class Mastery {
 
     private LocalDate nextReview;
 
+    /** 单点题（单选/判断/填空）正确率 */
+    private Double surfaceAccuracy;
+
+    /** 综合题按评分点拆出来的得分率 */
+    private Double deepAccuracy;
+
+    private Integer surfaceCount;
+
+    private Integer deepCount;
+
+    /** 1 表示"会背不会用" */
+    private Integer transferFlag;
+
     private LocalDateTime updatedAt;
 }

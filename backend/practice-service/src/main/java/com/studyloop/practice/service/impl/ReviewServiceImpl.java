@@ -9,9 +9,13 @@ import com.studyloop.practice.client.AttemptPayload;
 import com.studyloop.practice.client.InsightClient;
 import com.studyloop.practice.client.MasteryDue;
 import com.studyloop.practice.entity.Attempt;
+import com.studyloop.practice.entity.AttemptDetail;
 import com.studyloop.practice.entity.Question;
+import com.studyloop.practice.entity.QuestionKnowledge;
 import com.studyloop.practice.judge.AnswerJudge;
+import com.studyloop.practice.mapper.AttemptDetailMapper;
 import com.studyloop.practice.mapper.AttemptMapper;
+import com.studyloop.practice.mapper.QuestionKnowledgeMapper;
 import com.studyloop.practice.mapper.QuestionMapper;
 import com.studyloop.practice.service.ReviewService;
 import com.studyloop.practice.util.JsonConverter;
@@ -26,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -46,13 +51,19 @@ public class ReviewServiceImpl implements ReviewService {
 
     private final QuestionMapper questionMapper;
     private final AttemptMapper attemptMapper;
+    private final AttemptDetailMapper attemptDetailMapper;
+    private final QuestionKnowledgeMapper questionKnowledgeMapper;
     private final InsightClient insightClient;
 
     public ReviewServiceImpl(QuestionMapper questionMapper,
                              AttemptMapper attemptMapper,
+                             AttemptDetailMapper attemptDetailMapper,
+                             QuestionKnowledgeMapper questionKnowledgeMapper,
                              InsightClient insightClient) {
         this.questionMapper = questionMapper;
         this.attemptMapper = attemptMapper;
+        this.attemptDetailMapper = attemptDetailMapper;
+        this.questionKnowledgeMapper = questionKnowledgeMapper;
         this.insightClient = insightClient;
     }
 
@@ -153,13 +164,29 @@ public class ReviewServiceImpl implements ReviewService {
         attempt.setAnsweredAt(LocalDateTime.now());
         attemptMapper.insert(attempt);
 
+        // 把这道题的得分拆到每个知识点：单点题记 surface，多知识点题记 deep
+        List<QuestionKnowledge> links = questionKnowledgeMapper.selectList(
+                new QueryWrapper<QuestionKnowledge>().eq("question_id", question.getId()));
+        List<AttemptPayload.Detail> details = buildDetails(question, links, score);
+        for (AttemptPayload.Detail detail : details) {
+            AttemptDetail row = new AttemptDetail();
+            row.setAttemptId(attempt.getId());
+            row.setKnowledgeId(detail.knowledgeId());
+            row.setQuestionType(question.getType());
+            row.setContext(detail.context());
+            row.setWeight(detail.weight());
+            row.setScore(detail.score());
+            attemptDetailMapper.insert(row);
+        }
+
         LocalDate next = LocalDate.now().plusDays(1);
-        if (question.getKnowledgeId() != null) {
+        if (!details.isEmpty()) {
             // 这里不吞异常：覆盖服务失败就整体回滚，
             // 否则 attempt 写进去了、掌握度没更新，账就对不上。
             Result<MasteryDue> response = insightClient.record(
                     question.getUserId(),
-                    new AttemptPayload(question.getKnowledgeId(), question.getCourseId(), rating >= 1));
+                    new AttemptPayload(question.getKnowledgeId(), question.getCourseId(),
+                            rating >= 1, details));
             if (response != null && response.getData() != null && response.getData().getNextReview() != null) {
                 next = response.getData().getNextReview();
             }
@@ -172,6 +199,27 @@ public class ReviewServiceImpl implements ReviewService {
         result.setCorrectAnswer(JsonConverter.toList(question.getAnswer()));
         result.setAnalysis(question.getAnalysis());
         return result;
+    }
+
+    /**
+     * 一道题的得分拆到知识点。
+     * 只挂一个知识点算单点情境，挂多个（或题型是综合题）算综合情境。
+     */
+    private List<AttemptPayload.Detail> buildDetails(Question question, List<QuestionKnowledge> links, double score) {
+        List<AttemptPayload.Detail> details = new ArrayList<>();
+        if (links != null && !links.isEmpty()) {
+            boolean composite = links.size() > 1 || "COMPOSITE".equalsIgnoreCase(question.getType());
+            for (QuestionKnowledge link : links) {
+                details.add(new AttemptPayload.Detail(link.getKnowledgeId(),
+                        composite ? "COMPOSITE" : "SINGLE",
+                        score,
+                        link.getWeight() == null ? 1.0 : link.getWeight()));
+            }
+        } else if (question.getKnowledgeId() != null) {
+            // 老数据没有关联表，退回单知识点
+            details.add(new AttemptPayload.Detail(question.getKnowledgeId(), "SINGLE", score, 1.0));
+        }
+        return details;
     }
 
     private Question findOwned(Long questionId) {
