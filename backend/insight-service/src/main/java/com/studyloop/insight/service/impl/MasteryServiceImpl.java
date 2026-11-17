@@ -158,20 +158,17 @@ public class MasteryServiceImpl implements MasteryService {
         double overall = (value(mastery.getSurfaceAccuracy()) * surfaceCount
                 + value(mastery.getDeepAccuracy()) * deepCount) / Math.max(1, surfaceCount + deepCount);
 
-        boolean transfer = surfaceCount >= 2 && deepCount >= 1
-                && value(mastery.getSurfaceAccuracy()) - value(mastery.getDeepAccuracy()) >= 0.3;
+        boolean transfer = com.studyloop.insight.support.MasteryRule.isTransfer(
+                value(mastery.getSurfaceAccuracy()), surfaceCount,
+                value(mastery.getDeepAccuracy()), deepCount);
 
         mastery.setAccuracy(overall);
         mastery.setTotalCount(mastery.getTotalCount() + 1);
         mastery.setCorrectCount(mastery.getCorrectCount() + (score >= 1 ? 1 : 0));
         mastery.setTransferFlag(transfer ? 1 : 0);
 
-        int stage = mastery.getStage() == null ? 0 : mastery.getStage();
-        if (score >= 1 && !transfer) {
-            stage = ReviewScheduler.nextStage(stage, true);
-        } else if (score < 0.5) {
-            stage = 0;
-        }
+        int stage = com.studyloop.insight.support.MasteryRule.nextStage(
+                mastery.getStage() == null ? 0 : mastery.getStage(), score, transfer);
         mastery.setStage(stage);
         mastery.setNextReview(ReviewScheduler.nextDate(stage, LocalDate.now()));
         mastery.setUpdatedAt(LocalDateTime.now());

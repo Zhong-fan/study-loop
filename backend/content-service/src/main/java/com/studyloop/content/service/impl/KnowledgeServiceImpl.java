@@ -229,12 +229,8 @@ public class KnowledgeServiceImpl implements KnowledgeService {
             }
 
             int importance = knowledge.getImportance() == null ? 3 : knowledge.getImportance();
-            double weight = 0.35 * (importance / 5.0)
-                    + 0.25 * Math.min(keyword, 3) / 3.0
-                    + 0.20 * Math.min(example, 2) / 2.0
-                    + 0.10 * Math.min(evidences.size(), 5) / 5.0
-                    + 0.10 * Math.min(repeat, 2) / 2.0;
-            weight = Math.min(1.0, Math.round(weight * 100) / 100.0);
+            double weight = com.studyloop.content.support.KnowledgeWeightCalculator.compute(
+                    importance, keyword, example, repeat, evidences.size());
 
             WeightedKnowledgeVO vo = new WeightedKnowledgeVO();
             vo.setKnowledgeId(knowledge.getId());

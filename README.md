@@ -47,7 +47,9 @@
 | 全局事务 | ✅ | 作答同时写 `attempt` 与 `mastery`，用 Seata AT 保证要么都成功、要么都回滚 |
 | 站内信 | ✅ | 今日待练提醒写 `notification` 表，顶栏显示未读数，可一键全部已读 |
 | 待练队列 | ✅ | 到期的知识点如果有题就出题；没题会单独返回知识点 id，提示去 AI 出题 |
-| 前端 | ✅ | 登录、今日复习、课程与资料（含知识点）、题库、自测、AI 出题、统计、用户管理 |
+| 押题链路 | ✅ | 资料解析（文字层 + 扫描件视觉）→ 知识点抽取（带原文证据）→ 结构化出题（多知识点 + 评分点）→ 预测卷（按证据权重选题） |
+| 双轨掌握度 | ✅ | 单点题与综合题分开统计；单点高、综合低判为「会背不会用」，排期不升档 |
+| 前端 | ✅ | 登录、今日复习、课程与资料（含知识点）、题库、自测、AI 出题、预测卷、统计、用户管理 |
 
 ## 技术栈
 
@@ -250,6 +252,16 @@ curl -X POST http://localhost:8080/api/courses \
 | POST | `/api/review/questions/{id}/answer` | 按题目作答判分 | 是 |
 | POST | `/api/review/questions/{id}/rate` | 按题目自评 | 是 |
 | GET | `/api/review/ping` | 连通性检查 | 是 |
+| POST | `/api/materials/{id}/parse` | 页面解析：文字层直接解析，扫描件渲染成图走视觉模型 | 是 |
+| POST | `/api/knowledge/extract?courseId=&chapterId=&materialId=` | 从已解析资料自动抽知识点（带证据，重复运行不重复入库） | 是 |
+| GET | `/api/knowledge/evidence?courseId=` | 知识点证据（页码、原文、信号类型） | 是 |
+| GET | `/api/knowledge/weighted?courseId=` | 知识点权重（预测卷用） | 是 |
+| GET | `/api/insight/transfer` | 会背不会用的知识点（单点高、综合低） | 是 |
+| POST | `/api/ai/parse-page` | 一页原文或图片 → 结构化页面（PageDoc） | 是 |
+| POST | `/api/ai/extract-knowledge` | 几页原文 → 带证据的知识点候选 | 是 |
+| POST | `/api/ai/generate-drafts` | 按题型模板生成题目草稿（多知识点 + 评分点 + 证据校验） | 是 |
+| POST | `/api/questions/from-drafts?courseId=&chapterId=` | 草稿入库（写题目、知识点关联、评分点） | 是 |
+| GET | `/api/review/predict?courseId=&size=` | 按知识点权重组预测卷，每题带依据 | 是 |
 
 ## 持续集成
 
