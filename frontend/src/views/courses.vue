@@ -121,11 +121,17 @@
             <el-table :data="materials" size="small" border>
                 <el-table-column prop="title" label="名称" show-overflow-tooltip />
                 <el-table-column prop="fileType" label="类型" width="80" />
-                <el-table-column label="操作" width="150">
+                <el-table-column label="操作" width="350">
                     <template #default="{ row }">
                         <el-button link type="primary" @click="preview(row)">预览</el-button>
                         <el-button link type="primary" @click="openPages(row)">文字</el-button>
                         <el-button link type="primary" @click="download(row)">下载</el-button>
+                        <el-button link type="primary" :loading="parsingId === row.id" @click="parseOne(row)">
+                            解析
+                        </el-button>
+                        <el-button link type="primary" :loading="extractingId === row.id" @click="extractOne(row)">
+                            抽知识点
+                        </el-button>
                         <el-button link type="danger" @click="removeMaterial(row)">删除</el-button>
                     </template>
                 </el-table-column>
@@ -186,6 +192,8 @@ import {
     getKnowledgeByChapter,
     getMaterialPages,
     getMaterials,
+    extractKnowledge,
+    parseMaterial,
     searchMaterial,
     updateCourse,
     uploadMaterial
@@ -365,6 +373,38 @@ const openDetail = async (row: any) => {
 const loadDetail = async () => {
     chapters.value = await getChapters(current.value.id);
     materials.value = await getMaterials(current.value.id);
+};
+
+/** 页面解析：把这份资料的文字页逐页交给大模型，产出结构化内容 */
+const parsingId = ref<number | null>(null);
+const parseOne = async (row: any) => {
+    parsingId.value = row.id;
+    try {
+        const result = await parseMaterial(row.id);
+        ElMessage.success(`解析完成：成功 ${result.parsed} 页，待复核 ${result.needsReview} 页`);
+    } finally {
+        parsingId.value = null;
+    }
+};
+
+/** 知识点抽取：需要先选章节，抽完直接入库 */
+const extractingId = ref<number | null>(null);
+const extractOne = async (row: any) => {
+    const chapterId = row.chapterId || activeChapter.value?.id;
+    if (!chapterId) {
+        ElMessage.warning('先在左边选一个章节，抽出的知识点要归到章下');
+        return;
+    }
+    extractingId.value = row.id;
+    try {
+        const result = await extractKnowledge(current.value.id, chapterId, row.id);
+        ElMessage.success(`新增 ${result.created} 个知识点，跳过重复 ${result.duplicates} 个`);
+        if (activeChapter.value && activeChapter.value.id === chapterId) {
+            knowledges.value = await getKnowledgeByChapter(chapterId);
+        }
+    } finally {
+        extractingId.value = null;
+    }
 };
 
 const addChapter = async () => {

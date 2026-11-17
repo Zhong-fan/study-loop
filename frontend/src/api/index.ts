@@ -106,3 +106,10 @@ export const getUsers = () => http.get('/admin/users');
 
 export const setUserStatus = (id: number, deleted: 0 | 1) =>
     http.put(`/admin/users/${id}/status?deleted=${deleted}`);
+
+/** 页面解析：逐页交给大模型，产出结构化内容与强调信号 */
+export const parseMaterial = (id: number) => http.post(`/materials/${id}/parse`);
+
+/** 从资料里自动抽取知识点（全自动入库，重复运行不重复） */
+export const extractKnowledge = (courseId: number, chapterId: number, materialId: number) =>
+    http.post('/knowledge/extract', {}, { params: { courseId, chapterId, materialId } });
