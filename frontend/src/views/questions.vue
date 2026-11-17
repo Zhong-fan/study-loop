@@ -36,6 +36,12 @@
                         <el-button link type="danger" @click="remove(row)">删除</el-button>
                     </template>
                 </el-table-column>
+                <template #empty>
+                    <el-empty description="题库还是空的" :image-size="80">
+                        <el-button type="primary" @click="openCreate">新建题目</el-button>
+                        <el-button @click="router.push('/ai')">用 AI 出题</el-button>
+                    </el-empty>
+                </template>
             </el-table>
 
             <el-pagination
@@ -127,11 +133,12 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { createQuestion, deleteQuestion, getChapters, getCourses, getQuestion, getQuestions, updateQuestion } from '@/api';
 
 const route = useRoute();
+const router = useRouter();
 
 const types = [
     { value: 'SINGLE', label: '单选' },

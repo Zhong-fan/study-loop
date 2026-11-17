@@ -67,6 +67,12 @@
                 <el-table-column label="答案" width="90">
                     <template #default="{ row }">{{ row.answer.join(',') }}</template>
                 </el-table-column>
+                <template #empty>
+                    <el-empty
+                        description="还没有草稿：先选课程和知识点，再点「生成题目」"
+                        :image-size="80"
+                    />
+                </template>
             </el-table>
 
             <div class="actions">

@@ -29,6 +29,11 @@
                         <el-button link type="danger" @click="remove(row)">删除</el-button>
                     </template>
                 </el-table-column>
+                <template #empty>
+                    <el-empty description="还没有课程，先建一门再上传资料" :image-size="80">
+                        <el-button type="primary" @click="openCreate">新建课程</el-button>
+                    </el-empty>
+                </template>
             </el-table>
 
             <el-pagination
