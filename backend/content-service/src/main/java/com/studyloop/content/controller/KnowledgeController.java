@@ -1,7 +1,9 @@
 package com.studyloop.content.controller;
 
+import com.studyloop.common.context.UserContext;
 import com.studyloop.common.result.Result;
 import com.studyloop.content.dto.KnowledgeRequest;
+import com.studyloop.content.service.KnowledgeExtractService;
 import com.studyloop.content.service.KnowledgeService;
 import com.studyloop.content.vo.KnowledgeVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -25,9 +27,11 @@ import java.util.List;
 public class KnowledgeController {
 
     private final KnowledgeService knowledgeService;
+    private final KnowledgeExtractService extractService;
 
-    public KnowledgeController(KnowledgeService knowledgeService) {
+    public KnowledgeController(KnowledgeService knowledgeService, KnowledgeExtractService extractService) {
         this.knowledgeService = knowledgeService;
+        this.extractService = extractService;
     }
 
     @Operation(summary = "某章下的知识点")
@@ -66,5 +70,14 @@ public class KnowledgeController {
     public Result<Void> delete(@PathVariable Long id) {
         knowledgeService.delete(id);
         return Result.ok();
+    }
+
+    @Operation(summary = "从已解析资料自动抽取知识点（全自动，重复运行不会重复入库）")
+    @PostMapping("/extract")
+    public Result<java.util.Map<String, Object>> extract(@RequestParam Long courseId,
+                                                         @RequestParam Long chapterId,
+                                                         @RequestParam Long materialId) {
+        Long userId = UserContext.requireUserId();
+        return Result.ok(extractService.extract(userId, courseId, chapterId, materialId));
     }
 }

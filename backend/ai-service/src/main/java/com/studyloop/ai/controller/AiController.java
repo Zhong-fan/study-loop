@@ -28,11 +28,15 @@ public class AiController {
 
     private final AiService aiService;
     private final PageParseService pageParseService;
+    private final com.studyloop.ai.service.KnowledgeExtractService knowledgeExtractService;
     private final AiProperties properties;
 
-    public AiController(AiService aiService, PageParseService pageParseService, AiProperties properties) {
+    public AiController(AiService aiService, PageParseService pageParseService,
+                        com.studyloop.ai.service.KnowledgeExtractService knowledgeExtractService,
+                        AiProperties properties) {
         this.aiService = aiService;
         this.pageParseService = pageParseService;
+        this.knowledgeExtractService = knowledgeExtractService;
         this.properties = properties;
     }
 
@@ -49,6 +53,13 @@ public class AiController {
     @PostMapping("/parse-page")
     public Result<JsonNode> parsePage(@RequestBody @Valid PageParseRequest request) {
         return Result.ok(pageParseService.parse(request));
+    }
+
+    @Operation(summary = "知识点抽取：几页原文 → 带证据的知识点候选")
+    @PostMapping("/extract-knowledge")
+    public Result<List<JsonNode>> extractKnowledge(
+            @RequestBody @Valid com.studyloop.ai.dto.KnowledgeExtractRequest request) {
+        return Result.ok(knowledgeExtractService.extract(request));
     }
 
     @Operation(summary = "按知识点生成题目草稿")

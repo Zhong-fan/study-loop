@@ -13,7 +13,7 @@ import java.util.Map;
  * 调 ai-service 做页面解析。
  * 真正的模型调用在 ai-service 里，content-service 不碰 API Key。
  */
-@FeignClient(name = "ai-service", path = "/api/ai")
+@FeignClient(name = "ai-service", contextId = "aiParseClient", path = "/api/ai")
 public interface AiParseClient {
 
     @PostMapping("/parse-page")

@@ -23,7 +23,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["material_id", "page", "quote", "signal"],
+        "required": ["page", "quote", "signal"],
         "properties": {
           "material_id": { "type": "integer", "minimum": 1 },
           "page": { "type": "integer", "minimum": 1 },
