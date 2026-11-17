@@ -26,6 +26,9 @@ public class User {
 
     private String nickname;
 
+    /** STUDENT 学习者 / ADMIN 管理员（部署与账号维护） */
+    private String role;
+
     private LocalDateTime createdAt;
 
     /** 0 正常，1 已禁用 */

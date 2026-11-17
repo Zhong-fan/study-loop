@@ -6,8 +6,10 @@ import com.studyloop.common.exception.BizException;
 import com.studyloop.common.result.ErrorCode;
 import com.studyloop.content.entity.Course;
 import com.studyloop.content.entity.Material;
+import com.studyloop.content.entity.Task;
 import com.studyloop.content.mapper.CourseMapper;
 import com.studyloop.content.mapper.MaterialMapper;
+import com.studyloop.content.mapper.TaskMapper;
 import com.studyloop.content.service.MaterialPageService;
 import com.studyloop.content.service.MaterialService;
 import com.studyloop.content.storage.FileStorage;
@@ -22,7 +24,9 @@ import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 资料业务实现。
@@ -43,15 +47,18 @@ public class MaterialServiceImpl implements MaterialService {
     private final CourseMapper courseMapper;
     private final FileStorage fileStorage;
     private final MaterialPageService pageService;
+    private final TaskMapper taskMapper;
 
     public MaterialServiceImpl(MaterialMapper materialMapper,
                                CourseMapper courseMapper,
                                FileStorage fileStorage,
-                               MaterialPageService pageService) {
+                               MaterialPageService pageService,
+                               TaskMapper taskMapper) {
         this.materialMapper = materialMapper;
         this.courseMapper = courseMapper;
         this.fileStorage = fileStorage;
         this.pageService = pageService;
+        this.taskMapper = taskMapper;
     }
 
     @Override
@@ -84,12 +91,15 @@ public class MaterialServiceImpl implements MaterialService {
 
         materialMapper.insert(material);
 
-        // PDF 顺手抽一次文字；解析失败不影响上传结果，只记日志
+        // PDF 顺手抽一次文字；解析失败不影响上传结果，只记日志，并把失败写进任务表
         if ("pdf".equals(extension)) {
+            Task task = startParseTask(course.getUserId(), material.getId());
             try (InputStream in = fileStorage.open(fileKey)) {
                 pageService.parsePdf(material.getId(), course.getUserId(), in);
+                finishTask(task, null);
             } catch (Exception e) {
                 log.warn("资料解析失败，materialId={}", material.getId(), e);
+                finishTask(task, e.getMessage());
             }
         }
 
@@ -141,6 +151,29 @@ public class MaterialServiceImpl implements MaterialService {
         return course;
     }
 
+    @Override
+    public Map<String, Object> requestOcr(Long materialId) {
+        Material material = findOwnedMaterial(materialId);
+
+        // 没有接 OCR 引擎：如实记一条失败任务，前端按"图片浏览"降级展示
+        Task task = new Task();
+        task.setUserId(material.getUserId());
+        task.setMaterialId(materialId);
+        task.setType("OCR");
+        task.setStatus("FAILED");
+        task.setRetryCount(0);
+        task.setErrorMsg("OCR 未配置，已降级为图片浏览");
+        task.setCreatedAt(LocalDateTime.now());
+        task.setUpdatedAt(LocalDateTime.now());
+        taskMapper.insert(task);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("taskId", task.getId());
+        result.put("status", task.getStatus());
+        result.put("message", task.getErrorMsg());
+        return result;
+    }
+
     private Material findOwnedMaterial(Long id) {
         Long userId = UserContext.requireUserId();
 
@@ -149,6 +182,27 @@ public class MaterialServiceImpl implements MaterialService {
             throw new BizException(ErrorCode.NOT_FOUND, "资料不存在");
         }
         return material;
+    }
+
+    /** 解析开始：建一条 RUNNING 任务，失败也能在表里看到 */
+    private Task startParseTask(Long userId, Long materialId) {
+        Task task = new Task();
+        task.setUserId(userId);
+        task.setMaterialId(materialId);
+        task.setType("PARSE");
+        task.setStatus("RUNNING");
+        task.setRetryCount(0);
+        task.setCreatedAt(LocalDateTime.now());
+        task.setUpdatedAt(LocalDateTime.now());
+        taskMapper.insert(task);
+        return task;
+    }
+
+    private void finishTask(Task task, String error) {
+        task.setStatus(error == null ? "SUCCESS" : "FAILED");
+        task.setErrorMsg(error == null ? null : error.substring(0, Math.min(error.length(), 250)));
+        task.setUpdatedAt(LocalDateTime.now());
+        taskMapper.updateById(task);
     }
 
     private String removeExtension(String fileName) {

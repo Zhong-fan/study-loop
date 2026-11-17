@@ -70,7 +70,12 @@ const submitForm = () => {
             localStorage.setItem('token', data.token);
             localStorage.setItem(
                 'user',
-                JSON.stringify({ userId: data.userId, username: data.username, nickname: data.nickname })
+                JSON.stringify({
+                    userId: data.userId,
+                    username: data.username,
+                    nickname: data.nickname,
+                    role: data.role || 'STUDENT'
+                })
             );
             ElMessage.success('登录成功');
             router.push('/dashboard');

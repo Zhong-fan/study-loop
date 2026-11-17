@@ -27,6 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 资料接口。
@@ -117,6 +118,12 @@ public class MaterialController {
             default:
                 return "application/octet-stream";
         }
+    }
+
+    @Operation(summary = "OCR 识别（未配置引擎时返回失败任务，前端降级为图片浏览）")
+    @PostMapping("/{id}/ocr")
+    public Result<Map<String, Object>> ocr(@PathVariable Long id) {
+        return Result.ok(materialService.requestOcr(id));
     }
 
     @Operation(summary = "查看资料逐页文字（PDF 解析结果）")

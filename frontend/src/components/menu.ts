@@ -37,5 +37,11 @@ export const menuData: Menus[] = [
         title: '统计',
         index: '/stats',
         icon: 'PieChart'
+    },
+    {
+        id: '6',
+        title: '用户管理',
+        index: '/admin',
+        icon: 'User'
     }
 ];

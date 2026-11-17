@@ -13,6 +13,17 @@ spring:
     nacos:
       discovery:
         server-addr: 127.0.0.1:8848
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      timeout: 2s
+
+# 今日待练缓存：Redis 挂了就直连数据库，不影响功能
+app:
+  cache:
+    enabled: true
+    due-ttl-seconds: 60
 
 mybatis-plus:
   configuration:

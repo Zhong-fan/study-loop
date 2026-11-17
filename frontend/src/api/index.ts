@@ -96,3 +96,9 @@ export const getAiStatus = () => http.get('/ai/status');
 export const aiGenerateQuestions = (data: object) => http.post('/ai/questions', data);
 
 export const aiGrade = (data: object) => http.post('/ai/grade', data);
+
+/** 管理员 */
+export const getUsers = () => http.get('/admin/users');
+
+export const setUserStatus = (id: number, deleted: 0 | 1) =>
+    http.put(`/admin/users/${id}/status?deleted=${deleted}`);

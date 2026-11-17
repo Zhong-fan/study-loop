@@ -14,4 +14,7 @@ public class LoginVO {
     private Long userId;
     private String username;
     private String nickname;
+
+    /** STUDENT / ADMIN，前端据此决定显不显示管理入口 */
+    private String role;
 }

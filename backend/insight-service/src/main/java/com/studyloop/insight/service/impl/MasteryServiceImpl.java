@@ -1,6 +1,8 @@
 package com.studyloop.insight.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.studyloop.common.result.Result;
 import com.studyloop.insight.client.ContentClient;
 import com.studyloop.insight.entity.Mastery;
@@ -11,9 +13,12 @@ import com.studyloop.insight.vo.CoverageVO;
 import com.studyloop.insight.vo.MasteryVO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -32,10 +37,21 @@ public class MasteryServiceImpl implements MasteryService {
 
     private final MasteryMapper masteryMapper;
     private final ContentClient contentClient;
+    private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper;
 
-    public MasteryServiceImpl(MasteryMapper masteryMapper, ContentClient contentClient) {
+    @Value("${app.cache.enabled:true}")
+    private boolean cacheEnabled;
+
+    @Value("${app.cache.due-ttl-seconds:60}")
+    private long dueTtlSeconds;
+
+    public MasteryServiceImpl(MasteryMapper masteryMapper, ContentClient contentClient,
+                              StringRedisTemplate redisTemplate, ObjectMapper objectMapper) {
         this.masteryMapper = masteryMapper;
         this.contentClient = contentClient;
+        this.redisTemplate = redisTemplate;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -68,11 +84,26 @@ public class MasteryServiceImpl implements MasteryService {
         } else {
             masteryMapper.updateById(mastery);
         }
+        evictDueCache(userId);
         return toVO(mastery);
     }
 
     @Override
     public List<MasteryVO> due(Long userId) {
+        String key = dueKey(userId);
+
+        // 先读缓存；Redis 出任何问题都退回数据库，不把缓存当唯一数据源
+        if (cacheEnabled) {
+            try {
+                String cached = redisTemplate.opsForValue().get(key);
+                if (cached != null) {
+                    return objectMapper.readValue(cached, new TypeReference<List<MasteryVO>>() { });
+                }
+            } catch (Exception e) {
+                log.warn("读今日待练缓存失败，改查数据库: {}", e.getMessage());
+            }
+        }
+
         QueryWrapper<Mastery> wrapper = new QueryWrapper<>();
         wrapper.eq("user_id", userId);
         wrapper.le("next_review", LocalDate.now());
@@ -82,7 +113,31 @@ public class MasteryServiceImpl implements MasteryService {
         for (Mastery mastery : masteryMapper.selectList(wrapper)) {
             result.add(toVO(mastery));
         }
+
+        if (cacheEnabled && !result.isEmpty()) {
+            try {
+                redisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(result),
+                        Duration.ofSeconds(dueTtlSeconds));
+            } catch (Exception e) {
+                log.warn("写今日待练缓存失败: {}", e.getMessage());
+            }
+        }
         return result;
+    }
+
+    private String dueKey(Long userId) {
+        return "cmmr:due:" + userId;
+    }
+
+    private void evictDueCache(Long userId) {
+        if (!cacheEnabled) {
+            return;
+        }
+        try {
+            redisTemplate.delete(dueKey(userId));
+        } catch (Exception e) {
+            log.warn("清今日待练缓存失败: {}", e.getMessage());
+        }
     }
 
     @Override
