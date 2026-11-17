@@ -50,13 +50,13 @@ export const updateQuestion = (id: number, data: object) => http.put(`/questions
 export const deleteQuestion = (id: number) => http.delete(`/questions/${id}`);
 
 /** 复习 */
-export const getTodayCards = (limit = 50) => http.get('/review/today', { limit });
+export const getDueQuestions = (limit = 20) => http.get('/review/due-questions', { limit });
 
-export const submitAnswer = (cardId: number, answer: string[], costMs: number) =>
-    http.post(`/review/cards/${cardId}/answer`, { answer, costMs });
+export const submitQuestionAnswer = (questionId: number, answer: string[], costMs: number) =>
+    http.post(`/review/questions/${questionId}/answer`, { answer, costMs });
 
-export const rateCard = (cardId: number, rating: number, costMs: number) =>
-    http.post(`/review/cards/${cardId}/rate`, { rating, costMs });
+export const rateQuestion = (questionId: number, rating: number, costMs: number) =>
+    http.post(`/review/questions/${questionId}/rate`, { rating, costMs });
 
 /** 统计 */
 export const getOverview = () => http.get('/review/stats/overview');

@@ -15,7 +15,7 @@
                         剩余 {{ cards.length - index }} 题 ·
                         <el-tag size="small">{{ typeText(current.type) }}</el-tag>
                     </span>
-                    <span class="muted">到期日 {{ current.dueDate }}</span>
+                    <span class="muted">知识点 #{{ current.knowledgeId }}</span>
                 </div>
             </template>
 
@@ -104,7 +104,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import { getTodayCards, submitAnswer, rateCard } from '@/api';
+import { getDueQuestions, rateQuestion, submitQuestionAnswer } from '@/api';
 import { http } from '@/utils/request';
 
 const loading = ref(false);
@@ -153,7 +153,7 @@ const typeText = (type: string) => typeMap[type] || type;
 const load = async () => {
     loading.value = true;
     try {
-        cards.value = await getTodayCards();
+        cards.value = await getDueQuestions();
         index.value = 0;
         resetCard();
     } finally {
@@ -186,7 +186,7 @@ const submit = async () => {
     }
     submitting.value = true;
     try {
-        result.value = await submitAnswer(current.value.cardId, answer, Date.now() - startAt.value);
+        result.value = await submitQuestionAnswer(current.value.questionId, answer, Date.now() - startAt.value);
     } finally {
         submitting.value = false;
     }
@@ -203,7 +203,7 @@ const revealAnswer = async () => {
 const rate = async (rating: number) => {
     submitting.value = true;
     try {
-        result.value = await rateCard(current.value.cardId, rating, Date.now() - startAt.value);
+        result.value = await rateQuestion(current.value.questionId, rating, Date.now() - startAt.value);
     } finally {
         submitting.value = false;
     }

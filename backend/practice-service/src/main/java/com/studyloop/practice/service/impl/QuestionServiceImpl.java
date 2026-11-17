@@ -9,9 +9,7 @@ import com.studyloop.common.result.PageResult;
 import com.studyloop.practice.dto.QuestionCreateRequest;
 import com.studyloop.practice.dto.QuestionUpdateRequest;
 import com.studyloop.practice.entity.Question;
-import com.studyloop.practice.entity.ReviewCard;
 import com.studyloop.practice.mapper.QuestionMapper;
-import com.studyloop.practice.mapper.ReviewCardMapper;
 import com.studyloop.practice.service.QuestionService;
 import com.studyloop.practice.util.JsonConverter;
 import com.studyloop.practice.vo.QuestionVO;
@@ -27,9 +25,8 @@ import java.util.List;
 /**
  * 题目业务实现。
  * <p>
- * 两个关键点：
- * 1. 建题和建卡必须在一个事务里 —— 只有题没有卡，这道题永远不会出现在复习列表。
- * 2. 保存前要按题型校验选项和答案，否则脏数据会一直留到判分时才炸。
+ * 保存前按题型校验选项和答案，否则脏数据会一直留到判分时才炸。
+ * 题目的复习排期由 insight 的 mastery 负责，这里不再维护复习卡。
  */
 @Service
 public class QuestionServiceImpl implements QuestionService {
@@ -39,11 +36,9 @@ public class QuestionServiceImpl implements QuestionService {
     );
 
     private final QuestionMapper questionMapper;
-    private final ReviewCardMapper reviewCardMapper;
 
-    public QuestionServiceImpl(QuestionMapper questionMapper, ReviewCardMapper reviewCardMapper) {
+    public QuestionServiceImpl(QuestionMapper questionMapper) {
         this.questionMapper = questionMapper;
-        this.reviewCardMapper = reviewCardMapper;
     }
 
     @Override
@@ -71,19 +66,6 @@ public class QuestionServiceImpl implements QuestionService {
         question.setUpdatedAt(LocalDateTime.now());
         question.setDeleted(0);
         questionMapper.insert(question);
-
-        ReviewCard card = new ReviewCard();
-        card.setUserId(userId);
-        card.setQuestionId(question.getId());
-        card.setState("NEW");
-        card.setEaseFactor(2.5);
-        card.setIntervalDays(0);
-        card.setRepetitions(0);
-        card.setLapses(0);
-        card.setDueDate(LocalDate.now());
-        card.setCreatedAt(LocalDateTime.now());
-        card.setDeleted(0);
-        reviewCardMapper.insert(card);
 
         return question.getId();
     }
@@ -113,15 +95,6 @@ public class QuestionServiceImpl implements QuestionService {
         question.setDeleted(1);
         question.setUpdatedAt(LocalDateTime.now());
         questionMapper.updateById(question);
-
-        // 卡片一起失效，否则今日复习还会把它捞出来
-        QueryWrapper<ReviewCard> wrapper = new QueryWrapper<>();
-        wrapper.eq("question_id", id);
-        ReviewCard card = reviewCardMapper.selectOne(wrapper);
-        if (card != null) {
-            card.setDeleted(1);
-            reviewCardMapper.updateById(card);
-        }
     }
 
     @Override

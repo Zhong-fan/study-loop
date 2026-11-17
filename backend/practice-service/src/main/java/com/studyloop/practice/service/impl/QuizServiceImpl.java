@@ -10,13 +10,11 @@ import com.studyloop.practice.entity.Question;
 import com.studyloop.practice.entity.Quiz;
 import com.studyloop.practice.entity.QuizAnswer;
 import com.studyloop.practice.entity.QuizItem;
-import com.studyloop.practice.entity.ReviewCard;
 import com.studyloop.practice.judge.AnswerJudge;
 import com.studyloop.practice.mapper.QuestionMapper;
 import com.studyloop.practice.mapper.QuizAnswerMapper;
 import com.studyloop.practice.mapper.QuizItemMapper;
 import com.studyloop.practice.mapper.QuizMapper;
-import com.studyloop.practice.mapper.ReviewCardMapper;
 import com.studyloop.practice.service.QuizService;
 import com.studyloop.practice.service.ReviewService;
 import com.studyloop.practice.util.JsonConverter;
@@ -54,20 +52,17 @@ public class QuizServiceImpl implements QuizService {
     private final QuizItemMapper quizItemMapper;
     private final QuizAnswerMapper quizAnswerMapper;
     private final QuestionMapper questionMapper;
-    private final ReviewCardMapper reviewCardMapper;
     private final ReviewService reviewService;
 
     public QuizServiceImpl(QuizMapper quizMapper,
                            QuizItemMapper quizItemMapper,
                            QuizAnswerMapper quizAnswerMapper,
                            QuestionMapper questionMapper,
-                           ReviewCardMapper reviewCardMapper,
                            ReviewService reviewService) {
         this.quizMapper = quizMapper;
         this.quizItemMapper = quizItemMapper;
         this.quizAnswerMapper = quizAnswerMapper;
         this.questionMapper = questionMapper;
-        this.reviewCardMapper = reviewCardMapper;
         this.reviewService = reviewService;
     }
 
@@ -223,22 +218,12 @@ public class QuizServiceImpl implements QuizService {
 
     /** 把一道题的得分换算成复习评分，交给复习服务统一排期 */
     private void applyToReviewCard(Long questionId, double score) {
-        Long userId = UserContext.requireUserId();
-
-        QueryWrapper<ReviewCard> wrapper = new QueryWrapper<>();
-        wrapper.eq("question_id", questionId);
-        wrapper.eq("user_id", userId);
-        ReviewCard card = reviewCardMapper.selectOne(wrapper);
-        if (card == null) {
-            return;
-        }
-
         int rating = score >= 1.0 ? 2 : (score > 0 ? 1 : 0);
         try {
-            reviewService.rate(card.getId(), rating, 0L);
+            reviewService.rateQuestion(questionId, rating, 0L);
         } catch (Exception e) {
-            // 单张卡排期失败不该让整份卷子交不上
-            log.warn("自测回流复习卡失败，cardId={}", card.getId(), e);
+            // 单题排期失败不该让整份卷子交不上
+            log.warn("自测回流掌握度失败，questionId={}", questionId, e);
         }
     }
 

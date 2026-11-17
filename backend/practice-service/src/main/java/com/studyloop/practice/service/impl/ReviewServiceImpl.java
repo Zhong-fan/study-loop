@@ -1,26 +1,22 @@
 package com.studyloop.practice.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.studyloop.common.context.UserContext;
 import com.studyloop.common.exception.BizException;
 import com.studyloop.common.result.ErrorCode;
+import com.studyloop.common.result.Result;
 import com.studyloop.practice.client.AttemptPayload;
 import com.studyloop.practice.client.InsightClient;
+import com.studyloop.practice.client.MasteryDue;
 import com.studyloop.practice.entity.Attempt;
 import com.studyloop.practice.entity.Question;
-import com.studyloop.practice.entity.ReviewCard;
-import com.studyloop.practice.entity.ReviewLog;
 import com.studyloop.practice.judge.AnswerJudge;
-import com.studyloop.practice.judge.Sm2Scheduler;
 import com.studyloop.practice.mapper.AttemptMapper;
 import com.studyloop.practice.mapper.QuestionMapper;
-import com.studyloop.practice.mapper.ReviewCardMapper;
-import com.studyloop.practice.mapper.ReviewLogMapper;
 import com.studyloop.practice.service.ReviewService;
 import com.studyloop.practice.util.JsonConverter;
 import com.studyloop.practice.vo.AnswerResultVO;
-import com.studyloop.practice.vo.ReviewCardVO;
+import com.studyloop.practice.vo.DueQuestionVO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -29,87 +25,80 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
- * 复习业务实现。
+ * 练习业务。
  * <p>
- * 一次复习 = 改卡片 + 写流水，两件事必须在一个事务里：
- * 只改了卡片没写流水，统计会少一次；只写流水没改卡片，这张卡明天还会出现。
+ * 一次作答 = 写 attempt 流水 + 回调 insight 更新掌握度。
+ * 下次复习时间取 insight 的返回值，练习服务不再自己算间隔。
  */
 @Service
 public class ReviewServiceImpl implements ReviewService {
 
-    /** 单次最多取多少张卡，防止一口气给人 500 道 */
+    /** 单次最多取多少道，防止一口气给人 500 道 */
     private static final int MAX_LIMIT = 200;
 
     private static final Logger LOG = LoggerFactory.getLogger(ReviewServiceImpl.class);
 
-    private final ReviewCardMapper reviewCardMapper;
-    private final ReviewLogMapper reviewLogMapper;
     private final QuestionMapper questionMapper;
     private final AttemptMapper attemptMapper;
     private final InsightClient insightClient;
 
-    public ReviewServiceImpl(ReviewCardMapper reviewCardMapper,
-                             ReviewLogMapper reviewLogMapper,
-                             QuestionMapper questionMapper,
+    public ReviewServiceImpl(QuestionMapper questionMapper,
                              AttemptMapper attemptMapper,
                              InsightClient insightClient) {
-        this.reviewCardMapper = reviewCardMapper;
-        this.reviewLogMapper = reviewLogMapper;
         this.questionMapper = questionMapper;
         this.attemptMapper = attemptMapper;
         this.insightClient = insightClient;
     }
 
     @Override
-    public List<ReviewCardVO> today(int limit) {
+    public List<DueQuestionVO> dueQuestions(int limit) {
         Long userId = UserContext.requireUserId();
-        int size = limit <= 0 ? 50 : Math.min(limit, MAX_LIMIT);
+        int size = limit <= 0 ? 20 : Math.min(limit, MAX_LIMIT);
 
-        QueryWrapper<ReviewCard> wrapper = new QueryWrapper<>();
-        wrapper.eq("user_id", userId);
-        wrapper.eq("deleted", 0);
-        wrapper.le("due_date", LocalDate.now());
-        wrapper.orderByAsc("due_date");
-
-        List<ReviewCard> cards = reviewCardMapper
-                .selectPage(new Page<>(1, size), wrapper)
-                .getRecords();
-        if (cards.isEmpty()) {
+        List<Long> knowledgeIds;
+        try {
+            Result<List<MasteryDue>> response = insightClient.due(userId);
+            if (response == null || response.getData() == null || response.getData().isEmpty()) {
+                return new ArrayList<>();
+            }
+            knowledgeIds = response.getData().stream()
+                    .map(MasteryDue::getKnowledgeId)
+                    .distinct()
+                    .toList();
+        } catch (Exception e) {
+            // 覆盖服务不可用时返回空列表，不要在练习服务里硬编码一套排期
+            LOG.warn("取今日待练失败: {}", e.getMessage());
             return new ArrayList<>();
         }
 
-        // 一次把题目都查出来，不要在循环里查库
-        List<Long> questionIds = new ArrayList<>();
-        for (ReviewCard card : cards) {
-            questionIds.add(card.getQuestionId());
-        }
-        Map<Long, Question> questionMap = new HashMap<>();
-        for (Question question : questionMapper.selectBatchIds(questionIds)) {
-            questionMap.put(question.getId(), question);
-        }
+        QueryWrapper<Question> wrapper = new QueryWrapper<>();
+        wrapper.eq("user_id", userId);
+        wrapper.eq("deleted", 0);
+        wrapper.in("knowledge_id", knowledgeIds);
+        wrapper.orderByAsc("knowledge_id");
+        wrapper.last("limit " + size);
 
-        List<ReviewCardVO> result = new ArrayList<>();
-        for (ReviewCard card : cards) {
-            Question question = questionMap.get(card.getQuestionId());
-            if (question == null) {
-                continue;
-            }
-            result.add(toVO(card, question));
+        List<DueQuestionVO> result = new ArrayList<>();
+        for (Question question : questionMapper.selectList(wrapper)) {
+            DueQuestionVO vo = new DueQuestionVO();
+            vo.setQuestionId(question.getId());
+            vo.setKnowledgeId(question.getKnowledgeId());
+            vo.setType(question.getType());
+            vo.setStem(question.getStem());
+            vo.setOptions(JsonConverter.toList(question.getOptions()));
+            vo.setDifficulty(question.getDifficulty());
+            result.add(vo);
         }
         return result;
     }
 
     @Override
     @Transactional
-    public AnswerResultVO submitAnswer(Long cardId, List<String> answer, Long costMs) {
-        ReviewCard card = findOwnedCard(cardId);
-        Question question = findQuestion(card.getQuestionId());
-
+    public AnswerResultVO answerQuestion(Long questionId, List<String> answer, Long costMs) {
+        Question question = findOwned(questionId);
         if (!AnswerJudge.autoGradable(question.getType())) {
             throw new BizException(ErrorCode.PARAM_ERROR, "该题型不支持自动判分，请使用自评接口");
         }
@@ -125,122 +114,63 @@ public class ReviewServiceImpl implements ReviewService {
         } else {
             rating = 0;
         }
-
-        AnswerResultVO result = applyRating(card, question, rating, costMs == null ? 0L : costMs);
-        result.setScore(score);
-        return result;
+        return applyResult(question, rating, score, costMs == null ? 0L : costMs, "AUTO");
     }
 
     @Override
     @Transactional
-    public AnswerResultVO rate(Long cardId, int rating, Long costMs) {
-        ReviewCard card = findOwnedCard(cardId);
-        Question question = findQuestion(card.getQuestionId());
-        return applyRating(card, question, rating, costMs == null ? 0L : costMs);
+    public AnswerResultVO rateQuestion(Long questionId, int rating, Long costMs) {
+        Question question = findOwned(questionId);
+        double score = rating == 2 ? 1.0 : (rating == 1 ? 0.5 : 0);
+        return applyResult(question, rating, score, costMs == null ? 0L : costMs, "SELF");
     }
 
     /**
-     * 排期：算新状态 → 更新卡片 → 写流水。
-     * 主观题自评和客观题判分最后都走这里，保证只有一套排期逻辑。
+     * 写流水 → 回调覆盖服务 → 用返回的下次复习日期组装结果。
      */
-    private AnswerResultVO applyRating(ReviewCard card, Question question, int rating, Long costMs) {
-        Sm2Scheduler.Result next = Sm2Scheduler.next(
-                rating,
-                card.getEaseFactor(),
-                card.getIntervalDays(),
-                card.getRepetitions(),
-                card.getLapses()
-        );
-
-        ReviewLog log = new ReviewLog();
-        log.setCardId(card.getId());
-        log.setUserId(card.getUserId());
-        log.setRating(rating);
-        log.setPrevInterval(card.getIntervalDays());
-        log.setNextInterval(next.intervalDays);
-        log.setPrevEase(card.getEaseFactor());
-        log.setNextEase(next.ease);
-        log.setCostMs(costMs);
-        log.setReviewedAt(LocalDateTime.now());
-
-        card.setEaseFactor(next.ease);
-        card.setIntervalDays(next.intervalDays);
-        card.setRepetitions(next.repetitions);
-        card.setLapses(next.lapses);
-        card.setState("REVIEW");
-        card.setLastReviewAt(LocalDateTime.now());
-        card.setDueDate(LocalDate.now().plusDays(next.intervalDays));
-        reviewCardMapper.updateById(card);
-
-        reviewLogMapper.insert(log);
-
-        // 作答流水：不管有没有知识点都记，覆盖统计只挑有知识点的
-        double score = rating == 2 ? 1.0 : (rating == 1 ? 0.5 : 0);
+    private AnswerResultVO applyResult(Question question, int rating, double score,
+                                       Long costMs, String grader) {
         Attempt attempt = new Attempt();
-        attempt.setUserId(card.getUserId());
+        attempt.setUserId(question.getUserId());
         attempt.setQuestionId(question.getId());
         attempt.setKnowledgeId(question.getKnowledgeId());
         attempt.setScore(score);
-        attempt.setGrader("SELF");
+        attempt.setGrader(grader);
         attempt.setCostMs(costMs);
         attempt.setAnsweredAt(LocalDateTime.now());
         attemptMapper.insert(attempt);
 
-        // 通知覆盖服务；失败不阻塞作答
+        LocalDate next = LocalDate.now().plusDays(1);
         if (question.getKnowledgeId() != null) {
             try {
-                insightClient.record(card.getUserId(), new AttemptPayload(question.getKnowledgeId(), rating >= 1));
+                Result<MasteryDue> response = insightClient.record(
+                        question.getUserId(),
+                        new AttemptPayload(question.getKnowledgeId(), rating >= 1));
+                if (response != null && response.getData() != null && response.getData().getNextReview() != null) {
+                    next = response.getData().getNextReview();
+                }
             } catch (Exception e) {
+                // 统计晚一点补没关系，作答本身已经成功
                 LOG.warn("回调覆盖服务失败，掌握度稍后补: {}", e.getMessage());
             }
         }
 
-        // 间隔超过 30 天就算"掌握"，但仍然参与长间隔复习
-        if (next.intervalDays >= 30 && question.getStatus() == 0) {
-            question.setStatus(1);
-            question.setUpdatedAt(LocalDateTime.now());
-            questionMapper.updateById(question);
-        }
-
         AnswerResultVO result = new AnswerResultVO();
-        result.setScore(rating == 2 ? 1.0 : (rating == 1 ? 0.5 : 0));
+        result.setScore(score);
         result.setRating(rating);
-        result.setNextDueDate(card.getDueDate());
+        result.setNextDueDate(next);
         result.setCorrectAnswer(JsonConverter.toList(question.getAnswer()));
         result.setAnalysis(question.getAnalysis());
         return result;
     }
 
-    private ReviewCard findOwnedCard(Long cardId) {
+    private Question findOwned(Long questionId) {
         Long userId = UserContext.requireUserId();
 
-        ReviewCard card = reviewCardMapper.selectById(cardId);
-        if (card == null || card.getDeleted() == 1 || !userId.equals(card.getUserId())) {
-            throw new BizException(ErrorCode.NOT_FOUND, "复习卡不存在");
-        }
-        return card;
-    }
-
-    private Question findQuestion(Long questionId) {
         Question question = questionMapper.selectById(questionId);
-        if (question == null || question.getDeleted() == 1) {
+        if (question == null || question.getDeleted() == 1 || !userId.equals(question.getUserId())) {
             throw new BizException(ErrorCode.NOT_FOUND, "题目不存在");
         }
         return question;
-    }
-
-    private ReviewCardVO toVO(ReviewCard card, Question question) {
-        ReviewCardVO vo = new ReviewCardVO();
-        vo.setCardId(card.getId());
-        vo.setQuestionId(question.getId());
-        vo.setType(question.getType());
-        vo.setStem(question.getStem());
-        vo.setOptions(JsonConverter.toList(question.getOptions()));
-        vo.setDifficulty(question.getDifficulty());
-        vo.setState(card.getState());
-        vo.setIntervalDays(card.getIntervalDays());
-        vo.setRepetitions(card.getRepetitions());
-        vo.setDueDate(card.getDueDate());
-        return vo;
     }
 }
