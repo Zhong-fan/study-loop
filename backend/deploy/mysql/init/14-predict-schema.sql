@@ -1,5 +1,11 @@
 -- 押题方案 P2：解析结构化、知识点证据、题目多知识点、作答明细、掌握度双轨
 -- 说明：init 脚本只在全新库执行一次；已有库请手动执行同文件
+--
+-- 归属约定：
+--   study_course  —— 资料、页、知识点、证据
+--   study_review  —— 题目、题目↔知识点、评分点、作答、作答明细
+--   study_insight —— 掌握度
+-- 跨库不写外键，靠服务层校验。
 
 USE study_course;
 
@@ -27,7 +33,9 @@ CREATE TABLE IF NOT EXISTS knowledge_evidence (
     KEY idx_material_page (material_id, page_no)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='知识点证据';
 
--- 题目 ↔ 知识点，多对多
+USE study_review;
+
+-- 题目 ↔ 知识点，多对多（和 question 同库）
 CREATE TABLE IF NOT EXISTS question_knowledge (
     id           BIGINT      NOT NULL AUTO_INCREMENT COMMENT '主键',
     question_id  BIGINT      NOT NULL COMMENT '题目',
@@ -50,8 +58,6 @@ CREATE TABLE IF NOT EXISTS question_rubric (
     PRIMARY KEY (id),
     KEY idx_question (question_id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='评分点';
-
-USE study_review;
 
 -- 作答明细：把得分拆到知识点维度
 CREATE TABLE IF NOT EXISTS attempt_detail (

@@ -1,9 +1,12 @@
 package com.studyloop.practice.controller;
 
+import com.studyloop.common.context.UserContext;
 import com.studyloop.common.result.PageResult;
 import com.studyloop.common.result.Result;
 import com.studyloop.practice.dto.QuestionCreateRequest;
+import com.studyloop.practice.dto.QuestionDraftRequest;
 import com.studyloop.practice.dto.QuestionUpdateRequest;
+import com.studyloop.practice.service.QuestionDraftService;
 import com.studyloop.practice.service.QuestionService;
 import com.studyloop.practice.vo.QuestionVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,9 +31,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class QuestionController {
 
     private final QuestionService questionService;
+    private final QuestionDraftService draftService;
 
-    public QuestionController(QuestionService questionService) {
+    public QuestionController(QuestionService questionService, QuestionDraftService draftService) {
         this.questionService = questionService;
+        this.draftService = draftService;
+    }
+
+    @Operation(summary = "把 AI 草稿存入题库（含知识点关联与评分点）")
+    @PostMapping("/from-drafts")
+    public Result<java.util.List<Long>> saveDrafts(@RequestParam Long courseId,
+                                                   @RequestParam(required = false) Long chapterId,
+                                                   @RequestBody java.util.List<QuestionDraftRequest> drafts) {
+        return Result.ok(draftService.save(UserContext.requireUserId(), courseId, chapterId, drafts));
     }
 
     @Operation(summary = "分页查询题目")
