@@ -146,8 +146,8 @@ const coverageOption = computed(() => {
 
 const trendOption = computed(() => ({
     tooltip: { trigger: 'axis' },
-    legend: { data: ['复习次数', '正确率'], right: 0, top: 0, textStyle: { fontSize: 12 } },
-    grid: { left: 8, right: 8, top: 40, bottom: 8, containLabel: true },
+    legend: { data: ['复习次数', '正确率'], left: 0, top: 0, itemWidth: 12, textStyle: { fontSize: 12 } },
+    grid: { left: 8, right: 16, top: 40, bottom: 8, containLabel: true },
     xAxis: {
         type: 'category',
         data: trend.value.map((t) => t.statDate?.slice(5) ?? ''),
@@ -157,14 +157,11 @@ const trendOption = computed(() => ({
     yAxis: [
         {
             type: 'value',
-            name: '次数',
-            nameTextStyle: { color: '#9ca3af', fontSize: 11 },
             splitLine: { lineStyle: { color: '#f3f4f6' } },
             axisLabel: { color: '#9ca3af', fontSize: 11 }
         },
         {
             type: 'value',
-            name: '正确率',
             min: 0,
             max: 1,
             axisLabel: {

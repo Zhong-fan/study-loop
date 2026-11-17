@@ -102,7 +102,7 @@ const handleCommand = (command: string) => {
 };
 
 onMounted(async () => {
-    if (document.body.clientWidth < 1500) {
+    if (document.body.clientWidth < 1180) {
         collapseChage();
     }
     try {
