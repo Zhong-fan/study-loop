@@ -39,6 +39,7 @@
         <knife4j.version>4.5.0</knife4j.version>
         <minio.version>8.5.12</minio.version>
         <pdfbox.version>2.0.31</pdfbox.version>
+        <json-schema.version>1.0.87</json-schema.version>
     </properties>
 
     <dependencyManagement>
@@ -95,6 +96,11 @@
                 <groupId>com.studyloop</groupId>
                 <artifactId>study-loop-common</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.networknt</groupId>
+                <artifactId>json-schema-validator</artifactId>
+                <version>${json-schema.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
