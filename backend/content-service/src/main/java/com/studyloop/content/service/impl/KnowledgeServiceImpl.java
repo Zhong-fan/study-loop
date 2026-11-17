@@ -15,6 +15,7 @@ import com.studyloop.content.mapper.KnowledgeMapper;
 import com.studyloop.content.service.KnowledgeService;
 import com.studyloop.content.vo.KnowledgeEvidenceVO;
 import com.studyloop.content.vo.KnowledgeVO;
+import com.studyloop.content.vo.WeightedKnowledgeVO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -194,6 +195,60 @@ public class KnowledgeServiceImpl implements KnowledgeService {
             vo.setWeight(evidence.getWeight());
             result.add(vo);
         }
+        return result;
+    }
+    @Override
+    public List<WeightedKnowledgeVO> weightedByCourse(Long courseId) {
+        List<Knowledge> list = knowledgeMapper.selectList(new QueryWrapper<Knowledge>()
+                .eq("course_id", courseId)
+                .eq("user_id", UserContext.requireUserId())
+                .eq("deleted", 0));
+
+        List<WeightedKnowledgeVO> result = new ArrayList<>();
+        for (Knowledge knowledge : list) {
+            List<KnowledgeEvidence> evidences = evidenceMapper.selectList(
+                    new QueryWrapper<KnowledgeEvidence>().eq("knowledge_id", knowledge.getId()));
+
+            int keyword = 0;
+            int example = 0;
+            int outline = 0;
+            int repeat = 0;
+            java.util.LinkedHashSet<Integer> pages = new java.util.LinkedHashSet<>();
+            for (KnowledgeEvidence evidence : evidences) {
+                String signal = evidence.getSignalType() == null ? "" : evidence.getSignalType();
+                switch (signal) {
+                    case "KEYWORD" -> keyword++;
+                    case "EXAMPLE" -> example++;
+                    case "OUTLINE" -> outline++;
+                    case "REPEAT" -> repeat++;
+                    default -> { }
+                }
+                if (evidence.getPageNo() != null) {
+                    pages.add(evidence.getPageNo());
+                }
+            }
+
+            int importance = knowledge.getImportance() == null ? 3 : knowledge.getImportance();
+            double weight = 0.35 * (importance / 5.0)
+                    + 0.25 * Math.min(keyword, 3) / 3.0
+                    + 0.20 * Math.min(example, 2) / 2.0
+                    + 0.10 * Math.min(evidences.size(), 5) / 5.0
+                    + 0.10 * Math.min(repeat, 2) / 2.0;
+            weight = Math.min(1.0, Math.round(weight * 100) / 100.0);
+
+            WeightedKnowledgeVO vo = new WeightedKnowledgeVO();
+            vo.setKnowledgeId(knowledge.getId());
+            vo.setName(knowledge.getName());
+            vo.setImportance(importance);
+            vo.setWeight(weight);
+            vo.setEvidenceCount(evidences.size());
+            vo.setKeywordCount(keyword);
+            vo.setExampleCount(example);
+            vo.setPages(pages.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(",")));
+            result.add(vo);
+        }
+
+        result.sort((a, b) -> Double.compare(b.getWeight(), a.getWeight()));
         return result;
     }
 }

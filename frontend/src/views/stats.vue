@@ -255,6 +255,8 @@ const weakOption = computed(() => {
             {
                 type: 'bar',
                 barMaxWidth: 16,
+                showBackground: true,
+                backgroundStyle: { color: '#f3f4f6', borderRadius: [0, 4, 4, 0] },
                 itemStyle: { color: '#fca5a5', borderRadius: [0, 4, 4, 0] },
                 label: {
                     show: true,

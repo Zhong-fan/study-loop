@@ -90,6 +90,8 @@ export const getDueMastery = () => http.get('/insight/due');
 
 export const getWeakKnowledge = () => http.get('/insight/weak');
 export const getTransfer = () => http.get('/insight/transfer');
+export const getPredict = (courseId: number, size: number) =>
+    http.get('/review/predict', { courseId, size });
 
 /** 知识点证据：出处页码与原文 */
 export const getKnowledgeEvidence = (courseId: number) =>

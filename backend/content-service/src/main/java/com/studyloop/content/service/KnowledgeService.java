@@ -22,4 +22,7 @@ public interface KnowledgeService {
 
     /** 某门课全部知识点的证据 */
     java.util.List<com.studyloop.content.vo.KnowledgeEvidenceVO> evidenceByCourse(Long courseId);
+
+    /** 按证据算加权的知识点列表，预测卷用 */
+    java.util.List<com.studyloop.content.vo.WeightedKnowledgeVO> weightedByCourse(Long courseId);
 }

@@ -72,6 +72,12 @@ public class KnowledgeController {
         return Result.ok();
     }
 
+    @Operation(summary = "按证据算加权的知识点（预测卷用）")
+    @GetMapping("/weighted")
+    public Result<java.util.List<com.studyloop.content.vo.WeightedKnowledgeVO>> weighted(@RequestParam Long courseId) {
+        return Result.ok(knowledgeService.weightedByCourse(courseId));
+    }
+
     @Operation(summary = "某门课全部知识点的证据（前端展示出处用）")
     @GetMapping("/evidence")
     public Result<java.util.List<com.studyloop.content.vo.KnowledgeEvidenceVO>> evidence(@RequestParam Long courseId) {
