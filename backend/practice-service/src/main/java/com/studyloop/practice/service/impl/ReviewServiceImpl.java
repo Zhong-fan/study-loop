@@ -89,10 +89,22 @@ public class ReviewServiceImpl implements ReviewService {
             return queue;
         }
 
+        // 多知识点题目：主知识点之外，关联知识点也可能到期，
+        // 所以先把 question_knowledge 里命中的题目一并捞出来
+        Set<Long> linkedQuestionIds = questionKnowledgeMapper.selectList(
+                        new QueryWrapper<QuestionKnowledge>().in("knowledge_id", knowledgeIds))
+                .stream()
+                .map(QuestionKnowledge::getQuestionId)
+                .collect(java.util.stream.Collectors.toSet());
+
         QueryWrapper<Question> wrapper = new QueryWrapper<>();
         wrapper.eq("user_id", userId);
         wrapper.eq("deleted", 0);
-        wrapper.in("knowledge_id", knowledgeIds);
+        if (linkedQuestionIds.isEmpty()) {
+            wrapper.in("knowledge_id", knowledgeIds);
+        } else {
+            wrapper.and(w -> w.in("id", linkedQuestionIds).or().in("knowledge_id", knowledgeIds));
+        }
         wrapper.orderByAsc("knowledge_id");
         wrapper.last("limit " + size);
 
