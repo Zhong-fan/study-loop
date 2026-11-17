@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://studyloop.local/schemas/knowledge-candidate.schema.json",
+  "title": "知识点候选",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "type", "bloom", "evidence", "confidence"],
+  "properties": {
+    "name": { "type": "string", "minLength": 2, "maxLength": 80 },
+    "aliases": {
+      "type": "array",
+      "maxItems": 6,
+      "items": { "type": "string", "minLength": 1, "maxLength": 40 }
+    },
+    "chapter_title": { "type": "string", "maxLength": 100 },
+    "parent_name": { "type": "string", "maxLength": 80 },
+    "type": { "enum": ["CONCEPT", "METHOD", "CALC", "PROOF", "CASE"] },
+    "bloom": { "enum": ["REMEMBER", "UNDERSTAND", "APPLY", "ANALYZE"] },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["material_id", "page", "quote", "signal"],
+        "properties": {
+          "material_id": { "type": "integer", "minimum": 1 },
+          "page": { "type": "integer", "minimum": 1 },
+          "quote": { "type": "string", "minLength": 2, "maxLength": 500 },
+          "signal": { "enum": ["KEYWORD", "VISUAL", "REPEAT", "EXAMPLE", "OUTLINE"] }
+        }
+      }
+    },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+  }
+}
