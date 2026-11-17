@@ -8,9 +8,12 @@ import com.studyloop.content.client.InsightCleanupClient;
 import com.studyloop.content.dto.KnowledgeRequest;
 import com.studyloop.content.entity.Chapter;
 import com.studyloop.content.entity.Knowledge;
+import com.studyloop.content.entity.KnowledgeEvidence;
 import com.studyloop.content.mapper.ChapterMapper;
+import com.studyloop.content.mapper.KnowledgeEvidenceMapper;
 import com.studyloop.content.mapper.KnowledgeMapper;
 import com.studyloop.content.service.KnowledgeService;
+import com.studyloop.content.vo.KnowledgeEvidenceVO;
 import com.studyloop.content.vo.KnowledgeVO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,12 +36,15 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     private final KnowledgeMapper knowledgeMapper;
     private final ChapterMapper chapterMapper;
     private final InsightCleanupClient insightCleanupClient;
+    private final KnowledgeEvidenceMapper evidenceMapper;
 
     public KnowledgeServiceImpl(KnowledgeMapper knowledgeMapper, ChapterMapper chapterMapper,
-                                InsightCleanupClient insightCleanupClient) {
+                                InsightCleanupClient insightCleanupClient,
+                                KnowledgeEvidenceMapper evidenceMapper) {
         this.knowledgeMapper = knowledgeMapper;
         this.chapterMapper = chapterMapper;
         this.insightCleanupClient = insightCleanupClient;
+        this.evidenceMapper = evidenceMapper;
     }
 
     @Override
@@ -164,5 +170,30 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         vo.setPageNo(knowledge.getPageNo());
         vo.setMaterialId(knowledge.getMaterialId());
         return vo;
+    }
+    @Override
+    public List<KnowledgeEvidenceVO> evidenceByCourse(Long courseId) {
+        List<Knowledge> list = knowledgeMapper.selectList(new QueryWrapper<Knowledge>()
+                .eq("course_id", courseId)
+                .eq("user_id", UserContext.requireUserId())
+                .eq("deleted", 0));
+        List<Long> ids = list.stream().map(Knowledge::getId).toList();
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+
+        List<KnowledgeEvidenceVO> result = new ArrayList<>();
+        for (KnowledgeEvidence evidence : evidenceMapper.selectList(
+                new QueryWrapper<KnowledgeEvidence>().in("knowledge_id", ids))) {
+            KnowledgeEvidenceVO vo = new KnowledgeEvidenceVO();
+            vo.setKnowledgeId(evidence.getKnowledgeId());
+            vo.setMaterialId(evidence.getMaterialId());
+            vo.setPageNo(evidence.getPageNo());
+            vo.setQuote(evidence.getQuote());
+            vo.setSignalType(evidence.getSignalType());
+            vo.setWeight(evidence.getWeight());
+            result.add(vo);
+        }
+        return result;
     }
 }

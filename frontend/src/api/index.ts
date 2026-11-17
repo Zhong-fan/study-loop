@@ -91,6 +91,17 @@ export const getDueMastery = () => http.get('/insight/due');
 export const getWeakKnowledge = () => http.get('/insight/weak');
 export const getTransfer = () => http.get('/insight/transfer');
 
+/** 知识点证据：出处页码与原文 */
+export const getKnowledgeEvidence = (courseId: number) =>
+    http.get('/knowledge/evidence', { courseId });
+
+/** 按知识点生成题目草稿（多知识点、带评分点） */
+export const aiGenerateDrafts = (data: object) => http.post('/ai/generate-drafts', data);
+
+/** 草稿存入题库（含知识点关联与评分点） */
+export const saveDrafts = (courseId: number, chapterId: number | null, drafts: any[]) =>
+    http.post('/questions/from-drafts', drafts, { params: { courseId, chapterId } });
+
 export const getNotifications = () => http.get('/insight/notifications');
 
 export const markNotificationsRead = () => http.post('/insight/notifications/read-all');

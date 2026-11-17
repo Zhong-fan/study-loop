@@ -1,6 +1,6 @@
 <template>
     <div class="page">
-        <el-card>
+        <el-card shadow="never">
             <template #header>
                 <div class="card-header">
                     <span>AI 出题</span>
@@ -19,9 +19,12 @@
 
                 <el-form-item label="知识点">
                     <el-select
-                        v-model="form.knowledgeId"
+                        v-model="form.knowledgeIds"
+                        multiple
+                        collapse-tags
+                        collapse-tags-tooltip
                         placeholder="先选课程"
-                        style="width: 220px"
+                        style="width: 320px"
                         :disabled="!form.courseId"
                     >
                         <el-option v-for="k in knowledges" :key="k.id" :label="k.name" :value="k.id" />
@@ -33,11 +36,12 @@
                         <el-option label="单选" value="SINGLE" />
                         <el-option label="多选" value="MULTIPLE" />
                         <el-option label="判断" value="JUDGE" />
+                        <el-option label="综合题" value="COMPOSITE" />
                     </el-select>
                 </el-form-item>
 
                 <el-form-item label="数量">
-                    <el-input-number v-model="form.count" :min="1" :max="10" />
+                    <el-input-number v-model="form.count" :min="1" :max="5" />
                 </el-form-item>
 
                 <el-form-item>
@@ -48,24 +52,31 @@
             </el-form>
 
             <div class="hint">
-                生成的题目只是草稿：勾选后点「存入题库」才会真正写库，并可到「题库」页继续编辑。
+                单选/判断挂 1 个知识点，多选 2~3 个，综合题 5~8 个。出题会带上知识点的原文证据，
+                没有证据的题目会被服务端拒绝，避免模型编造。
             </div>
         </el-card>
 
-        <el-card class="block">
+        <el-card class="block" shadow="never">
             <template #header>草稿（{{ drafts.length }}）</template>
             <el-table :data="drafts" border size="small" @selection-change="onSelectionChange">
                 <el-table-column type="selection" width="44" />
                 <el-table-column prop="stem" label="题干" show-overflow-tooltip />
-                <el-table-column label="选项" width="280">
+                <el-table-column label="题型" width="90">
+                    <template #default="{ row }">{{ typeText(row.type) }}</template>
+                </el-table-column>
+                <el-table-column label="知识点" width="80">
+                    <template #default="{ row }">{{ row.knowledge?.length || 0 }} 个</template>
+                </el-table-column>
+                <el-table-column label="总分" width="70">
+                    <template #default="{ row }">{{ row.total_score ?? row.totalScore ?? '—' }}</template>
+                </el-table-column>
+                <el-table-column label="依据" width="140">
                     <template #default="{ row }">
-                        <span v-for="(op, i) in row.options" :key="i" class="option">
-                            {{ String.fromCharCode(65 + i) }}. {{ op }}
+                        <span class="hint">
+                            {{ evidenceText(row.evidence) }}
                         </span>
                     </template>
-                </el-table-column>
-                <el-table-column label="答案" width="90">
-                    <template #default="{ row }">{{ row.answer.join(',') }}</template>
                 </el-table-column>
                 <template #empty>
                     <el-empty
@@ -86,18 +97,20 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import {
-    aiGenerateQuestions,
-    createQuestion,
+    aiGenerateDrafts,
     getAiStatus,
     getCourses,
-    getKnowledgeByCourse
+    getKnowledgeByCourse,
+    getKnowledgeEvidence,
+    saveDrafts
 } from '@/api';
 
 const courses = ref<any[]>([]);
 const knowledges = ref<any[]>([]);
+const evidences = ref<any[]>([]);
 const drafts = ref<any[]>([]);
 const selected = ref<any[]>([]);
 const generating = ref(false);
@@ -108,37 +121,76 @@ const aiModel = ref('');
 
 const form = reactive<any>({
     courseId: null,
-    knowledgeId: null,
+    knowledgeIds: [],
     type: 'SINGLE',
-    count: 3
+    count: 2
 });
+
+const selectedKnowledges = computed(() =>
+    knowledges.value.filter((k) => form.knowledgeIds.includes(k.id))
+);
+
+const typeText = (type: string) =>
+    ({ SINGLE: '单选', MULTIPLE: '多选', JUDGE: '判断', BLANK: '填空', SUBJECTIVE: '简答', COMPOSITE: '综合题' } as any)[type] || type;
+
+const evidenceText = (items: any[]) => {
+    if (!items || items.length === 0) {
+        return '—';
+    }
+    const first = items[0];
+    return `第 ${first.page} 页 · ${items.length} 条`;
+};
 
 const onSelectionChange = (rows: any[]) => {
     selected.value = rows;
 };
 
 const onCourseChange = async () => {
-    form.knowledgeId = null;
-    knowledges.value = form.courseId ? await getKnowledgeByCourse(form.courseId) : [];
+    form.knowledgeIds = [];
+    drafts.value = [];
+    if (!form.courseId) {
+        knowledges.value = [];
+        evidences.value = [];
+        return;
+    }
+    const [ks, es] = await Promise.all([
+        getKnowledgeByCourse(form.courseId),
+        getKnowledgeEvidence(form.courseId)
+    ]);
+    knowledges.value = ks;
+    evidences.value = es;
 };
 
 const generate = async () => {
-    if (!form.knowledgeId) {
+    if (form.knowledgeIds.length === 0) {
         ElMessage.warning('请选择知识点');
         return;
     }
-    const knowledge = knowledges.value.find((k) => k.id === form.knowledgeId);
+    if (form.type === 'COMPOSITE' && form.knowledgeIds.length < 5) {
+        ElMessage.warning('综合题至少要选 5 个知识点');
+        return;
+    }
+
+    const payload = {
+        type: form.type,
+        count: form.count,
+        materialId: evidences.value.find((e) => form.knowledgeIds.includes(e.knowledgeId))?.materialId ?? null,
+        knowledge: selectedKnowledges.value.map((k) => ({ id: k.id, name: k.name })),
+        evidence: evidences.value
+            .filter((e) => form.knowledgeIds.includes(e.knowledgeId))
+            .map((e) => ({
+                knowledgeId: e.knowledgeId,
+                page: e.pageNo,
+                quote: e.quote,
+                signal: e.signalType
+            }))
+    };
 
     generating.value = true;
     try {
-        drafts.value = await aiGenerateQuestions({
-            knowledgeId: form.knowledgeId,
-            knowledgeName: knowledge?.name || '',
-            count: form.count,
-            type: form.type
-        });
+        drafts.value = await aiGenerateDrafts(payload);
         if (drafts.value.length === 0) {
-            ElMessage.warning('模型没有返回题目，换个知识点试试');
+            ElMessage.warning('模型没有返回题目，换一批知识点试试');
         }
     } finally {
         generating.value = false;
@@ -147,22 +199,11 @@ const generate = async () => {
 
 const saveToBank = async () => {
     const rows = selected.value.length > 0 ? selected.value : drafts.value;
+    const chapterId = selectedKnowledges.value[0]?.chapterId ?? null;
     saving.value = true;
     try {
-        for (const row of rows) {
-            await createQuestion({
-                courseId: form.courseId,
-                chapterId: knowledges.value.find((k) => k.id === form.knowledgeId)?.chapterId,
-                knowledgeId: form.knowledgeId,
-                type: form.type,
-                stem: row.stem,
-                options: row.options,
-                answer: row.answer,
-                analysis: row.analysis,
-                difficulty: 3
-            });
-        }
-        ElMessage.success(`已存入 ${rows.length} 道题`);
+        const ids = await saveDrafts(form.courseId, chapterId, rows);
+        ElMessage.success(`已存入 ${ids.length} 道题，到「题库」页可以继续编辑`);
         drafts.value = [];
         selected.value = [];
     } finally {
@@ -181,27 +222,18 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.page {
-    padding: 20px;
-}
 .card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 .block {
-    margin-top: 16px;
-}
-.hint {
-    color: #909399;
-    font-size: 12px;
-}
-.option {
-    display: block;
-    font-size: 12px;
-    color: #606266;
+    margin-top: var(--sl-s4);
 }
 .actions {
-    margin-top: 12px;
+    margin-top: var(--sl-s4);
+}
+.hint {
+    margin-top: var(--sl-s3);
 }
 </style>

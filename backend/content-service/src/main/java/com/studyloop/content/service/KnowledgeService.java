@@ -19,4 +19,7 @@ public interface KnowledgeService {
 
     /** 给覆盖统计用：某门课有多少个知识点 */
     long countByCourse(Long courseId);
+
+    /** 某门课全部知识点的证据 */
+    java.util.List<com.studyloop.content.vo.KnowledgeEvidenceVO> evidenceByCourse(Long courseId);
 }

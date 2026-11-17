@@ -72,6 +72,12 @@ public class KnowledgeController {
         return Result.ok();
     }
 
+    @Operation(summary = "某门课全部知识点的证据（前端展示出处用）")
+    @GetMapping("/evidence")
+    public Result<java.util.List<com.studyloop.content.vo.KnowledgeEvidenceVO>> evidence(@RequestParam Long courseId) {
+        return Result.ok(knowledgeService.evidenceByCourse(courseId));
+    }
+
     @Operation(summary = "从已解析资料自动抽取知识点（全自动，重复运行不会重复入库）")
     @PostMapping("/extract")
     public Result<java.util.Map<String, Object>> extract(@RequestParam Long courseId,
