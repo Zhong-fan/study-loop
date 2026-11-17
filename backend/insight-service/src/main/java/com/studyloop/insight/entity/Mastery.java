@@ -25,6 +25,9 @@ public class Mastery {
 
     private Long knowledgeId;
 
+    /** 所属课程：覆盖率按课程统计，不能只按用户 */
+    private Long courseId;
+
     private Integer totalCount;
 
     private Integer correctCount;

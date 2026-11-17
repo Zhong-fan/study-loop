@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 和覆盖服务交互：查今天该练哪些知识点、判分后回写结果。
@@ -22,4 +23,7 @@ public interface InsightClient {
 
     @GetMapping("/api/insight/due")
     Result<List<MasteryDue>> due(@RequestHeader("X-User-Id") Long userId);
+
+    @GetMapping("/api/insight/summary")
+    Result<Map<String, Object>> summary(@RequestHeader("X-User-Id") Long userId);
 }

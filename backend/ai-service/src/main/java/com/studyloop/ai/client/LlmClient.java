@@ -3,9 +3,12 @@ package com.studyloop.ai.client;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.studyloop.ai.config.AiProperties;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -24,8 +27,17 @@ public class LlmClient {
 
     public LlmClient(AiProperties properties) {
         this.properties = properties;
+
+        // 不设超时的话，模型卡住会一直占着 Tomcat 线程
+        HttpClient httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(5))
+                .build();
+        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
+        requestFactory.setReadTimeout(Duration.ofSeconds(properties.getTimeoutSeconds()));
+
         this.restClient = RestClient.builder()
                 .baseUrl(properties.getBaseUrl())
+                .requestFactory(requestFactory)
                 .build();
     }
 

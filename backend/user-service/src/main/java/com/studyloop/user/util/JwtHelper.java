@@ -12,7 +12,14 @@ import cn.hutool.jwt.JWT;
  */
 public class JwtHelper {
 
-    private static final byte[] SECRET = "study-loop-secret-2026".getBytes();
+    /**
+     * 签名密钥。默认值和网关保持一致，生产环境通过 JWT_SECRET 覆盖，
+     * 两个服务必须用同一个值，否则网关验签必然失败。
+     */
+    private static final String SECRET_TEXT = System.getenv().getOrDefault(
+            "JWT_SECRET", "study-loop-secret-2026-change-me");
+
+    private static final byte[] SECRET = SECRET_TEXT.getBytes(java.nio.charset.StandardCharsets.UTF_8);
 
     /** token 有效期：7 天 */
     public static final long EXPIRE_SECONDS = 7 * 24 * 60 * 60L;

@@ -120,6 +120,7 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     @Override
+    @GlobalTransactional
     @Transactional
     public AnswerResultVO rateQuestion(Long questionId, int rating, Long costMs) {
         Question question = findOwned(questionId);
@@ -148,7 +149,7 @@ public class ReviewServiceImpl implements ReviewService {
             // 否则 attempt 写进去了、掌握度没更新，账就对不上。
             Result<MasteryDue> response = insightClient.record(
                     question.getUserId(),
-                    new AttemptPayload(question.getKnowledgeId(), rating >= 1));
+                    new AttemptPayload(question.getKnowledgeId(), question.getCourseId(), rating >= 1));
             if (response != null && response.getData() != null && response.getData().getNextReview() != null) {
                 next = response.getData().getNextReview();
             }

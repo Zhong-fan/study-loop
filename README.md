@@ -234,6 +234,7 @@ curl -X POST http://localhost:8080/api/courses \
 | GET | `/api/insight/due` | 今日待练知识点 | 是 |
 | GET | `/api/insight/weak` | 盲区清单 | 是 |
 | GET | `/api/insight/coverage?courseId=` | 覆盖率 | 是 |
+| GET | `/api/insight/summary` | 练过 / 掌握 / 今日到期 | 是 |
 | GET | `/api/ai/status` | AI 是否可用 | 是 |
 | POST | `/api/ai/questions` | 按知识点生成题目草稿 | 是 |
 | POST | `/api/ai/grade` | 主观题按要点判分 | 是 |

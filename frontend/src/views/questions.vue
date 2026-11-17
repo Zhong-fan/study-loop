@@ -29,13 +29,6 @@
                     </template>
                 </el-table-column>
                 <el-table-column prop="difficulty" label="难度" width="70" />
-                <el-table-column label="状态" width="90">
-                    <template #default="{ row }">
-                        <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">
-                            {{ row.status === 1 ? '已掌握' : '待复习' }}
-                        </el-tag>
-                    </template>
-                </el-table-column>
                 <el-table-column prop="createdAt" label="创建时间" width="180" />
                 <el-table-column label="操作" width="130">
                     <template #default="{ row }">

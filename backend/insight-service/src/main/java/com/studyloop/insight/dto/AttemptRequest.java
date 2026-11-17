@@ -12,6 +12,9 @@ public class AttemptRequest {
     @NotNull(message = "knowledgeId 不能为空")
     private Long knowledgeId;
 
+    /** 所属课程，覆盖率按课程过滤要用 */
+    private Long courseId;
+
     @NotNull(message = "correct 不能为空")
     private Boolean correct;
 }

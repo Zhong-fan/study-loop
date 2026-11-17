@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 
 @Tag(name = "覆盖与调度")
 @RestController
@@ -33,7 +34,8 @@ public class MasteryController {
     @PostMapping("/attempts")
     public Result<MasteryVO> record(@RequestBody @Valid AttemptRequest request) {
         Long userId = UserContext.requireUserId();
-        return Result.ok(masteryService.record(userId, request.getKnowledgeId(), request.getCorrect()));
+        return Result.ok(masteryService.record(userId, request.getKnowledgeId(),
+                request.getCourseId(), request.getCorrect()));
     }
 
     @Operation(summary = "今日待练")
@@ -52,5 +54,11 @@ public class MasteryController {
     @GetMapping("/coverage")
     public Result<CoverageVO> coverage(@RequestParam Long courseId) {
         return Result.ok(masteryService.coverage(UserContext.requireUserId(), courseId));
+    }
+
+    @Operation(summary = "看板汇总：练过/掌握/今日到期")
+    @GetMapping("/summary")
+    public Result<Map<String, Object>> summary() {
+        return Result.ok(masteryService.summary(UserContext.requireUserId()));
     }
 }

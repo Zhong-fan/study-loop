@@ -13,7 +13,7 @@
             <div class="header-user-con">
                 <!-- 今日待复习提醒：数字来自统计接口，点一下进复习页 -->
                 <div class="btn-icon" @click="router.push('/dashboard')">
-                    <el-tooltip effect="dark" :content="`今日待复习 ${dueToday} 道`" placement="bottom">
+                    <el-tooltip effect="dark" :content="`今日待复习 ${dueToday} 个知识点`" placement="bottom">
                         <i class="el-icon-lx-notice"></i>
                     </el-tooltip>
                     <span class="badge" v-if="dueToday > 0">{{ dueToday > 99 ? '99+' : dueToday }}</span>

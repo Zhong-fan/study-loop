@@ -5,5 +5,5 @@ package com.studyloop.practice.client;
  * <p>
  * 只传知识点 id 和对错，正确率的累计在 insight 那边做，避免两边各算一套。
  */
-public record AttemptPayload(Long knowledgeId, Boolean correct) {
+public record AttemptPayload(Long knowledgeId, Long courseId, Boolean correct) {
 }

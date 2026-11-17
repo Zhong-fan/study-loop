@@ -5,10 +5,10 @@
                 <el-card><div class="num">{{ overview.totalQuestions }}</div><div class="label">题目总数</div></el-card>
             </el-col>
             <el-col :span="6">
-                <el-card><div class="num">{{ overview.dueToday }}</div><div class="label">今日待复习</div></el-card>
+                <el-card><div class="num">{{ overview.dueToday }}</div><div class="label">今日待复习知识点</div></el-card>
             </el-col>
             <el-col :span="6">
-                <el-card><div class="num">{{ overview.masteredQuestions }}</div><div class="label">已掌握题目</div></el-card>
+                <el-card><div class="num">{{ overview.masteredQuestions }}</div><div class="label">已掌握知识点</div></el-card>
             </el-col>
             <el-col :span="6">
                 <el-card><div class="num">{{ overview.streakDays }}</div><div class="label">连续复习天数</div></el-card>

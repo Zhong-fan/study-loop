@@ -188,7 +188,7 @@ public class QuizServiceImpl implements QuizService {
             quizAnswerMapper.insert(answer);
 
             // 回流：这次答得怎么样，直接决定这张卡下次什么时候复习
-            applyToReviewCard(question.getId(), score);
+            applyToKnowledge(question.getId(), score);
 
             QuizResultVO.Item resultItem = new QuizResultVO.Item();
             resultItem.setQuestionId(question.getId());
@@ -217,7 +217,7 @@ public class QuizServiceImpl implements QuizService {
     }
 
     /** 把一道题的得分换算成复习评分，交给复习服务统一排期 */
-    private void applyToReviewCard(Long questionId, double score) {
+    private void applyToKnowledge(Long questionId, double score) {
         int rating = score >= 1.0 ? 2 : (score > 0 ? 1 : 0);
         try {
             reviewService.rateQuestion(questionId, rating, 0L);

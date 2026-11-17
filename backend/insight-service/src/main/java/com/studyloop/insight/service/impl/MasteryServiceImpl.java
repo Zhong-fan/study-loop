@@ -22,7 +22,9 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class MasteryServiceImpl implements MasteryService {
@@ -56,17 +58,21 @@ public class MasteryServiceImpl implements MasteryService {
 
     @Override
     @Transactional
-    public MasteryVO record(Long userId, Long knowledgeId, boolean correct) {
+    public MasteryVO record(Long userId, Long knowledgeId, Long courseId, boolean correct) {
         Mastery mastery = findByUserAndKnowledge(userId, knowledgeId);
 
         if (mastery == null) {
             mastery = new Mastery();
             mastery.setUserId(userId);
             mastery.setKnowledgeId(knowledgeId);
+            mastery.setCourseId(courseId);
             mastery.setTotalCount(0);
             mastery.setCorrectCount(0);
             mastery.setAccuracy(0.0);
             mastery.setStage(0);
+        } else if (courseId != null) {
+            // 兼容早期没有 course_id 的记录
+            mastery.setCourseId(courseId);
         }
 
         int total = mastery.getTotalCount() + 1;
@@ -169,6 +175,7 @@ public class MasteryServiceImpl implements MasteryService {
 
         QueryWrapper<Mastery> wrapper = new QueryWrapper<>();
         wrapper.eq("user_id", userId);
+        wrapper.eq("course_id", courseId);
 
         long practiced = 0;
         long mastered = 0;
@@ -185,6 +192,32 @@ public class MasteryServiceImpl implements MasteryService {
         vo.setMastered(mastered);
         vo.setCoverage(total == 0 ? 0.0 : (double) mastered / total);
         return vo;
+    }
+
+    @Override
+    public Map<String, Object> summary(Long userId) {
+        QueryWrapper<Mastery> wrapper = new QueryWrapper<>();
+        wrapper.eq("user_id", userId);
+
+        long practiced = 0;
+        long mastered = 0;
+        long dueToday = 0;
+        LocalDate today = LocalDate.now();
+        for (Mastery mastery : masteryMapper.selectList(wrapper)) {
+            practiced++;
+            if (mastery.getAccuracy() >= MASTERED_ACCURACY && mastery.getTotalCount() >= MASTERED_MIN_COUNT) {
+                mastered++;
+            }
+            if (mastery.getNextReview() != null && !mastery.getNextReview().isAfter(today)) {
+                dueToday++;
+            }
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("practiced", practiced);
+        result.put("mastered", mastered);
+        result.put("dueToday", dueToday);
+        return result;
     }
 
     private Mastery findByUserAndKnowledge(Long userId, Long knowledgeId) {

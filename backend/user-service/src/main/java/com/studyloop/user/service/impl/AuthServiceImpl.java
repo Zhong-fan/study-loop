@@ -11,7 +11,6 @@ import com.studyloop.user.util.JwtHelper;
 import com.studyloop.user.vo.LoginVO;
 import com.studyloop.common.exception.BizException;
 import com.studyloop.common.result.ErrorCode;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -26,12 +25,9 @@ import java.time.LocalDateTime;
 public class AuthServiceImpl implements AuthService {
 
     private final UserMapper userMapper;
-    private final String adminUsername;
 
-    public AuthServiceImpl(UserMapper userMapper,
-                           @Value("${app.admin.username:admin}") String adminUsername) {
+    public AuthServiceImpl(UserMapper userMapper) {
         this.userMapper = userMapper;
-        this.adminUsername = adminUsername;
     }
 
     @Override
@@ -51,8 +47,8 @@ public class AuthServiceImpl implements AuthService {
         user.setNickname(request.getNickname() == null || request.getNickname().isBlank()
                 ? username
                 : request.getNickname().trim());
-        // 只有一个管理员：注册名等于配置里的 admin 就是管理员，其余都是学生
-        user.setRole(username.equals(adminUsername) ? "ADMIN" : "STUDENT");
+        // 注册一律是学生；管理员由 AdminInitializer 在启动时创建
+        user.setRole("STUDENT");
         user.setCreatedAt(LocalDateTime.now());
         user.setDeleted(0);
 
