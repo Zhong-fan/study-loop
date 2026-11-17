@@ -44,11 +44,12 @@
 | AI | ✅ | 按知识点生成题目草稿、主观题按要点判分，调用记录写 `ai_log` |
 | 缓存 | ✅ | 今日待练写 Redis（60 秒），作答后失效；Redis 不可用自动退回数据库 |
 | 解析任务 | ✅ | 每次 PDF 解析写 `task` 表（RUNNING→SUCCESS/FAILED），OCR 未配置时记 FAILED 并降级为图片浏览 |
+| 全局事务 | ✅ | 作答同时写 `attempt` 与 `mastery`，用 Seata AT 保证要么都成功、要么都回滚 |
 | 前端 | ✅ | 登录、今日复习、课程与资料（含知识点）、题库、自测、AI 出题、统计、用户管理 |
 
 ## 技术栈
 
-Spring Boot · Spring Cloud Alibaba（Nacos / Gateway / OpenFeign）· MyBatis-Plus · MySQL 8 · Redis 7 · MinIO · Vue 3 · 大模型 API
+Spring Boot · Spring Cloud Alibaba（Nacos / Gateway / OpenFeign / Seata）· MyBatis-Plus · MySQL 8 · Redis 7 · MinIO · Vue 3 · 大模型 API
 
 | 层 | 选型 | 版本 |
 | --- | --- | --- |
@@ -118,6 +119,7 @@ docker compose -f backend/deploy/docker-compose.yml up -d
 
 MySQL 首次启动会自动执行 `backend/deploy/mysql/init/` 下的脚本，建好 `study_auth`、`study_course`、`study_review`、`study_insight`、`study_ai` 五个库。
 Nacos 控制台：<http://localhost:8848/nacos>（默认 nacos / nacos）。
+Seata 控制台：<http://localhost:7091>（TC 监听 8091）。**作答接口依赖它**，没起 Seata 时会返回 5000。
 
 ### 2. 构建
 
@@ -145,7 +147,9 @@ java -jar backend/study-loop-gateway/target/study-loop-gateway-1.0.0.jar
 | insight-service | 8085 | 掌握度 / 覆盖率 / 排期 |
 | ai-service | 8086 | 大模型出题与判分 |
 
-AI 需要 key：在仓库根目录建 `.env`（已被 git 忽略），参考 `.env.example` 填 `AI_API_KEY`，`ai-service` 启动时会读取。不填也能启动，接口会返回「AI 未配置」。
+AI 需要 key：在仓库根目录建 `.env`（已被 git 忽略），参考 `.env.example` 填 `AI_API_KEY`。
+Spring 本身不读 `.env`，需要在启动 ai-service 前把里面的变量导出成环境变量（仓库里的启动脚本会解析它）。不填也能启动，接口会返回「AI 未配置」。
+Seata 同理：`SEATA_ENABLED=true` 时作答走全局事务，前提是 `docker compose` 里的 seata 已启动。
 
 ### 4. 启动前端
 
