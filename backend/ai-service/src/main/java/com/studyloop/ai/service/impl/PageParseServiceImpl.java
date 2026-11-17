@@ -56,8 +56,13 @@ public class PageParseServiceImpl implements PageParseService {
             throw new BizException(ErrorCode.SYSTEM_ERROR,
                     "AI 未配置：设置环境变量 AI_API_KEY 并把 app.ai.enabled 打开");
         }
+        boolean hasImage = request.getImage() != null && !request.getImage().isBlank();
+        boolean hasText = request.getText() != null && !request.getText().isBlank();
+        if (!hasImage && !hasText) {
+            throw new BizException(ErrorCode.PARAM_ERROR, "文字和图片至少要有一个");
+        }
 
-        String prompt = buildPrompt(request);
+        String prompt = buildPrompt(request, hasImage);
         long start = System.currentTimeMillis();
 
         JsonNode parsed = null;
@@ -65,7 +70,9 @@ public class PageParseServiceImpl implements PageParseService {
 
         for (int attempt = 1; attempt <= 2; attempt++) {
             try {
-                String content = llmClient.chat(SYSTEM_PROMPT, prompt + retryHint(errors));
+                String content = hasImage
+                        ? llmClient.chatWithImage(SYSTEM_PROMPT, prompt + retryHint(errors), request.getImage())
+                        : llmClient.chat(SYSTEM_PROMPT, prompt + retryHint(errors));
                 JsonNode node = objectMapper.readTree(stripFence(content));
 
                 if (!node.isObject()) {
@@ -93,7 +100,12 @@ public class PageParseServiceImpl implements PageParseService {
         throw new BizException(ErrorCode.SYSTEM_ERROR, "页面解析失败：" + String.join("; ", errors));
     }
 
-    private String buildPrompt(PageParseRequest request) {
+    private String buildPrompt(PageParseRequest request, boolean hasImage) {
+        String source = hasImage
+                ? "这一页是扫描件，请先识别图片里的文字，再按下面的结构解析。识别不准的地方写进 warnings。"
+                : "这一页的原文如下，请按下面的结构解析。";
+        String raw = hasImage ? "（无文字层，见图片）" : String.valueOf(request.getText());
+
         return """
                 请把下面这一页内容解析成 JSON，结构如下（不要省略字段）：
                 {
@@ -109,6 +121,7 @@ public class PageParseServiceImpl implements PageParseService {
                   "warnings": ["识别不确定的地方"]
                 }
 
+                %s
                 规则：
                 - 只依据原文，不要添加原文没有的知识；
                 - 原文里出现「重点/必考/掌握/考点」等词，记入 emphasis，signal 用 KEYWORD；
@@ -116,9 +129,10 @@ public class PageParseServiceImpl implements PageParseService {
                 - 公式用 LaTeX，表格保留行列结构；
                 - 识别不清的地方写进 warnings，不要猜。
 
-                原文（第 %d 页）：
+                %s（第 %d 页）：
                 %s
-                """.formatted(request.getPage(), request.getDocType(), request.getPage(), request.getText());
+                """.formatted(request.getPage(), request.getDocType(), source, hasImage ? "图片" : "原文",
+                request.getPage(), raw);
     }
 
     private String retryHint(List<String> errors) {

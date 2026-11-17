@@ -1,7 +1,6 @@
 package com.studyloop.ai.dto;
 
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
@@ -15,6 +14,9 @@ public class PageParseRequest {
     /** SLIDE / PDF / IMAGE / DOC */
     private String docType = "PDF";
 
-    @NotBlank(message = "页面文字不能为空")
+    /** 文字层内容；扫描件可以为空 */
     private String text;
+
+    /** 可选：data:image/png;base64,... 扫描件靠它识别 */
+    private String image;
 }

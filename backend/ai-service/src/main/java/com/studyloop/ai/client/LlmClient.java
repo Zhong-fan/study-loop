@@ -63,6 +63,37 @@ public class LlmClient {
     }
 
     /**
+     * 带图片的一次调用：把文本和图片一起放进 user 消息。
+     * 图片用 data URL（data:image/png;base64,...），模型侧不需要公网地址。
+     */
+    public String chatWithImage(String systemPrompt, String userPrompt, String imageDataUrl) {
+        Map<String, Object> body = Map.of(
+                "model", properties.getModel(),
+                "instructions", systemPrompt,
+                "input", List.of(Map.of(
+                        "role", "user",
+                        "content", List.of(
+                                Map.of("type", "input_text", "text", userPrompt),
+                                Map.of("type", "input_image", "image_url", imageDataUrl)
+                        )
+                ))
+        );
+
+        JsonNode response = restClient.post()
+                .uri("/responses")
+                .header("Authorization", "Bearer " + properties.getApiKey())
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .retrieve()
+                .body(JsonNode.class);
+
+        if (response == null) {
+            throw new IllegalStateException("大模型返回空响应");
+        }
+        return extractText(response);
+    }
+
+    /**
      * 从 Responses API 的结构里取正文：
      * output[] → 找到 type=message → content[] → 找 type=output_text → text。
      * 有些实现会把正文直接放在 output_text 字段，这里一并兜住。
