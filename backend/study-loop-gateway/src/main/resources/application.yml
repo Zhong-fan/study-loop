@@ -11,18 +11,26 @@ spring:
     gateway:
       routes:
         - id: auth
-          uri: lb://study-loop-auth
+          uri: lb://user-service
           predicates:
             - Path=/api/auth/**
         - id: course
-          uri: lb://study-loop-course
+          uri: lb://content-service
           predicates:
             # 一个服务可以有多个路径前缀，逗号分隔
             - Path=/api/courses/**,/api/chapters/**,/api/materials/**
-        - id: review
-          uri: lb://study-loop-review
+        - id: practice
+          uri: lb://practice-service
           predicates:
             - Path=/api/review/**,/api/questions/**,/api/quizzes/**
+        - id: insight
+          uri: lb://insight-service
+          predicates:
+            - Path=/api/insight/**
+        - id: ai
+          uri: lb://ai-service
+          predicates:
+            - Path=/api/ai/**
 
 logging:
   level:

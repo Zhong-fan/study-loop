@@ -58,9 +58,9 @@ jobs:
       - name: 模块清单完整
         run: |
           missing=0
-          for m in common gateway auth course review; do
-            if [ ! -f "backend/study-loop-$m/pom.xml" ]; then
-              echo "::error::缺少模块 backend/study-loop-$m/pom.xml"
+          for m in study-loop-common study-loop-gateway user-service content-service practice-service insight-service ai-service; do
+            if [ ! -f "backend/$m/pom.xml" ]; then
+              echo "::error::缺少模块 backend/$m/pom.xml"
               missing=1
             fi
           done
@@ -83,8 +83,8 @@ jobs:
 
       - name: 禁止跨服务引用
         run: |
-          # 课程服务不能 import 账号服务的类，否则编译期就耦合了
-          if grep -rn --include='*.java' 'com\.studyloop\.auth' backend/study-loop-course backend/study-loop-review; then
+          # 各服务只能依赖 common，不能 import 别的服务的类
+          if grep -rn --include='*.java' -E 'com\.studyloop\.(user|insight|ai)' backend/content-service backend/practice-service; then
             echo "::error::服务之间不能直接 import 对方的类，请改用接口或快照字段"
             exit 1
           fi
