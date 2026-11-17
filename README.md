@@ -40,12 +40,15 @@
 | 题目与练习 | ✅ | 六种题型，客观题服务端判分，主观题自评；每次作答写 `attempt` 流水 |
 | 掌握度 | ✅ | 正确率累计，按 **1 / 3 / 7 / 14 天** 四档排下次复习 |
 | 覆盖与盲区 | ✅ | 覆盖率 = 已掌握知识点 / 知识点总数；正确率 < 60% 进盲区清单 |
+| 管理员 | ✅ | 用户名等于 `app.admin.username`（默认 admin）即管理员，可查看用户、禁用/启用账号 |
 | AI | ✅ | 按知识点生成题目草稿、主观题按要点判分，调用记录写 `ai_log` |
-| 前端 | ✅ | 登录、今日复习、课程与资料（含知识点）、题库、自测、AI 出题、统计 |
+| 缓存 | ✅ | 今日待练写 Redis（60 秒），作答后失效；Redis 不可用自动退回数据库 |
+| 解析任务 | ✅ | 每次 PDF 解析写 `task` 表（RUNNING→SUCCESS/FAILED），OCR 未配置时记 FAILED 并降级为图片浏览 |
+| 前端 | ✅ | 登录、今日复习、课程与资料（含知识点）、题库、自测、AI 出题、统计、用户管理 |
 
 ## 技术栈
 
-Spring Boot · Spring Cloud Alibaba（Nacos / Gateway / OpenFeign）· MyBatis-Plus · MySQL 8 · MinIO · Vue 3 · 大模型 API
+Spring Boot · Spring Cloud Alibaba（Nacos / Gateway / OpenFeign）· MyBatis-Plus · MySQL 8 · Redis 7 · MinIO · Vue 3 · 大模型 API
 
 | 层 | 选型 | 版本 |
 | --- | --- | --- |
@@ -230,6 +233,12 @@ curl -X POST http://localhost:8080/api/courses \
 | GET | `/api/ai/status` | AI 是否可用 | 是 |
 | POST | `/api/ai/questions` | 按知识点生成题目草稿 | 是 |
 | POST | `/api/ai/grade` | 主观题按要点判分 | 是 |
+| GET | `/api/admin/users` | 用户列表（仅管理员） | 是 |
+| PUT | `/api/admin/users/{id}/status?deleted=` | 禁用 / 启用账号（仅管理员） | 是 |
+| POST | `/api/materials/{id}/ocr` | 请求 OCR，未配置时返回降级任务 | 是 |
+| GET | `/api/review/due-questions` | 今日待练（按知识点排期） | 是 |
+| POST | `/api/review/questions/{id}/answer` | 按题目作答判分 | 是 |
+| POST | `/api/review/questions/{id}/rate` | 按题目自评 | 是 |
 | GET | `/api/review/ping` | 连通性检查 | 是 |
 
 ## 持续集成
