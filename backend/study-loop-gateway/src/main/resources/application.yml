@@ -18,7 +18,7 @@ spring:
           uri: lb://content-service
           predicates:
             # 一个服务可以有多个路径前缀，逗号分隔
-            - Path=/api/courses/**,/api/chapters/**,/api/materials/**
+            - Path=/api/courses/**,/api/chapters/**,/api/materials/**,/api/knowledge/**
         - id: practice
           uri: lb://practice-service
           predicates:

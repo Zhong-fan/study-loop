@@ -14,13 +14,13 @@ spring:
       discovery:
         server-addr: 127.0.0.1:8848
 
-# 大模型配置：不填 Key 时服务照常启动，接口返回"未配置"
+# 大模型配置：key 从环境变量读，仓库里不放明文
 app:
   ai:
-    enabled: false
-    base-url: https://api.deepseek.com
-    model: deepseek-chat
-    api-key: ""
+    enabled: ${AI_ENABLED:false}
+    base-url: ${AI_BASE_URL:https://api.deepseek.com}
+    model: ${AI_MODEL:deepseek-chat}
+    api-key: ${AI_API_KEY:}
     timeout-seconds: 60
 
 mybatis-plus:

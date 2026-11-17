@@ -1,6 +1,7 @@
 package com.studyloop.insight.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.studyloop.common.result.Result;
 import com.studyloop.insight.client.ContentClient;
 import com.studyloop.insight.entity.Mastery;
 import com.studyloop.insight.mapper.MasteryMapper;
@@ -102,7 +103,10 @@ public class MasteryServiceImpl implements MasteryService {
     public CoverageVO coverage(Long userId, Long courseId) {
         long total = 0;
         try {
-            total = contentClient.countKnowledge(courseId, userId);
+            Result<Long> result = contentClient.countKnowledge(courseId, userId);
+            if (result != null && result.getData() != null) {
+                total = result.getData();
+            }
         } catch (Exception e) {
             // 内容服务不可用时覆盖率退化成"练过多少"，不让整个看板挂掉
             log.warn("调内容服务取知识点总数失败，覆盖率按 0 计算: {}", e.getMessage());
