@@ -28,6 +28,12 @@ export const menuData: Menus[] = [
     },
     {
         id: '4',
+        title: 'AI 出题',
+        index: '/ai',
+        icon: 'MagicStick'
+    },
+    {
+        id: '5',
         title: '统计',
         index: '/stats',
         icon: 'PieChart'

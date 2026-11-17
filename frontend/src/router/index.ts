@@ -44,6 +44,12 @@ const routes: RouteRecordRaw[] = [
                 component: () => import('../views/quiz.vue')
             },
             {
+                path: '/ai',
+                name: 'ai',
+                meta: { title: 'AI 出题' },
+                component: () => import('../views/ai.vue')
+            },
+            {
                 path: '/stats',
                 name: 'stats',
                 meta: { title: '统计' },

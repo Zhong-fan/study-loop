@@ -64,12 +64,44 @@
                 <el-input v-model="chapterTitle" placeholder="新章节名称" style="width: 220px" />
                 <el-button type="primary" @click="addChapter">添加</el-button>
             </div>
-            <el-table :data="chapters" size="small" border style="margin-top: 10px">
+            <el-table
+                :data="chapters"
+                size="small"
+                border
+                highlight-current-row
+                style="margin-top: 10px"
+                @row-click="selectChapter"
+            >
                 <el-table-column prop="title" label="章节" />
                 <el-table-column prop="sort" label="排序" width="80" />
                 <el-table-column label="操作" width="90">
                     <template #default="{ row }">
-                        <el-button link type="danger" @click="removeChapter(row)">删除</el-button>
+                        <el-button link type="danger" @click.stop="removeChapter(row)">删除</el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+
+            <h4 style="margin-top: 24px">知识点（节）</h4>
+            <div class="row">
+                <span class="muted" style="width: 150px">
+                    {{ activeChapter ? activeChapter.title : '先点上面某一行章节' }}
+                </span>
+                <el-input
+                    v-model="knowledgeName"
+                    placeholder="新知识点名称"
+                    style="width: 200px"
+                    :disabled="!activeChapter"
+                />
+                <el-button type="primary" :disabled="!activeChapter" @click="addKnowledge">添加</el-button>
+            </div>
+            <el-table :data="knowledges" size="small" border style="margin-top: 10px">
+                <el-table-column prop="name" label="知识点" />
+                <el-table-column prop="type" label="类型" width="90" />
+                <el-table-column prop="importance" label="重要度" width="80" />
+                <el-table-column prop="pageNo" label="页码" width="70" />
+                <el-table-column label="操作" width="90">
+                    <template #default="{ row }">
+                        <el-button link type="danger" @click="removeKnowledge(row)">删除</el-button>
                     </template>
                 </el-table-column>
             </el-table>
@@ -139,11 +171,14 @@ import { downloadFile, openBlob } from '@/utils/request';
 import {
     createChapter,
     createCourse,
+    createKnowledge,
     deleteChapter,
     deleteCourse,
+    deleteKnowledge,
     deleteMaterial,
     getChapters,
     getCourses,
+    getKnowledgeByChapter,
     getMaterialPages,
     getMaterials,
     searchMaterial,
@@ -167,6 +202,38 @@ const current = ref<any>(null);
 const chapters = ref<any[]>([]);
 const materials = ref<any[]>([]);
 const chapterTitle = ref('');
+
+const activeChapter = ref<any>(null);
+const knowledges = ref<any[]>([]);
+const knowledgeName = ref('');
+
+/** 点章节行，下面切换成这一章的知识点 */
+const selectChapter = async (row: any) => {
+    activeChapter.value = row;
+    knowledges.value = await getKnowledgeByChapter(row.id);
+};
+
+const addKnowledge = async () => {
+    if (!knowledgeName.value.trim()) {
+        ElMessage.warning('知识点名称不能为空');
+        return;
+    }
+    await createKnowledge(current.value.id, {
+        chapterId: activeChapter.value.id,
+        name: knowledgeName.value.trim(),
+        type: 'CONCEPT',
+        importance: 3
+    });
+    knowledgeName.value = '';
+    knowledges.value = await getKnowledgeByChapter(activeChapter.value.id);
+    ElMessage.success('已添加');
+};
+
+const removeKnowledge = async (row: any) => {
+    await ElMessageBox.confirm('删除后该知识点的掌握记录会成为孤儿，确定吗？', '提示', { type: 'warning' });
+    await deleteKnowledge(row.id);
+    knowledges.value = await getKnowledgeByChapter(activeChapter.value.id);
+};
 
 const pageVisible = ref(false);
 const pageMaterial = ref<any>(null);
@@ -283,6 +350,10 @@ const remove = async (row: any) => {
 const openDetail = async (row: any) => {
     current.value = row;
     detailVisible.value = true;
+    // 换课程时清掉上一门课选中的章节和知识点，避免串数据
+    activeChapter.value = null;
+    knowledges.value = [];
+    knowledgeName.value = '';
     await loadDetail();
 };
 

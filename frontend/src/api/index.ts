@@ -72,3 +72,27 @@ export const getQuiz = (id: number) => http.get(`/quizzes/${id}`);
 
 export const submitQuiz = (id: number, answers: object[]) =>
     http.post(`/quizzes/${id}/submit`, { answers });
+
+/** 知识点（节） */
+export const getKnowledgeByChapter = (chapterId: number) => http.get('/knowledge', { chapterId });
+
+export const getKnowledgeByCourse = (courseId: number) => http.get('/knowledge/by-course', { courseId });
+
+export const createKnowledge = (courseId: number, data: object) =>
+    http.post(`/knowledge/${courseId}`, data);
+
+export const deleteKnowledge = (id: number) => http.delete(`/knowledge/${id}`);
+
+/** 覆盖与调度 */
+export const getCoverage = (courseId: number) => http.get('/insight/coverage', { courseId });
+
+export const getDueMastery = () => http.get('/insight/due');
+
+export const getWeakKnowledge = () => http.get('/insight/weak');
+
+/** 教育 AI */
+export const getAiStatus = () => http.get('/ai/status');
+
+export const aiGenerateQuestions = (data: object) => http.post('/ai/questions', data);
+
+export const aiGrade = (data: object) => http.post('/ai/grade', data);
