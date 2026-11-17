@@ -10,8 +10,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 大模型客户端：OpenAI 兼容的 /v1/chat/completions。
+ * 大模型客户端：OpenAI 的 Responses API（POST /responses）。
  * <p>
+ * 和 chat/completions 的区别：系统提示放 instructions，用户输入放 input，
+ * 取结果要从 output 数组里挑 type=message 的那一项，再取 output_text。
  * 只负责发一次请求拿文本，重试和降级由上层服务决定。
  */
 @Component
@@ -30,15 +32,12 @@ public class LlmClient {
     public String chat(String systemPrompt, String userPrompt) {
         Map<String, Object> body = Map.of(
                 "model", properties.getModel(),
-                "temperature", 0.3,
-                "messages", List.of(
-                        Map.of("role", "system", "content", systemPrompt),
-                        Map.of("role", "user", "content", userPrompt)
-                )
+                "instructions", systemPrompt,
+                "input", userPrompt
         );
 
         JsonNode response = restClient.post()
-                .uri("/v1/chat/completions")
+                .uri("/responses")
                 .header("Authorization", "Bearer " + properties.getApiKey())
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(body)
@@ -48,6 +47,35 @@ public class LlmClient {
         if (response == null) {
             throw new IllegalStateException("大模型返回空响应");
         }
-        return response.path("choices").path(0).path("message").path("content").asText("");
+        return extractText(response);
+    }
+
+    /**
+     * 从 Responses API 的结构里取正文：
+     * output[] → 找到 type=message → content[] → 找 type=output_text → text。
+     * 有些实现会把正文直接放在 output_text 字段，这里一并兜住。
+     */
+    private String extractText(JsonNode response) {
+        JsonNode output = response.path("output");
+        if (output.isArray()) {
+            for (JsonNode item : output) {
+                if ("message".equals(item.path("type").asText())) {
+                    for (JsonNode content : item.path("content")) {
+                        if ("output_text".equals(content.path("type").asText())) {
+                            String text = content.path("text").asText("");
+                            if (!text.isBlank()) {
+                                return text;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        String fallback = response.path("output_text").asText("");
+        if (!fallback.isBlank()) {
+            return fallback;
+        }
+        throw new IllegalStateException("大模型响应里没有正文");
     }
 }

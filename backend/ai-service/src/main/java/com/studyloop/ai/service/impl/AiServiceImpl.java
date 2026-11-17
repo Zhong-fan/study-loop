@@ -66,8 +66,8 @@ public class AiServiceImpl implements AiService {
             for (JsonNode node : root) {
                 Map<String, Object> item = new LinkedHashMap<>();
                 item.put("stem", node.path("stem").asText());
-                item.put("options", objectMapper.convertValue(node.path("options"), List.class));
-                item.put("answer", objectMapper.convertValue(node.path("answer"), List.class));
+                item.put("options", normalizeOptions(node.path("options")));
+                item.put("answer", normalizeAnswers(node.path("answer")));
                 item.put("analysis", node.path("analysis").asText());
                 result.add(item);
             }
@@ -106,6 +106,36 @@ public class AiServiceImpl implements AiService {
             writeLog(userId, "GRADE_SUBJECTIVE", request.getKnowledgeId(), start, false, e.getMessage());
             throw new BizException(ErrorCode.SYSTEM_ERROR, "判分失败：" + e.getMessage());
         }
+    }
+
+    /** 模型有时会写 "A. 选项内容"，这里去掉字母前缀，和后端存储格式一致 */
+    private List<String> normalizeOptions(JsonNode options) {
+        List<String> result = new ArrayList<>();
+        if (options == null || !options.isArray()) {
+            return result;
+        }
+        for (JsonNode node : options) {
+            String text = node.asText("").trim().replaceFirst("^[A-Fa-f][.、)）]\\s*", "");
+            if (!text.isEmpty()) {
+                result.add(text);
+            }
+        }
+        return result;
+    }
+
+    /** 答案统一成大写字母 / 文本，去掉多余符号 */
+    private List<String> normalizeAnswers(JsonNode answers) {
+        List<String> result = new ArrayList<>();
+        if (answers == null || !answers.isArray()) {
+            return result;
+        }
+        for (JsonNode node : answers) {
+            String text = node.asText("").trim().replaceFirst("^[A-Fa-f][.、)）]\\s*", "");
+            if (!text.isEmpty()) {
+                result.add(text.toUpperCase());
+            }
+        }
+        return result;
     }
 
     private void requireUsable() {
