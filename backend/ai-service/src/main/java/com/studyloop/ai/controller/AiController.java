@@ -3,7 +3,10 @@ package com.studyloop.ai.controller;
 import com.studyloop.ai.config.AiProperties;
 import com.studyloop.ai.dto.GenerateRequest;
 import com.studyloop.ai.dto.GradeRequest;
+import com.studyloop.ai.dto.PageParseRequest;
 import com.studyloop.ai.service.AiService;
+import com.studyloop.ai.service.PageParseService;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.studyloop.common.context.UserContext;
 import com.studyloop.common.result.Result;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,10 +27,12 @@ import java.util.Map;
 public class AiController {
 
     private final AiService aiService;
+    private final PageParseService pageParseService;
     private final AiProperties properties;
 
-    public AiController(AiService aiService, AiProperties properties) {
+    public AiController(AiService aiService, PageParseService pageParseService, AiProperties properties) {
         this.aiService = aiService;
+        this.pageParseService = pageParseService;
         this.properties = properties;
     }
 
@@ -38,6 +43,12 @@ public class AiController {
                 "usable", properties.usable(),
                 "model", properties.getModel()
         ));
+    }
+
+    @Operation(summary = "页面解析：一段原文 → 结构化页面")
+    @PostMapping("/parse-page")
+    public Result<JsonNode> parsePage(@RequestBody @Valid PageParseRequest request) {
+        return Result.ok(pageParseService.parse(request));
     }
 
     @Operation(summary = "按知识点生成题目草稿")

@@ -2,6 +2,7 @@ package com.studyloop.content.controller;
 
 import com.studyloop.common.result.Result;
 import com.studyloop.content.service.MaterialPageService;
+import com.studyloop.content.service.MaterialParseService;
 import com.studyloop.content.service.MaterialService;
 import com.studyloop.content.storage.LocalFileStorage;
 import com.studyloop.content.vo.DownloadFile;
@@ -42,10 +43,13 @@ public class MaterialController {
 
     private final MaterialService materialService;
     private final MaterialPageService pageService;
+    private final MaterialParseService parseService;
 
-    public MaterialController(MaterialService materialService, MaterialPageService pageService) {
+    public MaterialController(MaterialService materialService, MaterialPageService pageService,
+                              MaterialParseService parseService) {
         this.materialService = materialService;
         this.pageService = pageService;
+        this.parseService = parseService;
     }
 
     @Operation(summary = "上传资料")
@@ -136,5 +140,12 @@ public class MaterialController {
     @GetMapping("/{id}/search")
     public Result<List<PageSearchHitVO>> search(@PathVariable Long id, @RequestParam String keyword) {
         return Result.ok(pageService.search(id, keyword));
+    }
+
+    @Operation(summary = "页面解析：逐页交给大模型，产出结构化内容与强调信号")
+    @PostMapping("/{id}/parse")
+    public Result<Map<String, Object>> parse(@PathVariable Long id) {
+        Long userId = com.studyloop.common.context.UserContext.requireUserId();
+        return Result.ok(parseService.parseMaterial(userId, id));
     }
 }

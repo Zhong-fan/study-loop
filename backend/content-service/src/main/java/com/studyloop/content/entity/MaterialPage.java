@@ -8,11 +8,10 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 资料里的一页文字。
+ * 资料里的一页。
  * <p>
- * PDF 上传后会被逐页抽成文本存到这里，
- * 有了它才能"搜索资料内容"和"从某一段直接出题"。
- * 目前只支持 PDF（扫描件抽不出文字，会是没有记录）。
+ * PDF 上传后先抽纯文本；解析流水线再把这一页交给大模型，
+ * 产出结构化块、强调信号和原始题目，存到下面的 JSON 字段里。
  */
 @Data
 @TableName("material_page")
@@ -28,7 +27,23 @@ public class MaterialPage {
     /** 从 1 开始，和阅读器显示的页码一致 */
     private Integer pageNo;
 
+    /** 纯文本，解析前先用它兜底 */
     private String content;
+
+    /** 结构化块 JSON（blocks） */
+    private String blocks;
+
+    /** 强调信号 JSON（emphasis） */
+    private String emphasis;
+
+    /** SLIDE / PDF / IMAGE / DOC */
+    private String docType;
+
+    /** PENDING / SUCCESS / NEEDS_REVIEW */
+    private String parseStatus;
+
+    /** 解析警告 JSON 数组 */
+    private String parseWarnings;
 
     private LocalDateTime createdAt;
 }
