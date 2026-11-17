@@ -24,8 +24,6 @@ mybatis-plus:
     # 数据库字段 course_name 自动映射到 Java 的 courseName
     map-underscore-to-camel-case: true
     # 开发阶段打印 SQL，上线要关掉
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
-
 knife4j:
   enable: true
 
