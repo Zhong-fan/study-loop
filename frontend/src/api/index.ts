@@ -89,6 +89,7 @@ export const getCoverage = (courseId: number) => http.get('/insight/coverage', {
 export const getDueMastery = () => http.get('/insight/due');
 
 export const getWeakKnowledge = () => http.get('/insight/weak');
+export const getTransfer = () => http.get('/insight/transfer');
 
 export const getNotifications = () => http.get('/insight/notifications');
 

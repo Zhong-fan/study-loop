@@ -81,13 +81,36 @@
                 <el-empty v-if="weakKnowledge.length === 0" description="暂时没有盲区，继续保持" :image-size="80" />
                 <base-chart v-else :option="weakOption" :height="weakHeight" />
             </el-card>
+
+            <!-- 会背不会用 -->
+            <el-card v-if="transferList.length" class="block" shadow="never">
+                <template #header>
+                    <div class="card-header">
+                        <span>会背不会用</span>
+                        <el-tag type="warning" size="small">{{ transferList.length }} 个知识点</el-tag>
+                    </div>
+                </template>
+
+                <div class="transfer-list">
+                    <div v-for="item in transferList" :key="item.knowledgeId" class="transfer-item">
+                        <b>#{{ item.knowledgeId }}</b>
+                        <span class="hint">
+                            单点 {{ percent(item.surfaceAccuracy) }} · 综合 {{ percent(item.deepAccuracy) }}
+                        </span>
+                        <el-tag type="warning" size="small" effect="plain">迁移薄弱</el-tag>
+                    </div>
+                </div>
+                <div class="hint">
+                    单点题正确率高、综合题得分低，说明记得住但不会用；这类知识点排期不升档，下次优先推综合题。
+                </div>
+            </el-card>
         </template>
     </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { getCoverage, getCourses, getOverview, getTrend, getWeakKnowledge } from '@/api';
+import { getCoverage, getCourses, getOverview, getTransfer, getTrend, getWeakKnowledge } from '@/api';
 import BaseChart from '@/components/base-chart.vue';
 
 const loading = ref(true);
@@ -104,7 +127,11 @@ const coverage = ref<any>({ totalKnowledge: 0, practiced: 0, mastered: 0, covera
 const courses = ref<any[]>([]);
 const courseId = ref<number | null>(null);
 const weakKnowledge = ref<any[]>([]);
+const transferList = ref<any[]>([]);
 const trend = ref<any[]>([]);
+
+const percent = (value: number | null | undefined) =>
+    value === null || value === undefined ? '—' : `${Math.round(value * 100)}%`;
 
 const statCards = computed(() => [
     { label: '题目总数', value: overview.value.totalQuestions, color: '#2563eb' },
@@ -253,15 +280,17 @@ const loadCoverage = async () => {
 
 onMounted(async () => {
     try {
-        const [o, t, w, data] = await Promise.all([
+        const [o, t, w, tr, data] = await Promise.all([
             getOverview(),
             getTrend(30),
             getWeakKnowledge(),
+            getTransfer(),
             getCourses({ page: 1, size: 100 })
         ]);
         overview.value = o;
         trend.value = t;
         weakKnowledge.value = w;
+        transferList.value = tr;
         courses.value = data.records;
 
         if (courses.value.length > 0) {
@@ -340,6 +369,24 @@ onMounted(async () => {
 }
 .block {
     margin-top: var(--sl-s4);
+}
+.transfer-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sl-s3);
+    margin-bottom: var(--sl-s3);
+}
+.transfer-item {
+    display: flex;
+    align-items: center;
+    gap: var(--sl-s3);
+    padding: 10px 12px;
+    border: 1px solid var(--sl-border);
+    border-radius: var(--sl-radius-sm);
+    background: #fffbeb;
+}
+.transfer-item b {
+    color: var(--sl-text);
 }
 .hint {
     margin-top: var(--sl-s3);

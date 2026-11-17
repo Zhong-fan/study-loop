@@ -253,8 +253,20 @@ public class MasteryServiceImpl implements MasteryService {
         }
         return result;
     }
-
     @Override
+    public List<MasteryVO> transfer(Long userId) {
+        QueryWrapper<Mastery> wrapper = new QueryWrapper<>();
+        wrapper.eq("user_id", userId);
+        wrapper.eq("transfer_flag", 1);
+        wrapper.orderByAsc("knowledge_id");
+
+        List<MasteryVO> result = new ArrayList<>();
+        for (Mastery mastery : masteryMapper.selectList(wrapper)) {
+            result.add(toVO(mastery));
+        }
+        return result;
+    }
+@Override
     public CoverageVO coverage(Long userId, Long courseId) {
         long total = 0;
         try {
@@ -338,6 +350,9 @@ public class MasteryServiceImpl implements MasteryService {
         vo.setAccuracy(mastery.getAccuracy());
         vo.setStage(mastery.getStage());
         vo.setNextReview(mastery.getNextReview());
+        vo.setSurfaceAccuracy(mastery.getSurfaceAccuracy());
+        vo.setDeepAccuracy(mastery.getDeepAccuracy());
+        vo.setTransferFlag(mastery.getTransferFlag());
         return vo;
     }
 }

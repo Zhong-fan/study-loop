@@ -59,6 +59,12 @@ public class MasteryController {
         return Result.ok(masteryService.weak(UserContext.requireUserId()));
     }
 
+    @Operation(summary = "会背不会用：单点题正确率高、综合题得分低")
+    @GetMapping("/transfer")
+    public Result<List<MasteryVO>> transfer() {
+        return Result.ok(masteryService.transfer(UserContext.requireUserId()));
+    }
+
     @Operation(summary = "覆盖率")
     @GetMapping("/coverage")
     public Result<CoverageVO> coverage(@RequestParam Long courseId) {

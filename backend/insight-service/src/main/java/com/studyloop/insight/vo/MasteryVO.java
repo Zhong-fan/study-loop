@@ -13,4 +13,13 @@ public class MasteryVO {
     private Double accuracy;
     private Integer stage;
     private LocalDate nextReview;
+
+    /** 单点题正确率 */
+    private Double surfaceAccuracy;
+
+    /** 综合题得分率 */
+    private Double deepAccuracy;
+
+    /** 1 表示"会背不会用" */
+    private Integer transferFlag;
 }

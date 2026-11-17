@@ -19,6 +19,9 @@ public interface MasteryService {
     /** 正确率低于 0.6 的，作为盲区清单 */
     List<MasteryVO> weak(Long userId);
 
+    /** 会背不会用：单点正确率高、综合得分低 */
+    List<MasteryVO> transfer(Long userId);
+
     /** 覆盖率 = 已掌握知识点 / 课程知识点总数 */
     CoverageVO coverage(Long userId, Long courseId);
 
