@@ -27,6 +27,9 @@ public class Question {
 
     private Long chapterId;
 
+    /** 归属知识点（节），统计和排期都以它为单位 */
+    private Long knowledgeId;
+
     /** 题目来自哪份资料（可选）。存 id 而不是标题，资料改名不影响 */
     private Long materialId;
 

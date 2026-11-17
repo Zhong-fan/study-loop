@@ -1,0 +1,153 @@
+package com.studyloop.content.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.studyloop.common.context.UserContext;
+import com.studyloop.common.exception.BizException;
+import com.studyloop.common.result.ErrorCode;
+import com.studyloop.content.dto.KnowledgeRequest;
+import com.studyloop.content.entity.Chapter;
+import com.studyloop.content.entity.Knowledge;
+import com.studyloop.content.mapper.ChapterMapper;
+import com.studyloop.content.mapper.KnowledgeMapper;
+import com.studyloop.content.service.KnowledgeService;
+import com.studyloop.content.vo.KnowledgeVO;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * 知识点业务。
+ * <p>
+ * 知识点挂在章下面，归属跟着课程走，所以每次操作都先确认章属于当前用户。
+ */
+@Service
+public class KnowledgeServiceImpl implements KnowledgeService {
+
+    private final KnowledgeMapper knowledgeMapper;
+    private final ChapterMapper chapterMapper;
+
+    public KnowledgeServiceImpl(KnowledgeMapper knowledgeMapper, ChapterMapper chapterMapper) {
+        this.knowledgeMapper = knowledgeMapper;
+        this.chapterMapper = chapterMapper;
+    }
+
+    @Override
+    public List<KnowledgeVO> listByChapter(Long chapterId) {
+        checkChapter(chapterId);
+
+        QueryWrapper<Knowledge> wrapper = new QueryWrapper<>();
+        wrapper.eq("chapter_id", chapterId);
+        wrapper.eq("deleted", 0);
+        wrapper.orderByAsc("id");
+
+        List<KnowledgeVO> result = new ArrayList<>();
+        for (Knowledge knowledge : knowledgeMapper.selectList(wrapper)) {
+            result.add(toVO(knowledge));
+        }
+        return result;
+    }
+
+    @Override
+    public List<KnowledgeVO> listByCourse(Long courseId) {
+        Long userId = UserContext.requireUserId();
+
+        QueryWrapper<Knowledge> wrapper = new QueryWrapper<>();
+        wrapper.eq("user_id", userId);
+        wrapper.eq("course_id", courseId);
+        wrapper.eq("deleted", 0);
+        wrapper.orderByAsc("chapter_id").orderByAsc("id");
+
+        List<KnowledgeVO> result = new ArrayList<>();
+        for (Knowledge knowledge : knowledgeMapper.selectList(wrapper)) {
+            result.add(toVO(knowledge));
+        }
+        return result;
+    }
+
+    @Override
+    public Long create(Long courseId, KnowledgeRequest request) {
+        Chapter chapter = checkChapter(request.getChapterId());
+
+        Knowledge knowledge = new Knowledge();
+        knowledge.setUserId(chapter.getUserId());
+        knowledge.setCourseId(courseId);
+        knowledge.setChapterId(request.getChapterId());
+        knowledge.setName(request.getName().trim());
+        knowledge.setType(request.getType() == null ? "CONCEPT" : request.getType());
+        knowledge.setImportance(request.getImportance() == null ? 3 : request.getImportance());
+        knowledge.setPageNo(request.getPageNo());
+        knowledge.setMaterialId(request.getMaterialId());
+        knowledge.setCreatedAt(LocalDateTime.now());
+        knowledge.setDeleted(0);
+
+        knowledgeMapper.insert(knowledge);
+        return knowledge.getId();
+    }
+
+    @Override
+    public void update(Long id, KnowledgeRequest request) {
+        Knowledge knowledge = findOwned(id);
+        knowledge.setName(request.getName().trim());
+        if (request.getType() != null) {
+            knowledge.setType(request.getType());
+        }
+        if (request.getImportance() != null) {
+            knowledge.setImportance(request.getImportance());
+        }
+        knowledge.setPageNo(request.getPageNo());
+        knowledgeMapper.updateById(knowledge);
+    }
+
+    @Override
+    public void delete(Long id) {
+        Knowledge knowledge = findOwned(id);
+        knowledge.setDeleted(1);
+        knowledgeMapper.updateById(knowledge);
+    }
+
+    @Override
+    public long countByCourse(Long courseId) {
+        Long userId = UserContext.requireUserId();
+
+        QueryWrapper<Knowledge> wrapper = new QueryWrapper<>();
+        wrapper.eq("user_id", userId);
+        wrapper.eq("course_id", courseId);
+        wrapper.eq("deleted", 0);
+        return knowledgeMapper.selectCount(wrapper);
+    }
+
+    private Chapter checkChapter(Long chapterId) {
+        Long userId = UserContext.requireUserId();
+
+        Chapter chapter = chapterMapper.selectById(chapterId);
+        if (chapter == null || chapter.getDeleted() == 1 || !userId.equals(chapter.getUserId())) {
+            throw new BizException(ErrorCode.NOT_FOUND, "章节不存在");
+        }
+        return chapter;
+    }
+
+    private Knowledge findOwned(Long id) {
+        Long userId = UserContext.requireUserId();
+
+        Knowledge knowledge = knowledgeMapper.selectById(id);
+        if (knowledge == null || knowledge.getDeleted() == 1 || !userId.equals(knowledge.getUserId())) {
+            throw new BizException(ErrorCode.NOT_FOUND, "知识点不存在");
+        }
+        return knowledge;
+    }
+
+    private KnowledgeVO toVO(Knowledge knowledge) {
+        KnowledgeVO vo = new KnowledgeVO();
+        vo.setId(knowledge.getId());
+        vo.setCourseId(knowledge.getCourseId());
+        vo.setChapterId(knowledge.getChapterId());
+        vo.setName(knowledge.getName());
+        vo.setType(knowledge.getType());
+        vo.setImportance(knowledge.getImportance());
+        vo.setPageNo(knowledge.getPageNo());
+        vo.setMaterialId(knowledge.getMaterialId());
+        return vo;
+    }
+}

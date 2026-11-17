@@ -3,16 +3,17 @@ package com.studyloop.practice;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.ComponentScan;
 
 /**
- * 错题与复习服务启动类。
+ * 练习与判分服务启动类。
  * <p>
- * 目前是空壳，只验证了"能启动、能注册、能通过网关访问"。
- * 题目与复习卡的业务从 controller 开始往下补。
+ * 负责题目、组卷、作答判分；判完分回调 insight 服务更新掌握度。
  */
 @SpringBootApplication
 @EnableDiscoveryClient
+@EnableFeignClients
 @ComponentScan("com.studyloop")
 public class PracticeApplication {
 

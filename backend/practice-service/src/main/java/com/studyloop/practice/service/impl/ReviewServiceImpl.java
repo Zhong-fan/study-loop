@@ -5,11 +5,15 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.studyloop.common.context.UserContext;
 import com.studyloop.common.exception.BizException;
 import com.studyloop.common.result.ErrorCode;
+import com.studyloop.practice.client.AttemptPayload;
+import com.studyloop.practice.client.InsightClient;
+import com.studyloop.practice.entity.Attempt;
 import com.studyloop.practice.entity.Question;
 import com.studyloop.practice.entity.ReviewCard;
 import com.studyloop.practice.entity.ReviewLog;
 import com.studyloop.practice.judge.AnswerJudge;
 import com.studyloop.practice.judge.Sm2Scheduler;
+import com.studyloop.practice.mapper.AttemptMapper;
 import com.studyloop.practice.mapper.QuestionMapper;
 import com.studyloop.practice.mapper.ReviewCardMapper;
 import com.studyloop.practice.mapper.ReviewLogMapper;
@@ -17,6 +21,8 @@ import com.studyloop.practice.service.ReviewService;
 import com.studyloop.practice.util.JsonConverter;
 import com.studyloop.practice.vo.AnswerResultVO;
 import com.studyloop.practice.vo.ReviewCardVO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,16 +45,24 @@ public class ReviewServiceImpl implements ReviewService {
     /** 单次最多取多少张卡，防止一口气给人 500 道 */
     private static final int MAX_LIMIT = 200;
 
+    private static final Logger LOG = LoggerFactory.getLogger(ReviewServiceImpl.class);
+
     private final ReviewCardMapper reviewCardMapper;
     private final ReviewLogMapper reviewLogMapper;
     private final QuestionMapper questionMapper;
+    private final AttemptMapper attemptMapper;
+    private final InsightClient insightClient;
 
     public ReviewServiceImpl(ReviewCardMapper reviewCardMapper,
                              ReviewLogMapper reviewLogMapper,
-                             QuestionMapper questionMapper) {
+                             QuestionMapper questionMapper,
+                             AttemptMapper attemptMapper,
+                             InsightClient insightClient) {
         this.reviewCardMapper = reviewCardMapper;
         this.reviewLogMapper = reviewLogMapper;
         this.questionMapper = questionMapper;
+        this.attemptMapper = attemptMapper;
+        this.insightClient = insightClient;
     }
 
     @Override
@@ -159,6 +173,27 @@ public class ReviewServiceImpl implements ReviewService {
         reviewCardMapper.updateById(card);
 
         reviewLogMapper.insert(log);
+
+        // 作答流水：不管有没有知识点都记，覆盖统计只挑有知识点的
+        double score = rating == 2 ? 1.0 : (rating == 1 ? 0.5 : 0);
+        Attempt attempt = new Attempt();
+        attempt.setUserId(card.getUserId());
+        attempt.setQuestionId(question.getId());
+        attempt.setKnowledgeId(question.getKnowledgeId());
+        attempt.setScore(score);
+        attempt.setGrader("SELF");
+        attempt.setCostMs(costMs);
+        attempt.setAnsweredAt(LocalDateTime.now());
+        attemptMapper.insert(attempt);
+
+        // 通知覆盖服务；失败不阻塞作答
+        if (question.getKnowledgeId() != null) {
+            try {
+                insightClient.record(card.getUserId(), new AttemptPayload(question.getKnowledgeId(), rating >= 1));
+            } catch (Exception e) {
+                LOG.warn("回调覆盖服务失败，掌握度稍后补: {}", e.getMessage());
+            }
+        }
 
         // 间隔超过 30 天就算"掌握"，但仍然参与长间隔复习
         if (next.intervalDays >= 30 && question.getStatus() == 0) {

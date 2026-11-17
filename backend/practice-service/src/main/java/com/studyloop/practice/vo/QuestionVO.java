@@ -17,6 +17,7 @@ public class QuestionVO {
     private Long id;
     private Long courseId;
     private Long chapterId;
+    private Long knowledgeId;
     private Long materialId;
     private Integer pageNo;
     private String quote;

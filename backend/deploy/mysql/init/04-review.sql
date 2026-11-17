@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS question (
     user_id    BIGINT       NOT NULL COMMENT '归属用户',
     course_id  BIGINT       NOT NULL COMMENT '所属课程（跨服务只存 id）',
     chapter_id BIGINT       DEFAULT NULL COMMENT '所属章节',
+    knowledge_id BIGINT     DEFAULT NULL COMMENT '所属知识点',
     material_id BIGINT      DEFAULT NULL COMMENT '来源资料',
     page_no    INT          DEFAULT NULL COMMENT '来源页码',
     quote      TEXT         DEFAULT NULL COMMENT '出题时选中的原文',

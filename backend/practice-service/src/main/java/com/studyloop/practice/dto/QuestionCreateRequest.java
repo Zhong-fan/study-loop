@@ -24,6 +24,9 @@ public class QuestionCreateRequest {
 
     private Long chapterId;
 
+    /** 归属知识点 */
+    private Long knowledgeId;
+
     /** 来源资料，从"划词出题"进来时会带上 */
     private Long materialId;
 
