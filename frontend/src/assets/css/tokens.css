@@ -1,0 +1,102 @@
+/* 设计令牌：字号、间距、圆角、阴影统一在这里，页面里不再写魔法数字 */
+:root {
+    /* 间距阶梯 */
+    --sl-s1: 4px;
+    --sl-s2: 8px;
+    --sl-s3: 12px;
+    --sl-s4: 16px;
+    --sl-s5: 24px;
+    --sl-s6: 32px;
+
+    /* 字号阶梯 */
+    --sl-fs-xs: 12px;
+    --sl-fs-sm: 13px;
+    --sl-fs-base: 14px;
+    --sl-fs-lg: 16px;
+    --sl-fs-xl: 20px;
+    --sl-fs-2xl: 28px;
+
+    /* 颜色 */
+    --sl-bg: #f5f7fa;
+    --sl-surface: #ffffff;
+    --sl-border: #e5e7eb;
+    --sl-text: #1f2937;
+    --sl-text-secondary: #4b5563;
+    --sl-muted: #9ca3af;
+    --sl-primary: #2563eb;
+    --sl-success: #10b981;
+    --sl-warning: #f59e0b;
+    --sl-danger: #ef4444;
+
+    /* 形状 */
+    --sl-radius: 12px;
+    --sl-radius-sm: 8px;
+    --sl-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.08);
+
+    /* 布局 */
+    --sl-header-h: 64px;
+    --sl-sidebar-w: 240px;
+    --sl-sidebar-collapsed: 64px;
+}
+
+body {
+    color: var(--sl-text);
+    font-size: var(--sl-fs-base);
+    background: var(--sl-bg);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* 页面统一内边距，页面里不再重复写 */
+.page {
+    padding: var(--sl-s5);
+}
+
+/* 卡片：去掉硬边框，用轻阴影分层 */
+.el-card {
+    border: 1px solid var(--sl-border);
+    border-radius: var(--sl-radius);
+    box-shadow: var(--sl-shadow);
+}
+
+.el-card__header {
+    padding: var(--sl-s4) var(--sl-s5);
+    font-weight: 600;
+    font-size: var(--sl-fs-lg);
+    border-bottom: 1px solid var(--sl-border);
+}
+
+.el-card__body {
+    padding: var(--sl-s5);
+}
+
+/* 表头弱化，正文更突出 */
+.el-table th.el-table__cell {
+    background: #f8fafc !important;
+    color: var(--sl-text-secondary);
+    font-weight: 600;
+}
+
+.el-table {
+    --el-table-border-color: var(--sl-border);
+}
+
+/* 数字卡片里的数字 */
+.num {
+    font-size: var(--sl-fs-2xl);
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--sl-text);
+    font-variant-numeric: tabular-nums;
+}
+
+.label {
+    margin-top: var(--sl-s1);
+    font-size: var(--sl-fs-xs);
+    color: var(--sl-muted);
+}
+
+.hint {
+    color: var(--sl-muted);
+    font-size: var(--sl-fs-xs);
+    line-height: 1.6;
+}

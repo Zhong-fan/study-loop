@@ -80,7 +80,7 @@ const sidebar = useSidebarStore();
 }
 
 .sidebar-el-menu:not(.el-menu--collapse) {
-    width: 250px;
+    width: var(--sl-sidebar-w);
 }
 
 .sidebar-el-menu {

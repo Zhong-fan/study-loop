@@ -120,7 +120,7 @@ onMounted(async () => {
     align-items: center;
     box-sizing: border-box;
     width: 100%;
-    height: 70px;
+    height: var(--sl-header-h);
     color: var(--header-text-color);
     background-color: var(--header-bg-color);
     border-bottom: 1px solid #ddd;
@@ -157,7 +157,7 @@ onMounted(async () => {
 }
 .header-user-con {
     display: flex;
-    height: 70px;
+    height: var(--sl-header-h);
     align-items: center;
 }
 .btn-icon {

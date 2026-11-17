@@ -1,6 +1,8 @@
 <template>
     <div class="page">
-        <el-card v-if="loading" v-loading="true" style="height: 200px" />
+        <el-card v-if="loading" shadow="never">
+            <el-skeleton :rows="6" animated />
+        </el-card>
 
         <el-card v-else-if="!current">
             <el-empty :description="pending.length > 0
