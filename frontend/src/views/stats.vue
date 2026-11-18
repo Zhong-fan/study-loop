@@ -4,8 +4,14 @@
 
         <template v-else>
             <!-- 顶部四个关键指标 -->
-            <div class="sl-grid">
-                <el-card v-for="item in statCards" :key="item.label" class="stat-card sl-col-3" shadow="never">
+            <div class="sl-grid sl-stagger">
+                <el-card
+                    v-for="(item, index) in statCards"
+                    :key="item.label"
+                    class="stat-card sl-col-3 sl-hover-lift"
+                    :style="{ '--i': index }"
+                    shadow="never"
+                >
                     <div class="stat-top" :style="{ color: item.color }">
                         <el-icon><component :is="item.icon" /></el-icon>
                         <span>{{ item.label }}</span>
