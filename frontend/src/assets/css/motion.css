@@ -1,0 +1,116 @@
+/* 动效令牌与基础类
+ * 依据 LottieFiles/motion-design-skill（MIT）：
+ * - 性格选 Corporate：200-400ms、标准缓动、无回弹，适合数据型后台
+ * - 入场上浮 + 淡入，出场反向加速
+ * - 列表错峰用 micro cascade：每项 20-40ms，总时长 < 200ms
+ * - 同时运动的元素不超过 1/3；位移不超过屏高的 1/3
+ */
+:root {
+    --sl-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+    --sl-ease-in: cubic-bezier(0.05, 0.7, 0.1, 1);
+    --sl-ease-out: cubic-bezier(0.3, 0, 1, 1);
+
+    --sl-dur-fast: 120ms;
+    --sl-dur-base: 220ms;
+    --sl-dur-slow: 320ms;
+    --sl-dur-page: 380ms;
+}
+
+/* 入场上浮：一次最多动两个属性（位移 + 透明度） */
+@keyframes sl-fade-up {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes sl-rise {
+    from { transform: translateY(6px); }
+    to { transform: translateY(0); }
+}
+
+@keyframes sl-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* 错误反馈：2-3 次衰减抖动，不做回弹 */
+@keyframes sl-shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(5px); }
+    60% { transform: translateX(-3px); }
+    80% { transform: translateX(2px); }
+}
+
+.sl-enter {
+    animation: sl-fade-up var(--sl-dur-base) var(--sl-ease-in) both;
+}
+
+/* 错峰：给子元素设 --i，每项间隔 36ms */
+.sl-stagger > * {
+    animation: sl-rise var(--sl-dur-base) var(--sl-ease-in) both;
+    animation-delay: calc(var(--i, 0) * 36ms);
+}
+
+.sl-hover-lift {
+    transition: transform var(--sl-dur-fast) var(--sl-ease-standard),
+                box-shadow var(--sl-dur-fast) var(--sl-ease-standard);
+}
+
+.sl-hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 24, 40, 0.08);
+}
+
+/* 按钮按下：只做 2% 缩放，120ms，提供"按到了"的反馈 */
+.el-button:active {
+    transform: scale(0.98);
+    transition: transform var(--sl-dur-fast) var(--sl-ease-standard);
+}
+
+.sl-shake {
+    animation: sl-shake 320ms var(--sl-ease-standard);
+}
+
+/* 页面切换：淡入 + 4px 上移，比卡片入场稍慢 */
+.move-enter-active {
+    transition: opacity var(--sl-dur-page) var(--sl-ease-in),
+                transform var(--sl-dur-page) var(--sl-ease-in);
+}
+
+.move-leave-active {
+    transition: opacity var(--sl-dur-fast) var(--sl-ease-out),
+                transform var(--sl-dur-fast) var(--sl-ease-out);
+}
+
+.move-enter-from {
+    opacity: 0;
+    transform: translateY(4px);
+}
+
+.move-leave-to {
+    opacity: 0;
+    transform: translateY(-2px);
+}
+
+/* 系统设置里要求减少动效时，全部退化为即时切换 */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 1ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    .sl-hover-lift:hover,
+    .el-button:active {
+        transform: none;
+    }
+}

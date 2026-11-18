@@ -40,8 +40,8 @@
             <el-skeleton v-if="loading" :rows="5" animated />
             <el-empty v-else-if="items.length === 0" description="先选课程，再点生成预测卷" :image-size="90" />
 
-            <div v-else class="paper">
-                <div v-for="(item, index) in items" :key="item.questionId" class="question">
+            <div v-else class="paper sl-stagger">
+                <div v-for="(item, index) in items" :key="item.questionId" class="question" :style="{ '--i': index }">
                     <div class="stem">
                         <b>{{ index + 1 }}.</b>
                         <span>{{ item.stem }}</span>
