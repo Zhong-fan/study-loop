@@ -104,6 +104,23 @@ public class QuestionServiceImpl implements QuestionService {
         if (request.getDifficulty() != null) {
             question.setDifficulty(request.getDifficulty());
         }
+        // 主知识点变了，关联表要跟着换，否则统计和待练会指到旧知识点
+        Long oldKnowledgeId = question.getKnowledgeId();
+        if (request.getKnowledgeId() != null && !request.getKnowledgeId().equals(oldKnowledgeId)) {
+            question.setKnowledgeId(request.getKnowledgeId());
+            if (oldKnowledgeId != null) {
+                questionKnowledgeMapper.delete(new QueryWrapper<QuestionKnowledge>()
+                        .eq("question_id", id)
+                        .eq("knowledge_id", oldKnowledgeId));
+            }
+            QuestionKnowledge link = new QuestionKnowledge();
+            link.setQuestionId(id);
+            link.setKnowledgeId(request.getKnowledgeId());
+            link.setRole("PRIMARY");
+            link.setWeight(1.0);
+            questionKnowledgeMapper.insert(link);
+        }
+
         question.setUpdatedAt(LocalDateTime.now());
         questionMapper.updateById(question);
     }

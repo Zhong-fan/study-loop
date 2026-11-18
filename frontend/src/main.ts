@@ -5,6 +5,7 @@ import App from './App.vue';
 import router from './router';
 import 'element-plus/dist/index.css';
 import './assets/css/tokens.css';
+import './assets/css/grid.css';
 import './assets/css/icon.css';
 
 const app = createApp(App);

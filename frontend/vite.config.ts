@@ -23,7 +23,7 @@ export default defineConfig({
         proxy: {
             // 开发时把 /api 转发到网关，避免跨域
             '/api': {
-                target: 'http://localhost:8080',
+                target: 'http://127.0.0.1:10080',
                 changeOrigin: true
             }
         }

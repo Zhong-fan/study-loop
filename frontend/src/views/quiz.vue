@@ -1,5 +1,5 @@
 <template>
-    <div class="page">
+    <div class="page sl-page">
         <el-card>
             <div class="row">
                 <el-select v-model="courseId" placeholder="选择课程" style="width: 200px">
@@ -13,7 +13,15 @@
             <div class="muted tip">只抽单选、多选、判断、填空；主观题没法自动判分，不参与组卷。</div>
         </el-card>
 
-        <el-card v-if="quiz && !result" class="block">
+        <el-card v-if="loading" class="block" shadow="never">
+            <el-skeleton :rows="6" animated />
+        </el-card>
+
+        <el-card v-else-if="!quiz && !result" class="block" shadow="never">
+            <el-empty description="选好课程和题量，点「生成试卷」开始自测" :image-size="90" />
+        </el-card>
+
+        <el-card v-else-if="quiz && !result" class="block">
             <template #header>
                 <div class="card-header">
                     <span>{{ quiz.title }} · 共 {{ quiz.questions.length }} 题</span>

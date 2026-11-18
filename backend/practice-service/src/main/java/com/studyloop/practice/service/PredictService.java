@@ -110,7 +110,11 @@ public class PredictService {
                     item.setStem(question.getStem());
                     item.setKnowledgeIds(knowledgeIds);
                     item.setWeight(entry.getValue());
-                    item.setReason(reasonOf(knowledgeIds, weightById));
+                    Map<String, Object> best = bestOf(knowledgeIds, weightById);
+                    item.setReason(reasonOf(best));
+                    item.setEvidenceQuote(String.valueOf(best.getOrDefault("topQuote", "")));
+                    Object topPage = best.get("topPage");
+                    item.setEvidencePage(topPage == null ? null : Integer.valueOf(String.valueOf(topPage)));
                     items.add(item);
                 });
 
@@ -119,23 +123,26 @@ public class PredictService {
         return result;
     }
 
-    /** 用权重最高的那个知识点解释为什么选这道题 */
-    private String reasonOf(List<Long> knowledgeIds, Map<Long, Map<String, Object>> weightById) {
+    /** 权重最高的那个知识点，用来解释"为什么预测这道题" */
+    private Map<String, Object> bestOf(List<Long> knowledgeIds, Map<Long, Map<String, Object>> weightById) {
         if (knowledgeIds.isEmpty()) {
-            return "";
+            return Map.of();
         }
         Long best = knowledgeIds.stream()
                 .max((a, b) -> Double.compare(weight(weightById, a), weight(weightById, b)))
                 .orElse(knowledgeIds.get(0));
-        Map<String, Object> weight = weightById.get(best);
-        if (weight == null) {
+        return weightById.getOrDefault(best, Map.of());
+    }
+
+    private String reasonOf(Map<String, Object> weight) {
+        if (weight.isEmpty()) {
             return "";
         }
         String name = String.valueOf(weight.getOrDefault("name", ""));
         String pages = String.valueOf(weight.getOrDefault("pages", ""));
         Object keywords = weight.getOrDefault("keywordCount", 0);
         return "「" + name + "」权重 " + weight.getOrDefault("weight", 0)
-                + (pages.isBlank() ? "" : "，出自第 " + pages + " 页")
+                + (pages.isBlank() || "null".equals(pages) ? "" : "，出自第 " + pages + " 页")
                 + (Integer.parseInt(String.valueOf(keywords)) > 0 ? "，含强调词" : "");
     }
 

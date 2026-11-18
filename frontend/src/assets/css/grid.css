@@ -1,0 +1,85 @@
+/* 布局栅格：桌面 12 栏 / 平板 8 栏 / 手机 4 栏
+ * 只负责"放在哪几栏"，不负责卡片内部样式。
+ * 间距走 --sl-gutter，与设计令牌同一套。
+ */
+:root {
+    --sl-gutter: 24px;
+    --sl-cols: 12;
+}
+
+.sl-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--sl-gutter);
+}
+
+/* 桌面：12 栏 */
+.sl-col-1 { grid-column: span 1; }
+.sl-col-2 { grid-column: span 2; }
+.sl-col-3 { grid-column: span 3; }
+.sl-col-4 { grid-column: span 4; }
+.sl-col-5 { grid-column: span 5; }
+.sl-col-6 { grid-column: span 6; }
+.sl-col-7 { grid-column: span 7; }
+.sl-col-8 { grid-column: span 8; }
+.sl-col-9 { grid-column: span 9; }
+.sl-col-10 { grid-column: span 10; }
+.sl-col-11 { grid-column: span 11; }
+.sl-col-12 { grid-column: span 12; }
+
+/* 平板：8 栏，间距收窄 */
+@media (max-width: 1199px) {
+    :root {
+        --sl-gutter: 16px;
+        --sl-cols: 8;
+    }
+
+    .sl-grid {
+        grid-template-columns: repeat(8, minmax(0, 1fr));
+    }
+
+    .sl-col-12,
+    .sl-col-9,
+    .sl-col-8,
+    .sl-col-7,
+    .sl-col-6,
+    .sl-col-5 { grid-column: span 8; }
+    .sl-col-4,
+    .sl-col-3 { grid-column: span 4; }
+    .sl-col-2 { grid-column: span 2; }
+    .sl-col-1 { grid-column: span 1; }
+}
+
+/* 手机：4 栏，全部整行，避免挤成条状 */
+@media (max-width: 767px) {
+    :root {
+        --sl-gutter: 12px;
+        --sl-cols: 4;
+    }
+
+    .sl-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .sl-col-1,
+    .sl-col-2,
+    .sl-col-3,
+    .sl-col-4,
+    .sl-col-5,
+    .sl-col-6,
+    .sl-col-7,
+    .sl-col-8,
+    .sl-col-9,
+    .sl-col-10,
+    .sl-col-11,
+    .sl-col-12 { grid-column: span 4; }
+}
+
+/* 页面容器：最大宽度 + 居中，避免超宽屏上内容拉成一条 */
+.sl-page {
+    width: 100%;
+    box-sizing: border-box;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: var(--sl-s5);
+}

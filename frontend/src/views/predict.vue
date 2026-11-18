@@ -1,5 +1,5 @@
 <template>
-    <div class="page">
+    <div class="page sl-page">
         <el-card shadow="never">
             <template #header>
                 <div class="card-header">
@@ -17,6 +17,10 @@
                 <el-button type="primary" :loading="loading" :disabled="!courseId" @click="build">
                     生成预测卷
                 </el-button>
+            </div>
+
+            <div v-if="lowConfidence" class="hint warn">
+                部分题目缺少原文依据（依据有限）：这些题目来自没有证据的知识点，参考价值较低。
             </div>
 
             <div class="hint note">
@@ -48,6 +52,13 @@
                             权重 {{ Math.round(item.weight * 100) }}%
                         </el-tag>
                         <span class="hint">{{ item.reason }}</span>
+                        <el-popover v-if="item.evidenceQuote" placement="bottom" :width="420" trigger="click">
+                            <template #reference>
+                                <el-link type="primary" :underline="false">查看依据原文</el-link>
+                            </template>
+                            <div class="quote-page">第 {{ item.evidencePage }} 页</div>
+                            <div class="quote-text">{{ item.evidenceQuote }}</div>
+                        </el-popover>
                     </div>
                 </div>
             </div>
@@ -56,7 +67,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { getCourses, getPredict } from '@/api';
 
@@ -65,6 +76,8 @@ const courseId = ref<number | null>(null);
 const size = ref(10);
 const loading = ref(false);
 const items = ref<any[]>([]);
+
+const lowConfidence = computed(() => items.value.some((item) => !item.evidenceQuote));
 
 const typeText = (type: string) =>
     ({ SINGLE: '单选', MULTIPLE: '多选', JUDGE: '判断', BLANK: '填空', SUBJECTIVE: '简答', COMPOSITE: '综合题' } as any)[type] || type;
@@ -136,6 +149,20 @@ onMounted(async () => {
     display: flex;
     align-items: center;
     gap: var(--sl-s2);
+    margin-top: var(--sl-s2);
+}
+.quote-page {
+    font-size: 12px;
+    color: var(--sl-muted);
+    margin-bottom: 6px;
+}
+.quote-text {
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--sl-text);
+}
+.warn {
+    color: #b45309;
     margin-top: var(--sl-s2);
 }
 </style>

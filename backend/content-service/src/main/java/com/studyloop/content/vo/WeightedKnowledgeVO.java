@@ -27,4 +27,9 @@ public class WeightedKnowledgeVO {
 
     /** 出现过的页码，去重后拼接，便于展示"出自哪几页" */
     private String pages;
+
+    /** 最有代表性的一条证据（优先强调词），用于界面展开原文 */
+    private String topQuote;
+
+    private Integer topPage;
 }

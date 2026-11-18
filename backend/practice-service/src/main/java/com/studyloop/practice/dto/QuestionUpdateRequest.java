@@ -20,6 +20,9 @@ public class QuestionUpdateRequest {
 
     private Long chapterId;
 
+    /** 主知识点；传了且发生变化时会同步关联表 */
+    private Long knowledgeId;
+
     @NotBlank(message = "题型不能为空")
     private String type;
 

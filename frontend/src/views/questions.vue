@@ -1,5 +1,5 @@
 <template>
-    <div class="page">
+    <div class="page sl-page">
         <el-card>
             <template #header>
                 <div class="card-header">
@@ -70,8 +70,20 @@
                 </el-form-item>
 
                 <el-form-item label="章节">
-                    <el-select v-model="form.chapterId" placeholder="可不选" clearable style="width: 100%">
+                    <el-select v-model="form.chapterId" placeholder="可不选" clearable style="width: 100%" @change="loadKnowledges">
                         <el-option v-for="ch in chapters" :key="ch.id" :label="ch.title" :value="ch.id" />
+                    </el-select>
+                </el-form-item>
+
+                <el-form-item label="知识点">
+                    <el-select
+                        v-model="form.knowledgeId"
+                        placeholder="先选章节"
+                        clearable
+                        :disabled="!form.chapterId"
+                        style="width: 100%"
+                    >
+                        <el-option v-for="k in knowledges" :key="k.id" :label="k.name" :value="k.id" />
                     </el-select>
                 </el-form-item>
 
@@ -135,7 +147,7 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { createQuestion, deleteQuestion, getChapters, getCourses, getQuestion, getQuestions, updateQuestion } from '@/api';
+import { createQuestion, deleteQuestion, getChapters, getCourses, getKnowledgeByChapter, getQuestion, getQuestions, updateQuestion } from '@/api';
 
 const route = useRoute();
 const router = useRouter();
@@ -160,6 +172,7 @@ const size = ref(10);
 const filter = reactive<any>({ courseId: null, type: null });
 const formVisible = ref(false);
 const chapters = ref<any[]>([]);
+const knowledges = ref<any[]>([]);
 const form = reactive<any>({
     id: null,
     courseId: null,
@@ -217,10 +230,17 @@ const onPageChange = (p: number) => {
     load();
 };
 
+const loadKnowledges = async () => {
+    form.knowledgeId = null;
+    knowledges.value = form.chapterId ? await getKnowledgeByChapter(form.chapterId) : [];
+};
+
 const openCreate = () => {
     form.id = null;
     form.courseId = courses.value[0]?.id ?? null;
     form.chapterId = null;
+    form.knowledgeId = null;
+    knowledges.value = [];
     form.type = 'SINGLE';
     form.stem = '';
     form.optionsText = '';
@@ -241,6 +261,7 @@ const openEdit = async (row: any) => {
     form.id = detail.id;
     form.courseId = detail.courseId;
     form.chapterId = detail.chapterId || null;
+    form.knowledgeId = detail.knowledgeId || null;
     form.type = detail.type;
     form.stem = detail.stem;
     form.optionsText = (detail.options || []).join('\n');
@@ -301,6 +322,7 @@ const save = async () => {
     try {
         const payload = {
             chapterId: form.chapterId,
+        knowledgeId: form.knowledgeId,
             type: form.type,
             stem: form.stem,
             options: ['SINGLE', 'MULTIPLE'].includes(form.type) ? options : [],

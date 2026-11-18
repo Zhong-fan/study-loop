@@ -90,12 +90,12 @@ Spring Boot · Spring Cloud Alibaba（Nacos / Gateway / OpenFeign / Seata）· M
 ├─ backend/                  微服务源码
 │  ├─ pom.xml                父 POM，所有版本号只在父 POM 出现
 │  ├─ study-loop-common/     返回体、异常、当前登录用户
-│  ├─ study-loop-gateway/    8080 路由 + 登录校验
-│  ├─ user-service/          8081 注册登录、签发 token
-│  ├─ content-service/       8082 课程、章、知识点、资料解析
-│  ├─ practice-service/      8083 题目、作答、判分、attempt 流水
-│  ├─ insight-service/       8085 掌握度、覆盖率、1/3/7/14 排期
-│  ├─ ai-service/            8086 生成题目、主观题判分、调用记录
+│  ├─ study-loop-gateway/    10080 路由 + 登录校验
+│  ├─ user-service/          10081 注册登录、签发 token
+│  ├─ content-service/       10082 课程、章、知识点、资料解析
+│  ├─ practice-service/      10083 题目、作答、判分、attempt 流水
+│  ├─ insight-service/       10085 掌握度、覆盖率、1/3/7/14 排期
+│  ├─ ai-service/            10086 生成题目、主观题判分、调用记录
 │  └─ deploy/                docker-compose、建库脚本
 └─ frontend/                 前端（Vue3 + Element Plus，基于 vue-manage-system 改造）
 ```
@@ -144,12 +144,12 @@ java -jar backend/study-loop-gateway/target/study-loop-gateway-1.0.0.jar
 
 | 服务 | 端口 | 说明 |
 | --- | --- | --- |
-| gateway | 8080 | 前端只访问这个 |
-| user-service | 8081 | 注册登录 |
-| content-service | 8082 | 课程 / 章 / 知识点 / 资料 |
-| practice-service | 8083 | 题目 / 作答 / 判分 |
-| insight-service | 8085 | 掌握度 / 覆盖率 / 排期 |
-| ai-service | 8086 | 大模型出题与判分 |
+| gateway | 10080 | 前端只访问这个 |
+| user-service | 10081 | 注册登录 |
+| content-service | 10082 | 课程 / 章 / 知识点 / 资料 |
+| practice-service | 10083 | 题目 / 作答 / 判分 |
+| insight-service | 10085 | 掌握度 / 覆盖率 / 排期 |
+| ai-service | 10086 | 大模型出题与判分 |
 
 AI 需要 key：在仓库根目录建 `.env`（已被 git 忽略），参考 `.env.example` 填 `AI_API_KEY`。
 Spring 本身不读 `.env`，需要在启动 ai-service 前把里面的变量导出成环境变量（仓库里的启动脚本会解析它）。不填也能启动，接口会返回「AI 未配置」。
@@ -165,7 +165,7 @@ npm run dev
 ```
 
 打开 <http://127.0.0.1:5173>，注册一个账号就能用。
-开发服务器已配置代理，`/api` 会被转发到 `http://localhost:8080`（网关），不需要处理跨域。
+开发服务器已配置代理，`/api` 会被转发到 `http://localhost:10080`（网关），不需要处理跨域。
 
 > 前端模板来自 [vue-manage-system](https://github.com/lin-xin/vue-manage-system)：保留了它的布局、菜单、标签页和请求封装，路由与业务页面换成了本项目的。
 
@@ -173,17 +173,17 @@ npm run dev
 
 ```bash
 # 注册
-curl -X POST http://localhost:8080/api/auth/register \
+curl -X POST http://localhost:10080/api/auth/register \
   -H "Content-Type: application/json" \
   -d "{\"username\":\"test01\",\"password\":\"123456\",\"nickname\":\"小明\"}"
 
 # 登录，拿到 token
-curl -X POST http://localhost:8080/api/auth/login \
+curl -X POST http://localhost:10080/api/auth/login \
   -H "Content-Type: application/json" \
   -d "{\"username\":\"test01\",\"password\":\"123456\"}"
 
 # 建一门课（把 <token> 换成上一步的返回值）
-curl -X POST http://localhost:8080/api/courses \
+curl -X POST http://localhost:10080/api/courses \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <token>" \
   -d "{\"name\":\"数据结构\",\"description\":\"第三章 树\"}"
@@ -191,7 +191,20 @@ curl -X POST http://localhost:8080/api/courses \
 
 > Windows PowerShell 里 `curl` 是 `Invoke-WebRequest` 的别名，请改用 `curl.exe`，或直接用 Knife4j 页面调试。
 
-接口文档：<http://localhost:8080/doc.html>（网关转发），或各服务端口下的 `/doc.html`。
+接口文档：<http://localhost:10080/doc.html>（网关转发），或各服务端口下的 `/doc.html`。
+
+### 为什么端口是 1008x 而不是 808x
+
+Windows 的 Hyper-V/WSL 会动态保留一段 TCP 端口（本机保留段覆盖了 7998–8197），
+8080–8086 在保留范围内，Java 绑定会报「端口已被占用」但实际没有进程监听。
+
+排查方法：
+
+```powershell
+netsh interface ipv4 show excludedportrange protocol=tcp
+```
+
+因此本项目把服务端口整体挪到 10080–10086，避开保留段。端口表见上文。
 
 ## 接口一览
 

@@ -250,6 +250,16 @@ public class KnowledgeServiceImpl implements KnowledgeService {
             vo.setKeywordCount(keyword);
             vo.setExampleCount(example);
             vo.setPages(pages.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(",")));
+
+            // 优先挑强调词证据，其次第一条，给前端"展开原文"用
+            KnowledgeEvidence top = evidences.stream()
+                    .filter(e -> "KEYWORD".equals(e.getSignalType()))
+                    .findFirst()
+                    .orElse(evidences.isEmpty() ? null : evidences.get(0));
+            if (top != null) {
+                vo.setTopQuote(top.getQuote());
+                vo.setTopPage(top.getPageNo());
+            }
             result.add(vo);
         }
 

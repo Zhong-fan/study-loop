@@ -1,5 +1,5 @@
 <template>
-    <div class="page">
+    <div class="page sl-page">
         <el-card v-if="loading" shadow="never">
             <el-skeleton :rows="6" animated />
         </el-card>

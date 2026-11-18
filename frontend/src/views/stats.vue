@@ -1,11 +1,11 @@
 <template>
-    <div class="page">
+    <div class="page sl-page">
         <el-skeleton v-if="loading" :rows="8" animated />
 
         <template v-else>
             <!-- 顶部四个关键指标 -->
-            <div class="stat-grid">
-                <el-card v-for="item in statCards" :key="item.label" class="stat-card" shadow="never">
+            <div class="sl-grid">
+                <el-card v-for="item in statCards" :key="item.label" class="stat-card sl-col-3" shadow="never">
                     <div class="stat-accent" :style="{ background: item.color }"></div>
                     <div class="stat-body">
                         <div class="num">{{ item.value }}</div>
@@ -14,9 +14,9 @@
                 </el-card>
             </div>
 
-            <div class="chart-grid">
+            <div class="sl-grid chart-grid">
                 <!-- 覆盖率 -->
-                <el-card shadow="never">
+                <el-card class="sl-col-5" shadow="never">
                     <template #header>
                         <div class="card-header">
                             <span>知识点覆盖率</span>
@@ -59,7 +59,7 @@
                 </el-card>
 
                 <!-- 复习趋势 -->
-                <el-card shadow="never">
+                <el-card class="sl-col-7" shadow="never">
                     <template #header>
                         <div class="card-header"><span>最近 30 天趋势</span></div>
                     </template>
@@ -306,11 +306,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.stat-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: var(--sl-s4);
-}
 .stat-card {
     position: relative;
     overflow: hidden;
@@ -327,9 +322,6 @@ onMounted(async () => {
     border-radius: 4px;
 }
 .chart-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
-    gap: var(--sl-s4);
     margin-top: var(--sl-s4);
 }
 .card-header {
@@ -395,11 +387,8 @@ onMounted(async () => {
 }
 
 @media (max-width: 1100px) {
-    .stat-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .chart-grid {
-        grid-template-columns: minmax(0, 1fr);
-    }
+        .chart-grid {
+    margin-top: var(--sl-s4);
+}
 }
 </style>

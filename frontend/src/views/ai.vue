@@ -1,5 +1,5 @@
 <template>
-    <div class="page">
+    <div class="page sl-page">
         <el-card shadow="never">
             <template #header>
                 <div class="card-header">

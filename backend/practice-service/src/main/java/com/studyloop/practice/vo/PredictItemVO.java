@@ -19,4 +19,9 @@ public class PredictItemVO {
 
     /** 出题依据，直接给前端展示 */
     private String reason;
+
+    /** 依据的原文片段与页码，前端展开用 */
+    private String evidenceQuote;
+
+    private Integer evidencePage;
 }
