@@ -1,5 +1,5 @@
-# 只起中间件：MySQL 和 Nacos
-# 四个 Java 服务在 IDEA 里启动，改代码不用重新打包
+# 只起中间件：MySQL / Nacos / Redis / Seata / MinIO
+# 五个 Java 服务在 IDEA 里启动，改代码不用重新打包
 #
 # 启动：docker compose up -d
 # 查看：docker compose ps
@@ -38,6 +38,30 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+
+  seata:
+    image: seataio/seata-server:2.1.0
+    container_name: study-loop-seata
+    restart: unless-stopped
+    environment:
+      SEATA_PORT: 8091
+      STORE_MODE: file
+    ports:
+      - "8091:8091"
+      - "7091:7091"
+
+  redis:
+    image: redis:7-alpine
+    container_name: study-loop-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: [ "redis-server", "--appendonly", "no" ]
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
   minio:
     image: minio/minio:latest

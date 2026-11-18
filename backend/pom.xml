@@ -14,9 +14,11 @@
     <modules>
         <module>study-loop-common</module>
         <module>study-loop-gateway</module>
-        <module>study-loop-auth</module>
-        <module>study-loop-course</module>
-        <module>study-loop-review</module>
+        <module>user-service</module>
+        <module>content-service</module>
+        <module>practice-service</module>
+        <module>insight-service</module>
+        <module>ai-service</module>
     </modules>
 
     <!--
@@ -37,6 +39,7 @@
         <knife4j.version>4.5.0</knife4j.version>
         <minio.version>8.5.12</minio.version>
         <pdfbox.version>2.0.31</pdfbox.version>
+        <json-schema.version>1.0.87</json-schema.version>
     </properties>
 
     <dependencyManagement>
@@ -94,6 +97,11 @@
                 <artifactId>study-loop-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.networknt</groupId>
+                <artifactId>json-schema-validator</artifactId>
+                <version>${json-schema.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -101,17 +109,40 @@
         <pluginManagement>
             <plugins>
                 <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>3.2.5</version>
+                    <configuration>
+                        <!-- 默认的 surefire 2.12 不认 JUnit 5，测试会"跑 0 个"还显示成功 -->
+                        <skipAfterFailureCount>1</skipAfterFailureCount>
+                    </configuration>
+                </plugin>
+                <plugin>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
                     <version>${spring-boot.version}</version>
+                    <executions>
+                        <!-- 只声明插件不会自动打可执行包，必须显式绑定 repackage，
+                             否则产物是瘦 jar，java -jar 会报"没有主清单属性" -->
+                        <execution>
+                            <id>repackage</id>
+                            <goals>
+                                <goal>repackage</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.13.0</version>
                     <configuration>
                         <source>17</source>
                         <target>17</target>
                         <encoding>UTF-8</encoding>
+                        <!-- 不继承 spring-boot-starter-parent 时必须手动开，
+                             否则 @RequestParam / @PathVariable 拿不到参数名 -->
+                        <parameters>true</parameters>
                     </configuration>
                 </plugin>
             </plugins>

@@ -29,6 +29,11 @@
                         <el-button link type="danger" @click="remove(row)">删除</el-button>
                     </template>
                 </el-table-column>
+                <template #empty>
+                    <el-empty description="还没有课程，先建一门再上传资料" :image-size="80">
+                        <el-button type="primary" @click="openCreate">新建课程</el-button>
+                    </el-empty>
+                </template>
             </el-table>
 
             <el-pagination
@@ -64,12 +69,44 @@
                 <el-input v-model="chapterTitle" placeholder="新章节名称" style="width: 220px" />
                 <el-button type="primary" @click="addChapter">添加</el-button>
             </div>
-            <el-table :data="chapters" size="small" border style="margin-top: 10px">
+            <el-table
+                :data="chapters"
+                size="small"
+                border
+                highlight-current-row
+                style="margin-top: 10px"
+                @row-click="selectChapter"
+            >
                 <el-table-column prop="title" label="章节" />
                 <el-table-column prop="sort" label="排序" width="80" />
                 <el-table-column label="操作" width="90">
                     <template #default="{ row }">
-                        <el-button link type="danger" @click="removeChapter(row)">删除</el-button>
+                        <el-button link type="danger" @click.stop="removeChapter(row)">删除</el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+
+            <h4 style="margin-top: 24px">知识点（节）</h4>
+            <div class="row">
+                <span class="muted" style="width: 150px">
+                    {{ activeChapter ? activeChapter.title : '先点上面某一行章节' }}
+                </span>
+                <el-input
+                    v-model="knowledgeName"
+                    placeholder="新知识点名称"
+                    style="width: 200px"
+                    :disabled="!activeChapter"
+                />
+                <el-button type="primary" :disabled="!activeChapter" @click="addKnowledge">添加</el-button>
+            </div>
+            <el-table :data="knowledges" size="small" border style="margin-top: 10px">
+                <el-table-column prop="name" label="知识点" />
+                <el-table-column prop="type" label="类型" width="90" />
+                <el-table-column prop="importance" label="重要度" width="80" />
+                <el-table-column prop="pageNo" label="页码" width="70" />
+                <el-table-column label="操作" width="90">
+                    <template #default="{ row }">
+                        <el-button link type="danger" @click="removeKnowledge(row)">删除</el-button>
                     </template>
                 </el-table-column>
             </el-table>
@@ -84,11 +121,17 @@
             <el-table :data="materials" size="small" border>
                 <el-table-column prop="title" label="名称" show-overflow-tooltip />
                 <el-table-column prop="fileType" label="类型" width="80" />
-                <el-table-column label="操作" width="150">
+                <el-table-column label="操作" width="350">
                     <template #default="{ row }">
                         <el-button link type="primary" @click="preview(row)">预览</el-button>
                         <el-button link type="primary" @click="openPages(row)">文字</el-button>
                         <el-button link type="primary" @click="download(row)">下载</el-button>
+                        <el-button link type="primary" :loading="parsingId === row.id" @click="parseOne(row)">
+                            解析
+                        </el-button>
+                        <el-button link type="primary" :loading="extractingId === row.id" @click="extractOne(row)">
+                            抽知识点
+                        </el-button>
                         <el-button link type="danger" @click="removeMaterial(row)">删除</el-button>
                     </template>
                 </el-table-column>
@@ -139,13 +182,18 @@ import { downloadFile, openBlob } from '@/utils/request';
 import {
     createChapter,
     createCourse,
+    createKnowledge,
     deleteChapter,
     deleteCourse,
+    deleteKnowledge,
     deleteMaterial,
     getChapters,
     getCourses,
+    getKnowledgeByChapter,
     getMaterialPages,
     getMaterials,
+    extractKnowledge,
+    parseMaterial,
     searchMaterial,
     updateCourse,
     uploadMaterial
@@ -167,6 +215,38 @@ const current = ref<any>(null);
 const chapters = ref<any[]>([]);
 const materials = ref<any[]>([]);
 const chapterTitle = ref('');
+
+const activeChapter = ref<any>(null);
+const knowledges = ref<any[]>([]);
+const knowledgeName = ref('');
+
+/** 点章节行，下面切换成这一章的知识点 */
+const selectChapter = async (row: any) => {
+    activeChapter.value = row;
+    knowledges.value = await getKnowledgeByChapter(row.id);
+};
+
+const addKnowledge = async () => {
+    if (!knowledgeName.value.trim()) {
+        ElMessage.warning('知识点名称不能为空');
+        return;
+    }
+    await createKnowledge(current.value.id, {
+        chapterId: activeChapter.value.id,
+        name: knowledgeName.value.trim(),
+        type: 'CONCEPT',
+        importance: 3
+    });
+    knowledgeName.value = '';
+    knowledges.value = await getKnowledgeByChapter(activeChapter.value.id);
+    ElMessage.success('已添加');
+};
+
+const removeKnowledge = async (row: any) => {
+    await ElMessageBox.confirm('删除后该知识点的掌握记录会成为孤儿，确定吗？', '提示', { type: 'warning' });
+    await deleteKnowledge(row.id);
+    knowledges.value = await getKnowledgeByChapter(activeChapter.value.id);
+};
 
 const pageVisible = ref(false);
 const pageMaterial = ref<any>(null);
@@ -283,12 +363,48 @@ const remove = async (row: any) => {
 const openDetail = async (row: any) => {
     current.value = row;
     detailVisible.value = true;
+    // 换课程时清掉上一门课选中的章节和知识点，避免串数据
+    activeChapter.value = null;
+    knowledges.value = [];
+    knowledgeName.value = '';
     await loadDetail();
 };
 
 const loadDetail = async () => {
     chapters.value = await getChapters(current.value.id);
     materials.value = await getMaterials(current.value.id);
+};
+
+/** 页面解析：把这份资料的文字页逐页交给大模型，产出结构化内容 */
+const parsingId = ref<number | null>(null);
+const parseOne = async (row: any) => {
+    parsingId.value = row.id;
+    try {
+        const result = await parseMaterial(row.id);
+        ElMessage.success(`解析完成：成功 ${result.parsed} 页，待复核 ${result.needsReview} 页`);
+    } finally {
+        parsingId.value = null;
+    }
+};
+
+/** 知识点抽取：需要先选章节，抽完直接入库 */
+const extractingId = ref<number | null>(null);
+const extractOne = async (row: any) => {
+    const chapterId = row.chapterId || activeChapter.value?.id;
+    if (!chapterId) {
+        ElMessage.warning('先在左边选一个章节，抽出的知识点要归到章下');
+        return;
+    }
+    extractingId.value = row.id;
+    try {
+        const result = await extractKnowledge(current.value.id, chapterId, row.id);
+        ElMessage.success(`新增 ${result.created} 个知识点，跳过重复 ${result.duplicates} 个`);
+        if (activeChapter.value && activeChapter.value.id === chapterId) {
+            knowledges.value = await getKnowledgeByChapter(chapterId);
+        }
+    } finally {
+        extractingId.value = null;
+    }
 };
 
 const addChapter = async () => {

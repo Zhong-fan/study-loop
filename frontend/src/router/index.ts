@@ -44,10 +44,28 @@ const routes: RouteRecordRaw[] = [
                 component: () => import('../views/quiz.vue')
             },
             {
+                path: '/ai',
+                name: 'ai',
+                meta: { title: 'AI 出题' },
+                component: () => import('../views/ai.vue')
+            },
+            {
                 path: '/stats',
                 name: 'stats',
                 meta: { title: '统计' },
                 component: () => import('../views/stats.vue')
+            },
+            {
+                path: '/predict',
+                name: 'predict',
+                meta: { title: '预测卷' },
+                component: () => import('../views/predict.vue')
+            },
+            {
+                path: '/admin',
+                name: 'admin',
+                meta: { title: '用户管理' },
+                component: () => import('../views/admin.vue')
             }
         ]
     },

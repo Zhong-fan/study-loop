@@ -1,10 +1,15 @@
 <template>
     <div class="page">
-        <el-card v-if="loading" v-loading="true" style="height: 200px" />
+        <el-card v-if="loading" shadow="never">
+            <el-skeleton :rows="6" animated />
+        </el-card>
 
         <el-card v-else-if="!current">
-            <el-empty description="今天没有需要复习的题目">
-                <el-button type="primary" @click="load">刷新</el-button>
+            <el-empty :description="pending.length > 0
+                ? `有 ${pending.length} 个知识点到期，但还没有题目`
+                : '今天没有需要复习的题目'">
+                <el-button v-if="pending.length > 0" type="primary" @click="router.push('/ai')">去 AI 出题</el-button>
+                <el-button @click="load">刷新</el-button>
             </el-empty>
         </el-card>
 
@@ -15,7 +20,7 @@
                         剩余 {{ cards.length - index }} 题 ·
                         <el-tag size="small">{{ typeText(current.type) }}</el-tag>
                     </span>
-                    <span class="muted">到期日 {{ current.dueDate }}</span>
+                    <span class="muted">知识点 #{{ current.knowledgeId }}</span>
                 </div>
             </template>
 
@@ -104,12 +109,16 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import { getTodayCards, submitAnswer, rateCard } from '@/api';
+import { useRouter } from 'vue-router';
+import { getDueQuestions, rateQuestion, submitQuestionAnswer } from '@/api';
 import { http } from '@/utils/request';
+
+const router = useRouter();
 
 const loading = ref(false);
 const submitting = ref(false);
 const cards = ref<any[]>([]);
+const pending = ref<number[]>([]);
 const index = ref(0);
 const single = ref('');
 const multiple = ref<string[]>([]);
@@ -153,7 +162,9 @@ const typeText = (type: string) => typeMap[type] || type;
 const load = async () => {
     loading.value = true;
     try {
-        cards.value = await getTodayCards();
+        const data = await getDueQuestions();
+        cards.value = data.questions || [];
+        pending.value = data.pendingKnowledgeIds || [];
         index.value = 0;
         resetCard();
     } finally {
@@ -186,7 +197,7 @@ const submit = async () => {
     }
     submitting.value = true;
     try {
-        result.value = await submitAnswer(current.value.cardId, answer, Date.now() - startAt.value);
+        result.value = await submitQuestionAnswer(current.value.questionId, answer, Date.now() - startAt.value);
     } finally {
         submitting.value = false;
     }
@@ -203,7 +214,7 @@ const revealAnswer = async () => {
 const rate = async (rating: number) => {
     submitting.value = true;
     try {
-        result.value = await rateCard(current.value.cardId, rating, Date.now() - startAt.value);
+        result.value = await rateQuestion(current.value.questionId, rating, Date.now() - startAt.value);
     } finally {
         submitting.value = false;
     }

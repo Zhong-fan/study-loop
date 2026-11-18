@@ -11,13 +11,30 @@
 
         <div class="header-right">
             <div class="header-user-con">
-                <!-- 今日待复习提醒：数字来自统计接口，点一下进复习页 -->
-                <div class="btn-icon" @click="router.push('/dashboard')">
-                    <el-tooltip effect="dark" :content="`今日待复习 ${dueToday} 道`" placement="bottom">
-                        <i class="el-icon-lx-notice"></i>
-                    </el-tooltip>
-                    <span class="badge" v-if="dueToday > 0">{{ dueToday > 99 ? '99+' : dueToday }}</span>
-                </div>
+                <!-- 站内信：数字是未读数，点开看列表 -->
+                <el-popover placement="bottom" :width="330" trigger="click" @show="loadNotifications">
+                    <template #reference>
+                        <div class="btn-icon">
+                            <i class="el-icon-lx-notice"></i>
+                            <span class="badge" v-if="unread > 0">{{ unread > 99 ? '99+' : unread }}</span>
+                        </div>
+                    </template>
+
+                    <div class="notice-head">
+                        <span>消息</span>
+                        <el-button link type="primary" size="small" @click="readAll">全部已读</el-button>
+                    </div>
+                    <el-empty v-if="notices.length === 0" description="暂无消息" :image-size="50" />
+                    <div
+                        v-for="item in notices"
+                        :key="item.id"
+                        class="notice-item"
+                        :class="{ unread: !item.readAt }"
+                    >
+                        <div class="notice-title">{{ item.title }}</div>
+                        <div class="notice-content">{{ item.content }}</div>
+                    </div>
+                </el-popover>
 
                 <el-avatar class="user-avator" :size="30" :src="imgurl" />
 
@@ -42,7 +59,7 @@
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSidebarStore } from '../store/sidebar';
-import { getOverview } from '@/api';
+import { getNotifications, markNotificationsRead } from '@/api';
 import imgurl from '../assets/img/img.jpg';
 
 const router = useRouter();
@@ -52,7 +69,23 @@ const sidebar = useSidebarStore();
 const cached = JSON.parse(localStorage.getItem('user') || '{}');
 const username: string = cached.nickname || cached.username || '未登录';
 
-const dueToday = ref(0);
+const notices = ref<any[]>([]);
+const unread = ref(0);
+
+const loadNotifications = async () => {
+    try {
+        const data = await getNotifications();
+        notices.value = data.items || [];
+        unread.value = data.unread || 0;
+    } catch (e) {
+        // 后端没起来时不显示消息，不打断页面
+    }
+};
+
+const readAll = async () => {
+    await markNotificationsRead();
+    await loadNotifications();
+};
 
 const collapseChage = () => {
     sidebar.handleCollapse();
@@ -69,14 +102,13 @@ const handleCommand = (command: string) => {
 };
 
 onMounted(async () => {
-    if (document.body.clientWidth < 1500) {
+    if (document.body.clientWidth < 1180) {
         collapseChage();
     }
     try {
-        const overview = await getOverview();
-        dueToday.value = overview.dueToday;
+        await loadNotifications();
     } catch (e) {
-        // 后端没起来时顶栏不显示数字即可，不打断页面
+        // 忽略：顶栏不因为消息接口失败而报错
     }
 });
 </script>
@@ -88,7 +120,7 @@ onMounted(async () => {
     align-items: center;
     box-sizing: border-box;
     width: 100%;
-    height: 70px;
+    height: var(--sl-header-h);
     color: var(--header-text-color);
     background-color: var(--header-bg-color);
     border-bottom: 1px solid #ddd;
@@ -125,7 +157,7 @@ onMounted(async () => {
 }
 .header-user-con {
     display: flex;
-    height: 70px;
+    height: var(--sl-header-h);
     align-items: center;
 }
 .btn-icon {
@@ -161,5 +193,37 @@ onMounted(async () => {
     cursor: pointer;
     display: flex;
     align-items: center;
+}
+.notice-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #ebeef5;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+.notice-item {
+    padding: 6px 0;
+    border-bottom: 1px dashed #f0f0f0;
+}
+.notice-item.unread .notice-title::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #f56c6c;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+.notice-title {
+    font-size: 13px;
+    color: #303133;
+}
+.notice-content {
+    font-size: 12px;
+    color: #909399;
+    margin-top: 2px;
 }
 </style>

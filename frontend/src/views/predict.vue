@@ -1,0 +1,141 @@
+<template>
+    <div class="page">
+        <el-card shadow="never">
+            <template #header>
+                <div class="card-header">
+                    <span>预测卷</span>
+                    <span class="hint">按知识点证据权重选题，每道题都能说明依据</span>
+                </div>
+            </template>
+
+            <div class="row">
+                <el-select v-model="courseId" placeholder="选择课程" style="width: 220px" @change="load">
+                    <el-option v-for="c in courses" :key="c.id" :label="c.name" :value="c.id" />
+                </el-select>
+                <el-input-number v-model="size" :min="1" :max="30" />
+                <span class="hint">题</span>
+                <el-button type="primary" :loading="loading" :disabled="!courseId" @click="build">
+                    生成预测卷
+                </el-button>
+            </div>
+
+            <div class="hint note">
+                权重 = 重要度 0.35 + 强调词 0.25 + 例题 0.2 + 证据数 0.1 + 重复出现 0.1。
+                没有证据的知识点权重最低，只会少量出现。
+            </div>
+        </el-card>
+
+        <el-card class="block" shadow="never">
+            <template #header>
+                <div class="card-header">
+                    <span>题目（{{ items.length }}）</span>
+                    <el-tag v-if="items.length" type="success" size="small">已按权重排序</el-tag>
+                </div>
+            </template>
+
+            <el-skeleton v-if="loading" :rows="5" animated />
+            <el-empty v-else-if="items.length === 0" description="先选课程，再点生成预测卷" :image-size="90" />
+
+            <div v-else class="paper">
+                <div v-for="(item, index) in items" :key="item.questionId" class="question">
+                    <div class="stem">
+                        <b>{{ index + 1 }}.</b>
+                        <span>{{ item.stem }}</span>
+                        <el-tag size="small" effect="plain">{{ typeText(item.type) }}</el-tag>
+                    </div>
+                    <div class="reason">
+                        <el-tag type="warning" size="small" effect="plain">
+                            权重 {{ Math.round(item.weight * 100) }}%
+                        </el-tag>
+                        <span class="hint">{{ item.reason }}</span>
+                    </div>
+                </div>
+            </div>
+        </el-card>
+    </div>
+</template>
+
+<script setup lang="ts">
+import { onMounted, ref } from 'vue';
+import { ElMessage } from 'element-plus';
+import { getCourses, getPredict } from '@/api';
+
+const courses = ref<any[]>([]);
+const courseId = ref<number | null>(null);
+const size = ref(10);
+const loading = ref(false);
+const items = ref<any[]>([]);
+
+const typeText = (type: string) =>
+    ({ SINGLE: '单选', MULTIPLE: '多选', JUDGE: '判断', BLANK: '填空', SUBJECTIVE: '简答', COMPOSITE: '综合题' } as any)[type] || type;
+
+const build = async () => {
+    loading.value = true;
+    try {
+        const data = await getPredict(courseId.value as number, size.value);
+        items.value = data.items || [];
+        if (items.value.length === 0) {
+            ElMessage.warning(data.message || '还没有可用的题目，先去 AI 出题');
+        }
+    } finally {
+        loading.value = false;
+    }
+};
+
+const load = async () => {
+    items.value = [];
+    if (courseId.value) {
+        await build();
+    }
+};
+
+onMounted(async () => {
+    const data = await getCourses({ page: 1, size: 100 });
+    courses.value = data.records;
+    if (courses.value.length > 0) {
+        courseId.value = courses.value[0].id;
+        await build();
+    }
+});
+</script>
+
+<style scoped>
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.row {
+    display: flex;
+    align-items: center;
+    gap: var(--sl-s3);
+}
+.block {
+    margin-top: var(--sl-s4);
+}
+.note {
+    margin-top: var(--sl-s3);
+}
+.paper {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sl-s4);
+}
+.question {
+    padding: var(--sl-s4);
+    border: 1px solid var(--sl-border);
+    border-radius: var(--sl-radius-sm);
+}
+.stem {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--sl-s2);
+    line-height: 1.7;
+}
+.reason {
+    display: flex;
+    align-items: center;
+    gap: var(--sl-s2);
+    margin-top: var(--sl-s2);
+}
+</style>

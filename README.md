@@ -35,17 +35,25 @@
 | --- | :---: | --- |
 | 账号 | ✅ | 注册、登录，密码 BCrypt 加密，签发 JWT |
 | 网关 | ✅ | 统一入口，校验 token 后把 `X-User-Id` 传给下游 |
-| 课程 | ✅ | 增删改查、分页、按名称搜索、软删除，数据按用户隔离 |
-| 资料 | ✅ | 上传、下载、**浏览器内预览**、归类；PDF 自动逐页抽文字，可按页查看与关键词搜索 |
-| 错题 | ✅ | 六种题型、可编辑、按题型校验、客观题服务端判分；支持从资料页划词出题，记录来源页码与原文 |
-| 复习 | ✅ | 今日队列、SM-2 排期、复习流水、手动标掌握 |
-| 自测 | ✅ | 按课程随机抽客观题组卷，交卷自动判分，结果回流复习卡 |
-| 统计 | ✅ | 总览数字、连续复习天数、薄弱章节 Top5、复习趋势 |
-| 前端 | ✅ | 基于 vue-manage-system 改造：登录、今日复习、课程与资料、题库、统计 |
+| 课程与资料 | ✅ | 课程/章/资料增删改查，PDF 上传后逐页抽文字，支持预览、下载、页内搜索 |
+| 知识点 | ✅ | 章下面的「节」，是复习与统计的最小单位，可挂资料页码 |
+| 题目与练习 | ✅ | 六种题型，客观题服务端判分，主观题自评；每次作答写 `attempt` 流水 |
+| 掌握度 | ✅ | 正确率累计，按 **1 / 3 / 7 / 14 天** 四档排下次复习 |
+| 覆盖与盲区 | ✅ | 覆盖率 = 已掌握知识点 / 知识点总数；正确率 < 60% 进盲区清单 |
+| 管理员 | ✅ | 用户名等于 `app.admin.username`（默认 admin）即管理员，可查看用户、禁用/启用账号 |
+| AI | ✅ | 按知识点生成题目草稿、主观题按要点判分，调用记录写 `ai_log` |
+| 缓存 | ✅ | 今日待练写 Redis（60 秒），作答后失效；Redis 不可用自动退回数据库 |
+| 解析任务 | ✅ | 每次 PDF 解析写 `task` 表（RUNNING→SUCCESS/FAILED），OCR 未配置时记 FAILED 并降级为图片浏览 |
+| 全局事务 | ✅ | 作答同时写 `attempt` 与 `mastery`，用 Seata AT 保证要么都成功、要么都回滚 |
+| 站内信 | ✅ | 今日待练提醒写 `notification` 表，顶栏显示未读数，可一键全部已读 |
+| 待练队列 | ✅ | 到期的知识点如果有题就出题；没题会单独返回知识点 id，提示去 AI 出题 |
+| 押题链路 | ✅ | 资料解析（文字层 + 扫描件视觉）→ 知识点抽取（带原文证据）→ 结构化出题（多知识点 + 评分点）→ 预测卷（按证据权重选题） |
+| 双轨掌握度 | ✅ | 单点题与综合题分开统计；单点高、综合低判为「会背不会用」，排期不升档 |
+| 前端 | ✅ | 登录、今日复习、课程与资料（含知识点）、题库、自测、AI 出题、预测卷、统计、用户管理 |
 
 ## 技术栈
 
-Spring Boot · Spring Cloud Alibaba（Nacos / Gateway / OpenFeign）· MyBatis-Plus · MySQL 8 · Redis · MinIO · Vue 3
+Spring Boot · Spring Cloud Alibaba（Nacos / Gateway / OpenFeign / Seata）· MyBatis-Plus · MySQL 8 · Redis 7 · MinIO · Vue 3 · 大模型 API
 
 | 层 | 选型 | 版本 |
 | --- | --- | --- |
@@ -83,9 +91,11 @@ Spring Boot · Spring Cloud Alibaba（Nacos / Gateway / OpenFeign）· MyBatis-P
 │  ├─ pom.xml                父 POM，所有版本号只在父 POM 出现
 │  ├─ study-loop-common/     返回体、异常、当前登录用户
 │  ├─ study-loop-gateway/    8080 路由 + 登录校验
-│  ├─ study-loop-auth/       8081 注册登录、签发 token
-│  ├─ study-loop-course/     8082 课程（完整样板）
-│  ├─ study-loop-review/     8083 空壳，等待填业务
+│  ├─ user-service/          8081 注册登录、签发 token
+│  ├─ content-service/       8082 课程、章、知识点、资料解析
+│  ├─ practice-service/      8083 题目、作答、判分、attempt 流水
+│  ├─ insight-service/       8085 掌握度、覆盖率、1/3/7/14 排期
+│  ├─ ai-service/            8086 生成题目、主观题判分、调用记录
 │  └─ deploy/                docker-compose、建库脚本
 └─ frontend/                 前端（Vue3 + Element Plus，基于 vue-manage-system 改造）
 ```
@@ -111,8 +121,9 @@ dto / vo    → 入参 / 出参，不直接暴露 entity
 docker compose -f backend/deploy/docker-compose.yml up -d
 ```
 
-MySQL 首次启动会自动执行 `backend/deploy/mysql/init/` 下的脚本，建好 `study_auth` 和 `study_course` 两个库。
+MySQL 首次启动会自动执行 `backend/deploy/mysql/init/` 下的脚本，建好 `study_auth`、`study_course`、`study_review`、`study_insight`、`study_ai` 五个库。
 Nacos 控制台：<http://localhost:8848/nacos>（默认 nacos / nacos）。
+Seata 控制台：<http://localhost:7091>（TC 监听 8091）。**作答接口依赖它**，没起 Seata 时会返回 5000。
 
 ### 2. 构建
 
@@ -120,21 +131,30 @@ Nacos 控制台：<http://localhost:8848/nacos>（默认 nacos / nacos）。
 mvn -f backend/pom.xml clean package -DskipTests
 ```
 
-### 3. 启动四个服务
+### 3. 启动五个服务
 
 ```bash
-java -jar backend/study-loop-auth/target/study-loop-auth-1.0.0.jar
-java -jar backend/study-loop-course/target/study-loop-course-1.0.0.jar
-java -jar backend/study-loop-review/target/study-loop-review-1.0.0.jar
+java -jar backend/user-service/target/user-service-1.0.0.jar
+java -jar backend/content-service/target/content-service-1.0.0.jar
+java -jar backend/practice-service/target/practice-service-1.0.0.jar
+java -jar backend/insight-service/target/insight-service-1.0.0.jar
+java -jar backend/ai-service/target/ai-service-1.0.0.jar
 java -jar backend/study-loop-gateway/target/study-loop-gateway-1.0.0.jar
 ```
 
 | 服务 | 端口 | 说明 |
 | --- | --- | --- |
 | gateway | 8080 | 前端只访问这个 |
-| auth | 8081 | 注册登录 |
-| course | 8082 | 课程 |
-| review | 8083 | 错题（空壳） |
+| user-service | 8081 | 注册登录 |
+| content-service | 8082 | 课程 / 章 / 知识点 / 资料 |
+| practice-service | 8083 | 题目 / 作答 / 判分 |
+| insight-service | 8085 | 掌握度 / 覆盖率 / 排期 |
+| ai-service | 8086 | 大模型出题与判分 |
+
+AI 需要 key：在仓库根目录建 `.env`（已被 git 忽略），参考 `.env.example` 填 `AI_API_KEY`。
+Spring 本身不读 `.env`，需要在启动 ai-service 前把里面的变量导出成环境变量（仓库里的启动脚本会解析它）。不填也能启动，接口会返回「AI 未配置」。
+Seata 同理：默认关闭（`seata.enabled: ${SEATA_ENABLED:false}`），这样只起 MySQL + Nacos 也能跑通作答；
+把 `SEATA_ENABLED=true` 打开后，作答走全局事务，前提是 `docker compose` 里的 seata 已启动。
 
 ### 4. 启动前端
 
@@ -209,7 +229,39 @@ curl -X POST http://localhost:8080/api/courses \
 | GET | `/api/review/stats/overview` | 总览：题数、待复习、连续天数 | 是 |
 | GET | `/api/review/stats/weak-chapters` | 薄弱章节 Top5 | 是 |
 | GET | `/api/review/stats/trend?days=30` | 复习趋势 | 是 |
+| GET | `/api/knowledge?chapterId=` | 某章的知识点 | 是 |
+| GET | `/api/knowledge/by-course?courseId=` | 某门课全部知识点 | 是 |
+| GET | `/api/knowledge/count?courseId=` | 知识点总数（覆盖率用） | 是 |
+| POST | `/api/knowledge/{courseId}` | 新增知识点 | 是 |
+| PUT | `/api/knowledge/{id}` | 修改知识点 | 是 |
+| DELETE | `/api/knowledge/{id}` | 删除知识点 | 是 |
+| POST | `/api/insight/attempts` | 记录一次作答（练习服务回调） | 是 |
+| GET | `/api/insight/due` | 今日待练知识点 | 是 |
+| GET | `/api/insight/weak` | 盲区清单 | 是 |
+| GET | `/api/insight/coverage?courseId=` | 覆盖率 | 是 |
+| GET | `/api/insight/summary` | 练过 / 掌握 / 今日到期 | 是 |
+| GET | `/api/insight/notifications` | 站内信列表（顺便生成今日待练提醒） | 是 |
+| POST | `/api/insight/notifications/read-all` | 全部标为已读 | 是 |
+| GET | `/api/ai/status` | AI 是否可用 | 是 |
+| POST | `/api/ai/questions` | 按知识点生成题目草稿 | 是 |
+| POST | `/api/ai/grade` | 主观题按要点判分 | 是 |
+| GET | `/api/admin/users` | 用户列表（仅管理员） | 是 |
+| PUT | `/api/admin/users/{id}/status?deleted=` | 禁用 / 启用账号（仅管理员） | 是 |
+| POST | `/api/materials/{id}/ocr` | 请求 OCR，未配置时返回降级任务 | 是 |
+| GET | `/api/review/due-questions` | 今日待练（按知识点排期） | 是 |
+| POST | `/api/review/questions/{id}/answer` | 按题目作答判分 | 是 |
+| POST | `/api/review/questions/{id}/rate` | 按题目自评 | 是 |
 | GET | `/api/review/ping` | 连通性检查 | 是 |
+| POST | `/api/materials/{id}/parse` | 页面解析：文字层直接解析，扫描件渲染成图走视觉模型 | 是 |
+| POST | `/api/knowledge/extract?courseId=&chapterId=&materialId=` | 从已解析资料自动抽知识点（带证据，重复运行不重复入库） | 是 |
+| GET | `/api/knowledge/evidence?courseId=` | 知识点证据（页码、原文、信号类型） | 是 |
+| GET | `/api/knowledge/weighted?courseId=` | 知识点权重（预测卷用） | 是 |
+| GET | `/api/insight/transfer` | 会背不会用的知识点（单点高、综合低） | 是 |
+| POST | `/api/ai/parse-page` | 一页原文或图片 → 结构化页面（PageDoc） | 是 |
+| POST | `/api/ai/extract-knowledge` | 几页原文 → 带证据的知识点候选 | 是 |
+| POST | `/api/ai/generate-drafts` | 按题型模板生成题目草稿（多知识点 + 评分点 + 证据校验） | 是 |
+| POST | `/api/questions/from-drafts?courseId=&chapterId=` | 草稿入库（写题目、知识点关联、评分点） | 是 |
+| GET | `/api/review/predict?courseId=&size=` | 按知识点权重组预测卷，每题带依据 | 是 |
 
 ## 持续集成
 

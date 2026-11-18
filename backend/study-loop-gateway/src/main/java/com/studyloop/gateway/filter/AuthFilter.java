@@ -28,7 +28,10 @@ import java.util.List;
 @Component
 public class AuthFilter implements GlobalFilter, Ordered {
 
-    private static final byte[] SECRET = "study-loop-secret-2026".getBytes();
+    /** 必须和 user-service 的 JwtHelper 用同一个 JWT_SECRET，否则验签失败 */
+    private static final byte[] SECRET = System.getenv()
+            .getOrDefault("JWT_SECRET", "study-loop-secret-2026-change-me")
+            .getBytes(java.nio.charset.StandardCharsets.UTF_8);
 
     /** 登录和注册不需要 token */
     private static final List<String> WHITE_LIST = List.of(

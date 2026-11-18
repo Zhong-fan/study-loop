@@ -34,22 +34,20 @@ const tabs = useTabsStore();
 }
 .content-box {
     position: absolute;
-    left: 250px;
+    left: var(--sl-sidebar-w);
     right: 0;
-    top: 70px;
+    top: var(--sl-header-h);
     bottom: 0;
-    padding-bottom: 30px;
-    -webkit-transition: left 0.3s ease-in-out;
-    transition: left 0.3s ease-in-out;
-    background: #eef0fc;
+    -webkit-transition: left 0.25s ease;
+    transition: left 0.25s ease;
+    background: var(--sl-bg);
     overflow: hidden;
 }
 
 .content {
     width: auto;
     height: 100%;
-    padding: 20px;
-    overflow-y: scroll;
+    overflow-y: auto;
     box-sizing: border-box;
 }
 
@@ -58,6 +56,6 @@ const tabs = useTabsStore();
 }
 
 .content-collapse {
-    left: 65px;
+    left: var(--sl-sidebar-collapsed);
 }
 </style>
