@@ -111,6 +111,36 @@ public class MaterialParseServiceImpl implements MaterialParseService {
         return summary(pages.size(), parsed, review, failures);
     }
 
+    /** 单张图片资料：直接读文件，一页解析 */
+    private Map<String, Object> parseSingleImage(Long userId, Material material) {
+        Task task = startTask(userId, material.getId());
+        try (InputStream in = fileStorage.open(material.getFileKey())) {
+            BufferedImage image = ImageIO.read(in);
+            if (image == null) {
+                throw new IllegalStateException("图片读不出来");
+            }
+
+            Map<String, Object> body = new HashMap<>();
+            body.put("page", 1);
+            body.put("docType", "IMAGE");
+            body.put("text", "");
+            body.put("image", toDataUrl(image));
+
+            JsonNode node = aiParseClient.parsePage(userId, body).getData();
+            if (node == null) {
+                throw new IllegalStateException("AI 返回为空");
+            }
+            MaterialPage page = findOrCreatePage(userId, material.getId(), 1);
+            page.setDocType("IMAGE");
+            applyResult(page, node);
+            finishTask(task, List.of());
+            return summary(1, 1, 0, List.of());
+        } catch (Exception e) {
+            finishTask(task, List.of(e.getMessage() == null ? "图片解析失败" : e.getMessage()));
+            throw new BizException(ErrorCode.SYSTEM_ERROR, "图片解析失败：" + e.getMessage());
+        }
+    }
+
     /**
      * 扫描件：逐页渲染成 PNG，再交给多模态模型。
      * 每页都写 material_page，page_no 和 PDF 页码一致。
@@ -120,8 +150,15 @@ public class MaterialParseServiceImpl implements MaterialParseService {
         if (material == null || !userId.equals(material.getUserId()) || Integer.valueOf(1).equals(material.getDeleted())) {
             throw new BizException(ErrorCode.NOT_FOUND, "资料不存在");
         }
-        if (!"pdf".equalsIgnoreCase(material.getFileType())) {
-            throw new BizException(ErrorCode.PARAM_ERROR, "视觉解析目前只支持 PDF");
+        String fileType = material.getFileType() == null ? "" : material.getFileType().toLowerCase();
+        boolean isPdf = "pdf".equals(fileType);
+        boolean isImage = fileType.equals("png") || fileType.equals("jpg")
+                || fileType.equals("jpeg") || fileType.equals("webp");
+        if (!isPdf && !isImage) {
+            throw new BizException(ErrorCode.PARAM_ERROR, "视觉解析支持 PDF 与图片");
+        }
+        if (isImage) {
+            return parseSingleImage(userId, material);
         }
 
         Task task = startTask(userId, materialId);
