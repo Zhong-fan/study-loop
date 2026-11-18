@@ -9,7 +9,11 @@ import com.studyloop.common.result.PageResult;
 import com.studyloop.practice.dto.QuestionCreateRequest;
 import com.studyloop.practice.dto.QuestionUpdateRequest;
 import com.studyloop.practice.entity.Question;
+import com.studyloop.practice.entity.QuestionKnowledge;
+import com.studyloop.practice.entity.QuestionRubric;
+import com.studyloop.practice.mapper.QuestionKnowledgeMapper;
 import com.studyloop.practice.mapper.QuestionMapper;
+import com.studyloop.practice.mapper.QuestionRubricMapper;
 import com.studyloop.practice.service.QuestionService;
 import com.studyloop.practice.util.JsonConverter;
 import com.studyloop.practice.vo.QuestionVO;
@@ -36,9 +40,15 @@ public class QuestionServiceImpl implements QuestionService {
     );
 
     private final QuestionMapper questionMapper;
+    private final QuestionKnowledgeMapper questionKnowledgeMapper;
+    private final QuestionRubricMapper questionRubricMapper;
 
-    public QuestionServiceImpl(QuestionMapper questionMapper) {
+    public QuestionServiceImpl(QuestionMapper questionMapper,
+                               QuestionKnowledgeMapper questionKnowledgeMapper,
+                               QuestionRubricMapper questionRubricMapper) {
         this.questionMapper = questionMapper;
+        this.questionKnowledgeMapper = questionKnowledgeMapper;
+        this.questionRubricMapper = questionRubricMapper;
     }
 
     @Override
@@ -66,6 +76,16 @@ public class QuestionServiceImpl implements QuestionService {
         question.setUpdatedAt(LocalDateTime.now());
         question.setDeleted(0);
         questionMapper.insert(question);
+
+        // 手工建题也写一条主知识点关联，保证"题目↔知识点"只有一处真相
+        if (question.getKnowledgeId() != null) {
+            QuestionKnowledge link = new QuestionKnowledge();
+            link.setQuestionId(question.getId());
+            link.setKnowledgeId(question.getKnowledgeId());
+            link.setRole("PRIMARY");
+            link.setWeight(1.0);
+            questionKnowledgeMapper.insert(link);
+        }
 
         return question.getId();
     }
@@ -95,6 +115,10 @@ public class QuestionServiceImpl implements QuestionService {
         question.setDeleted(1);
         question.setUpdatedAt(LocalDateTime.now());
         questionMapper.updateById(question);
+
+        // 题目软删，但关联和评分点直接清掉：留着会让统计和预测卷读到"孤儿"
+        questionKnowledgeMapper.delete(new QueryWrapper<QuestionKnowledge>().eq("question_id", id));
+        questionRubricMapper.delete(new QueryWrapper<QuestionRubric>().eq("question_id", id));
     }
 
     @Override
