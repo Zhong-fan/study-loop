@@ -204,10 +204,19 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                 .eq("user_id", UserContext.requireUserId())
                 .eq("deleted", 0));
 
+        // 一次查出所有知识点的证据，避免按知识点逐条查（N+1）
+        List<Long> ids = list.stream().map(Knowledge::getId).toList();
+        java.util.Map<Long, List<KnowledgeEvidence>> evidenceMap = new java.util.HashMap<>();
+        if (!ids.isEmpty()) {
+            for (KnowledgeEvidence evidence : evidenceMapper.selectList(
+                    new QueryWrapper<KnowledgeEvidence>().in("knowledge_id", ids))) {
+                evidenceMap.computeIfAbsent(evidence.getKnowledgeId(), k -> new ArrayList<>()).add(evidence);
+            }
+        }
+
         List<WeightedKnowledgeVO> result = new ArrayList<>();
         for (Knowledge knowledge : list) {
-            List<KnowledgeEvidence> evidences = evidenceMapper.selectList(
-                    new QueryWrapper<KnowledgeEvidence>().eq("knowledge_id", knowledge.getId()));
+            List<KnowledgeEvidence> evidences = evidenceMap.getOrDefault(knowledge.getId(), List.of());
 
             int keyword = 0;
             int example = 0;

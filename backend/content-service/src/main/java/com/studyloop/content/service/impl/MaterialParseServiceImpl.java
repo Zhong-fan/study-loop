@@ -87,8 +87,15 @@ public class MaterialParseServiceImpl implements MaterialParseService {
 
         for (MaterialPage page : pages) {
             if (page.getContent() == null || page.getContent().isBlank()) {
-                markReview(page, List.of("这一页没有文字层，建议整份走视觉解析"));
-                review++;
+                // 混合 PDF：整份有文字，但个别页是扫描插图，单页走视觉
+                try {
+                    JsonNode node = parsePageByVision(userId, materialId, page.getPageNo());
+                    applyResult(page, node);
+                    parsed++;
+                } catch (Exception e) {
+                    markReview(page, List.of("这一页没有文字层，视觉解析也失败：" + e.getMessage()));
+                    review++;
+                }
                 continue;
             }
             try {
@@ -109,6 +116,34 @@ public class MaterialParseServiceImpl implements MaterialParseService {
 
         finishTask(task, failures);
         return summary(pages.size(), parsed, review, failures);
+    }
+
+    /** 只渲染 PDF 的某一页，交给视觉模型（用于混合 PDF 的空白页） */
+    private JsonNode parsePageByVision(Long userId, Long materialId, int pageNo) throws Exception {
+        Material material = materialMapper.selectById(materialId);
+        if (material == null || !userId.equals(material.getUserId())) {
+            throw new IllegalStateException("资料不存在");
+        }
+        try (InputStream in = fileStorage.open(material.getFileKey());
+             PDDocument document = PDDocument.load(in)) {
+            if (pageNo < 1 || pageNo > document.getNumberOfPages()) {
+                throw new IllegalStateException("页码超出范围");
+            }
+            PDFRenderer renderer = new PDFRenderer(document);
+            BufferedImage image = renderer.renderImageWithDPI(pageNo - 1, RENDER_DPI);
+
+            Map<String, Object> body = new HashMap<>();
+            body.put("page", pageNo);
+            body.put("docType", "PDF");
+            body.put("text", "");
+            body.put("image", toDataUrl(image));
+
+            JsonNode node = aiParseClient.parsePage(userId, body).getData();
+            if (node == null) {
+                throw new IllegalStateException("AI 返回为空");
+            }
+            return node;
+        }
     }
 
     /** 单张图片资料：直接读文件，一页解析 */
