@@ -91,9 +91,18 @@ jobs:
 
       - name: 每个服务都有启动类
         run: |
-          for m in gateway auth course review; do
-            if ! ls backend/study-loop-$m/src/main/java/com/studyloop/$m/*Application.java >/dev/null 2>&1; then
-              echo "::error::backend/study-loop-$m 下没有 XxxApplication.java"
+          # 服务名:包名，重构后模块名与包名都不再是 study-loop-xxx
+          for pair in \
+            gateway:study-loop-gateway \
+            user:user-service \
+            content:content-service \
+            practice:practice-service \
+            insight:insight-service \
+            ai:ai-service; do
+            pkg="${pair%%:*}"
+            module="${pair##*:}"
+            if ! ls "backend/$module/src/main/java/com/studyloop/$pkg/"*Application.java >/dev/null 2>&1; then
+              echo "::error::backend/$module 下没有 XxxApplication.java"
               exit 1
             fi
           done
