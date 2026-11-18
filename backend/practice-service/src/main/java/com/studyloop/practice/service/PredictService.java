@@ -138,12 +138,23 @@ public class PredictService {
         if (weight.isEmpty()) {
             return "";
         }
-        String name = String.valueOf(weight.getOrDefault("name", ""));
-        String pages = String.valueOf(weight.getOrDefault("pages", ""));
-        Object keywords = weight.getOrDefault("keywordCount", 0);
-        return "「" + name + "」权重 " + weight.getOrDefault("weight", 0)
-                + (pages.isBlank() || "null".equals(pages) ? "" : "，出自第 " + pages + " 页")
-                + (Integer.parseInt(String.valueOf(keywords)) > 0 ? "，含强调词" : "");
+        String name = String.valueOf(weight.getOrDefault("name", "这个知识点"));
+        Object page = weight.get("topPage");
+        String where = page == null ? "" : "，出自第 " + page + " 页";
+
+        int keywords = Integer.parseInt(String.valueOf(weight.getOrDefault("keywordCount", 0)));
+        int examples = Integer.parseInt(String.valueOf(weight.getOrDefault("exampleCount", 0)));
+        String why;
+        if (keywords > 0 && examples > 0) {
+            why = "老师标了重点，课件里也有例题";
+        } else if (keywords > 0) {
+            why = "老师标了重点";
+        } else if (examples > 0) {
+            why = "课件里有例题";
+        } else {
+            why = "课件里讲到过";
+        }
+        return "「" + name + "」" + why + where;
     }
 
     private double weight(Map<Long, Map<String, Object>> weightById, Long id) {

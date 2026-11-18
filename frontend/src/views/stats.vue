@@ -6,11 +6,14 @@
             <!-- 顶部四个关键指标 -->
             <div class="sl-grid">
                 <el-card v-for="item in statCards" :key="item.label" class="stat-card sl-col-3" shadow="never">
-                    <div class="stat-accent" :style="{ background: item.color }"></div>
-                    <div class="stat-body">
-                        <div class="num">{{ item.value }}</div>
-                        <div class="label">{{ item.label }}</div>
+                    <div class="stat-top" :style="{ color: item.color }">
+                        <el-icon><component :is="item.icon" /></el-icon>
+                        <span>{{ item.label }}</span>
                     </div>
+                    <div class="stat-value">
+                        {{ item.value }}<span class="unit">{{ item.unit }}</span>
+                    </div>
+                    <div class="stat-hint">{{ item.hint }}</div>
                 </el-card>
             </div>
 
@@ -55,7 +58,7 @@
                         </div>
                     </div>
 
-                    <div class="hint">掌握 = 正确率 ≥ 80% 且至少练过 2 次；只练一次全对不算。</div>
+                    <div class="hint">练过至少 2 次、正确率 80% 以上，才算掌握；只做过一次全对不算。</div>
                 </el-card>
 
                 <!-- 复习趋势 -->
@@ -67,26 +70,26 @@
                 </el-card>
             </div>
 
-            <!-- 盲区 -->
+            <!-- 还不熟的知识点 -->
             <el-card class="block" shadow="never">
                 <template #header>
                     <div class="card-header">
-                        <span>盲区清单（正确率低于 60%）</span>
+                        <span>还不熟的知识点</span>
                         <el-tag v-if="weakKnowledge.length" type="warning" size="small">
                             {{ weakKnowledge.length }} 个知识点
                         </el-tag>
                     </div>
                 </template>
 
-                <el-empty v-if="weakKnowledge.length === 0" description="暂时没有盲区，继续保持" :image-size="80" />
+                <el-empty v-if="weakKnowledge.length === 0" description="暂时没有不熟的知识点，继续保持" :image-size="80" />
                 <base-chart v-else :option="weakOption" :height="weakHeight" />
             </el-card>
 
-            <!-- 会背不会用 -->
+            <!-- 记住了但不会用 -->
             <el-card v-if="transferList.length" class="block" shadow="never">
                 <template #header>
                     <div class="card-header">
-                        <span>会背不会用</span>
+                        <span>记住了，但不会用</span>
                         <el-tag type="warning" size="small">{{ transferList.length }} 个知识点</el-tag>
                     </div>
                 </template>
@@ -97,11 +100,11 @@
                         <span class="hint">
                             单点 {{ percent(item.surfaceAccuracy) }} · 综合 {{ percent(item.deepAccuracy) }}
                         </span>
-                        <el-tag type="warning" size="small" effect="plain">迁移薄弱</el-tag>
+                        <el-tag type="warning" size="small" effect="plain">换个问法就不会</el-tag>
                     </div>
                 </div>
                 <div class="hint">
-                    单点题正确率高、综合题得分低，说明记得住但不会用；这类知识点排期不升档，下次优先推综合题。
+                    单个知识点能答对，放进综合题就答不出来。这类知识点不会拉长复习间隔，下次会优先给综合题。
                 </div>
             </el-card>
         </template>
@@ -134,10 +137,38 @@ const percent = (value: number | null | undefined) =>
     value === null || value === undefined ? '—' : `${Math.round(value * 100)}%`;
 
 const statCards = computed(() => [
-    { label: '题目总数', value: overview.value.totalQuestions, color: '#2563eb' },
-    { label: '今日待复习知识点', value: overview.value.dueToday, color: '#f59e0b' },
-    { label: '已掌握知识点', value: overview.value.masteredQuestions, color: '#10b981' },
-    { label: '连续复习天数', value: overview.value.streakDays, color: '#8b5cf6' }
+    {
+        label: '题库里的题目',
+        value: overview.value.totalQuestions,
+        unit: ' 道',
+        hint: '已录入、可以拿来练的题',
+        color: '#2563eb',
+        icon: 'Document'
+    },
+    {
+        label: '今天该复习',
+        value: overview.value.dueToday,
+        unit: ' 个知识点',
+        hint: '到了复习时间，建议今天过一遍',
+        color: '#f59e0b',
+        icon: 'AlarmClock'
+    },
+    {
+        label: '已经掌握',
+        value: overview.value.masteredQuestions,
+        unit: ' 个知识点',
+        hint: '练过至少 2 次，正确率 80% 以上',
+        color: '#10b981',
+        icon: 'CircleCheck'
+    },
+    {
+        label: '连续复习',
+        value: overview.value.streakDays,
+        unit: ' 天',
+        hint: '每天练一次就能保持',
+        color: '#8b5cf6',
+        icon: 'Calendar'
+    }
 ]);
 
 const coverageOption = computed(() => {
@@ -311,10 +342,41 @@ onMounted(async () => {
     overflow: hidden;
 }
 .stat-card :deep(.el-card__body) {
+    padding: var(--sl-s5);
+}
+.stat-top {
     display: flex;
     align-items: center;
-    gap: var(--sl-s4);
-    padding: var(--sl-s5);
+    gap: var(--sl-s2);
+    font-size: var(--sl-fs-sm);
+    font-weight: 500;
+}
+.stat-value {
+    margin-top: var(--sl-s3);
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--sl-text);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+.unit {
+    margin-left: 4px;
+    font-size: var(--sl-fs-sm);
+    font-weight: 400;
+    color: var(--sl-muted);
+}
+.stat-hint {
+    margin-top: var(--sl-s2);
+    font-size: var(--sl-fs-xs);
+    color: var(--sl-muted);
+    line-height: 1.6;
+}
+
+/* 旧结构保留，避免其他页面引用时样式丢失 */
+.stat-accent {
+    width: 4px;
+    height: 44px;
+    border-radius: 4px;
 }
 .stat-accent {
     width: 4px;
