@@ -20,7 +20,7 @@
                         剩余 {{ cards.length - index }} 题 ·
                         <el-tag size="small">{{ typeText(current.type) }}</el-tag>
                     </span>
-                    <span class="muted">知识点 #{{ current.knowledgeId }}</span>
+                    <span class="muted">知识点编号 #{{ current.knowledgeId }}</span>
                 </div>
             </template>
 

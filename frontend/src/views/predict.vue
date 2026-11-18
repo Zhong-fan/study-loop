@@ -4,7 +4,7 @@
             <template #header>
                 <div class="card-header">
                     <span>预测卷</span>
-                    <span class="hint">按知识点证据权重选题，每道题都能说明依据</span>
+                    <span class="hint">根据课件里的「重点」标注、例题和反复出现的内容，挑更可能考的题</span>
                 </div>
             </template>
 
@@ -20,12 +20,12 @@
             </div>
 
             <div v-if="lowConfidence" class="hint warn">
-                部分题目缺少原文依据（依据有限）：这些题目来自没有证据的知识点，参考价值较低。
+                有些题在课件里找不到出处，参考价值不高，建议以有依据的题为主。
             </div>
 
             <div class="hint note">
-                权重 = 重要度 0.35 + 强调词 0.25 + 例题 0.2 + 证据数 0.1 + 重复出现 0.1。
-                没有证据的知识点权重最低，只会少量出现。
+                怎么排的：老师标「重点」、出现例题、反复讲到、能找到原文出处，这四类线索越强，排得越靠前。
+                找不到出处的知识点会排在最后，只少量出现。
             </div>
         </el-card>
 
@@ -33,7 +33,7 @@
             <template #header>
                 <div class="card-header">
                     <span>题目（{{ items.length }}）</span>
-                    <el-tag v-if="items.length" type="success" size="small">已按权重排序</el-tag>
+                    <el-tag v-if="items.length" type="success" size="small">按可能性从高到低</el-tag>
                 </div>
             </template>
 
@@ -49,12 +49,12 @@
                     </div>
                     <div class="reason">
                         <el-tag type="warning" size="small" effect="plain">
-                            权重 {{ Math.round(item.weight * 100) }}%
+                            考到可能性 {{ Math.round(item.weight * 100) }}%
                         </el-tag>
                         <span class="hint">{{ item.reason }}</span>
                         <el-popover v-if="item.evidenceQuote" placement="bottom" :width="420" trigger="click">
                             <template #reference>
-                                <el-link type="primary" :underline="false">查看依据原文</el-link>
+                                <el-link type="primary" :underline="false">看看依据</el-link>
                             </template>
                             <div class="quote-page">第 {{ item.evidencePage }} 页</div>
                             <div class="quote-text">{{ item.evidenceQuote }}</div>
