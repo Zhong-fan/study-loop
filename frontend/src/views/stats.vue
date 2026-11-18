@@ -19,7 +19,6 @@
                     <div class="stat-value">
                         {{ item.value }}<span class="unit">{{ item.unit }}</span>
                     </div>
-                    <div class="stat-hint">{{ item.hint }}</div>
                 </el-card>
             </div>
 
@@ -147,7 +146,6 @@ const statCards = computed(() => [
         label: '题库里的题目',
         value: overview.value.totalQuestions,
         unit: ' 道',
-        hint: '已录入、可以拿来练的题',
         color: '#2563eb',
         icon: 'Document'
     },
@@ -155,7 +153,6 @@ const statCards = computed(() => [
         label: '今天该复习',
         value: overview.value.dueToday,
         unit: ' 个知识点',
-        hint: '到了复习时间，建议今天过一遍',
         color: '#f59e0b',
         icon: 'AlarmClock'
     },
@@ -163,7 +160,6 @@ const statCards = computed(() => [
         label: '已经掌握',
         value: overview.value.masteredQuestions,
         unit: ' 个知识点',
-        hint: '练过至少 2 次，正确率 80% 以上',
         color: '#10b981',
         icon: 'CircleCheck'
     },
@@ -171,7 +167,6 @@ const statCards = computed(() => [
         label: '连续复习',
         value: overview.value.streakDays,
         unit: ' 天',
-        hint: '每天练一次就能保持',
         color: '#8b5cf6',
         icon: 'Calendar'
     }
@@ -370,12 +365,6 @@ onMounted(async () => {
     font-size: var(--sl-fs-sm);
     font-weight: 400;
     color: var(--sl-muted);
-}
-.stat-hint {
-    margin-top: var(--sl-s2);
-    font-size: var(--sl-fs-xs);
-    color: var(--sl-muted);
-    line-height: 1.6;
 }
 
 /* 旧结构保留，避免其他页面引用时样式丢失 */
