@@ -13,6 +13,7 @@ import com.studyloop.content.mapper.ChapterMapper;
 import com.studyloop.content.mapper.KnowledgeEvidenceMapper;
 import com.studyloop.content.mapper.KnowledgeMapper;
 import com.studyloop.content.service.KnowledgeService;
+import com.studyloop.content.support.KnowledgeNameNormalizer;
 import com.studyloop.content.vo.KnowledgeEvidenceVO;
 import com.studyloop.content.vo.KnowledgeVO;
 import com.studyloop.content.vo.WeightedKnowledgeVO;
@@ -89,7 +90,15 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         knowledge.setUserId(chapter.getUserId());
         knowledge.setCourseId(courseId);
         knowledge.setChapterId(request.getChapterId());
-        knowledge.setName(request.getName().trim());
+        String name = request.getName() == null ? "" : request.getName().trim();
+        String key = KnowledgeNameNormalizer.key(name);
+        if (key.isEmpty()) {
+            throw new BizException(ErrorCode.PARAM_ERROR, "知识点名称不能为空");
+        }
+        ensureNotDuplicated(courseId, key, null);
+
+        knowledge.setName(name);
+        knowledge.setNameKey(key);
         knowledge.setType(request.getType() == null ? "CONCEPT" : request.getType());
         knowledge.setImportance(request.getImportance() == null ? 3 : request.getImportance());
         knowledge.setPageNo(request.getPageNo());
@@ -101,10 +110,32 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         return knowledge.getId();
     }
 
+    /** 同一课程下名称归一化后必须唯一，避免重复录入把权重摊薄 */
+    private void ensureNotDuplicated(Long courseId, String nameKey, Long excludeId) {
+        QueryWrapper<Knowledge> wrapper = new QueryWrapper<>();
+        wrapper.eq("course_id", courseId);
+        wrapper.eq("name_key", nameKey);
+        wrapper.eq("deleted", 0);
+        if (excludeId != null) {
+            wrapper.ne("id", excludeId);
+        }
+        if (knowledgeMapper.selectCount(wrapper) > 0) {
+            throw new BizException(ErrorCode.PARAM_ERROR, "同一课程下已有同名知识点，请直接用别名");
+        }
+    }
+
     @Override
     public void update(Long id, KnowledgeRequest request) {
         Knowledge knowledge = findOwned(id);
-        knowledge.setName(request.getName().trim());
+        String name = request.getName() == null ? "" : request.getName().trim();
+        String key = KnowledgeNameNormalizer.key(name);
+        if (key.isEmpty()) {
+            throw new BizException(ErrorCode.PARAM_ERROR, "知识点名称不能为空");
+        }
+        ensureNotDuplicated(knowledge.getCourseId(), key, id);
+
+        knowledge.setName(name);
+        knowledge.setNameKey(key);
         if (request.getType() != null) {
             knowledge.setType(request.getType());
         }
