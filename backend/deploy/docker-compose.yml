@@ -47,7 +47,7 @@ services:
       SEATA_PORT: 8091
       STORE_MODE: file
     ports:
-      - "8091:8091"
+      - "9091:8091"
       - "7091:7091"
 
   redis:
