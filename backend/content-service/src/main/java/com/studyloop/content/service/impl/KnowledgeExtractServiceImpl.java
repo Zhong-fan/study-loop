@@ -1,6 +1,7 @@
 package com.studyloop.content.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.studyloop.common.exception.BizException;
@@ -9,11 +10,14 @@ import com.studyloop.common.validate.JsonSchemaValidator;
 import com.studyloop.content.client.AiKnowledgeClient;
 import com.studyloop.content.entity.Knowledge;
 import com.studyloop.content.entity.KnowledgeEvidence;
+import com.studyloop.content.entity.KnowledgeAlias;
 import com.studyloop.content.entity.MaterialPage;
 import com.studyloop.content.mapper.KnowledgeEvidenceMapper;
+import com.studyloop.content.mapper.KnowledgeAliasMapper;
 import com.studyloop.content.mapper.KnowledgeMapper;
 import com.studyloop.content.mapper.MaterialPageMapper;
 import com.studyloop.content.service.KnowledgeExtractService;
+import com.studyloop.content.support.KnowledgeNameNormalizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -46,15 +50,17 @@ public class KnowledgeExtractServiceImpl implements KnowledgeExtractService {
     private final MaterialPageMapper pageMapper;
     private final KnowledgeMapper knowledgeMapper;
     private final KnowledgeEvidenceMapper evidenceMapper;
+    private final KnowledgeAliasMapper aliasMapper;
     private final AiKnowledgeClient aiClient;
     private final ObjectMapper objectMapper;
 
     public KnowledgeExtractServiceImpl(MaterialPageMapper pageMapper, KnowledgeMapper knowledgeMapper,
-                                       KnowledgeEvidenceMapper evidenceMapper, AiKnowledgeClient aiClient,
+                                       KnowledgeEvidenceMapper evidenceMapper, KnowledgeAliasMapper aliasMapper, AiKnowledgeClient aiClient,
                                        ObjectMapper objectMapper) {
         this.pageMapper = pageMapper;
         this.knowledgeMapper = knowledgeMapper;
         this.evidenceMapper = evidenceMapper;
+        this.aliasMapper = aliasMapper;
         this.aiClient = aiClient;
         this.objectMapper = objectMapper;
     }
@@ -75,11 +81,28 @@ public class KnowledgeExtractServiceImpl implements KnowledgeExtractService {
             throw new BizException(ErrorCode.SYSTEM_ERROR, "没有已解析的页面，请先执行页面解析");
         }
 
-        Set<String> existing = new HashSet<>();
-        knowledgeMapper.selectList(new LambdaQueryWrapper<Knowledge>()
-                        .eq(Knowledge::getCourseId, courseId)
-                        .eq(Knowledge::getUserId, userId))
-                .forEach(k -> existing.add(normalize(k.getName())));
+        // 归一化键 → 已有知识点；别名也进同一张索引
+        Map<String, Knowledge> keyIndex = new HashMap<>();
+        List<Knowledge> existingList = knowledgeMapper.selectList(new LambdaQueryWrapper<Knowledge>()
+                .eq(Knowledge::getCourseId, courseId)
+                .eq(Knowledge::getUserId, userId));
+        Map<Long, Knowledge> byId = new HashMap<>();
+        for (Knowledge k : existingList) {
+            byId.put(k.getId(), k);
+            String key = k.getNameKey() == null || k.getNameKey().isBlank()
+                    ? KnowledgeNameNormalizer.key(k.getName())
+                    : k.getNameKey();
+            keyIndex.putIfAbsent(key, k);
+        }
+        if (!existingList.isEmpty()) {
+            for (KnowledgeAlias alias : aliasMapper.selectList(
+                    new QueryWrapper<KnowledgeAlias>().in("knowledge_id", byId.keySet()))) {
+                Knowledge owner = byId.get(alias.getKnowledgeId());
+                if (owner != null) {
+                    keyIndex.putIfAbsent(alias.getAliasKey(), owner);
+                }
+            }
+        }
 
         int created = 0;
         int duplicates = 0;
@@ -119,14 +142,31 @@ public class KnowledgeExtractServiceImpl implements KnowledgeExtractService {
                 if (name.isEmpty()) {
                     continue;
                 }
-                String key = normalize(name);
-                if (!existing.add(key)) {
+                String key = KnowledgeNameNormalizer.key(name);
+                Knowledge matched = keyIndex.get(key);
+                if (matched == null) {
+                    for (JsonNode alias : node.path("aliases")) {
+                        if (alias.isTextual()) {
+                            matched = keyIndex.get(KnowledgeNameNormalizer.key(alias.asText()));
+                            if (matched != null) {
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (matched != null) {
+                    // 同一个知识点再次出现：不建新记录，把证据累加上去
                     duplicates++;
+                    evidenceCount += saveEvidence(matched.getId(), materialId, node);
+                    saveAliases(matched.getId(), node, keyIndex, matched);
                     continue;
                 }
 
                 Knowledge knowledge = buildKnowledge(userId, courseId, chapterId, materialId, node, name);
+                knowledge.setNameKey(key);
                 knowledgeMapper.insert(knowledge);
+                keyIndex.put(key, knowledge);
+                saveAliases(knowledge.getId(), node, keyIndex, knowledge);
                 created++;
                 evidenceCount += saveEvidence(knowledge.getId(), materialId, node);
             }
@@ -158,6 +198,35 @@ public class KnowledgeExtractServiceImpl implements KnowledgeExtractService {
             knowledge.setPageNo(evidence.get(0).path("page").asInt(1));
         }
         return knowledge;
+    }
+
+    /** 把候选里的别名挂到知识点上，后续同义说法就能命中 */
+    private void saveAliases(Long knowledgeId, JsonNode node, Map<String, Knowledge> keyIndex, Knowledge owner) {
+        for (JsonNode alias : node.path("aliases")) {
+            if (!alias.isTextual()) {
+                continue;
+            }
+            String text = alias.asText().trim();
+            if (text.isEmpty()) {
+                continue;
+            }
+            String key = KnowledgeNameNormalizer.key(text);
+            if (key.isEmpty() || keyIndex.containsKey(key)) {
+                continue;
+            }
+            KnowledgeAlias entity = new KnowledgeAlias();
+            entity.setKnowledgeId(knowledgeId);
+            entity.setAlias(text);
+            entity.setAliasKey(key);
+            entity.setCreatedAt(LocalDateTime.now());
+            try {
+                aliasMapper.insert(entity);
+                keyIndex.put(key, owner);
+            } catch (Exception e) {
+                // 并发下唯一键冲突，忽略即可
+                LOG.debug("别名写入失败：{}", text);
+            }
+        }
     }
 
     private int saveEvidence(Long knowledgeId, Long materialId, JsonNode node) {
@@ -200,7 +269,4 @@ public class KnowledgeExtractServiceImpl implements KnowledgeExtractService {
         return text.length() <= max ? text : text.substring(0, max);
     }
 
-    private String normalize(String name) {
-        return name.replaceAll("\\s+", "").toLowerCase(Locale.ROOT);
-    }
 }

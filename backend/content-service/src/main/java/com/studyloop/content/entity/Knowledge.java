@@ -29,6 +29,9 @@ public class Knowledge {
 
     private String name;
 
+    /** 归一化名称键，课程内唯一，用于去重 */
+    private String nameKey;
+
     /** CONCEPT 概念 / SKILL 方法 / CASE 案例 */
     private String type;
 
