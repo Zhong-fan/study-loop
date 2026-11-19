@@ -193,6 +193,15 @@ curl -X POST http://localhost:10080/api/courses \
 
 接口文档：<http://localhost:10080/doc.html>（网关转发），或各服务端口下的 `/doc.html`。
 
+### 端口只绑本机
+
+五个业务服务默认 `server.address=127.0.0.1`，同时用 `NACOS_IP=127.0.0.1` 注册，保证网关和 Feign 能连上。
+这样局域网内其他机器无法直连服务端口；需要容器化部署时用环境变量覆盖：
+
+```bash
+SERVER_ADDRESS=0.0.0.0 NACOS_IP=<容器可达地址>
+```
+
 ### 内部调用凭证
 
 服务之间以及网关到服务之间，都会带一个内部凭证头 `X-Internal-Token`（默认 `dev-internal-token`，可用环境变量 `INTERNAL_TOKEN` 覆盖）。
