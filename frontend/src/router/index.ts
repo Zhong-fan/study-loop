@@ -62,6 +62,12 @@ const routes: RouteRecordRaw[] = [
                 component: () => import('../views/predict.vue')
             },
             {
+                path: '/exams',
+                name: 'exams',
+                meta: { title: '真题' },
+                component: () => import('../views/exams.vue')
+            },
+            {
                 path: '/admin',
                 name: 'admin',
                 meta: { title: '用户管理' },

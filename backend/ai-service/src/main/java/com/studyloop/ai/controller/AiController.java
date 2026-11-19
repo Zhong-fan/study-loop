@@ -30,16 +30,19 @@ public class AiController {
     private final PageParseService pageParseService;
     private final com.studyloop.ai.service.KnowledgeExtractService knowledgeExtractService;
     private final com.studyloop.ai.service.DraftGenerateService draftGenerateService;
+    private final com.studyloop.ai.service.ExamExtractService examExtractService;
     private final AiProperties properties;
 
     public AiController(AiService aiService, PageParseService pageParseService,
                         com.studyloop.ai.service.KnowledgeExtractService knowledgeExtractService,
                         com.studyloop.ai.service.DraftGenerateService draftGenerateService,
+                        com.studyloop.ai.service.ExamExtractService examExtractService,
                         AiProperties properties) {
         this.aiService = aiService;
         this.pageParseService = pageParseService;
         this.knowledgeExtractService = knowledgeExtractService;
         this.draftGenerateService = draftGenerateService;
+        this.examExtractService = examExtractService;
         this.properties = properties;
     }
 
@@ -63,6 +66,12 @@ public class AiController {
     public Result<List<JsonNode>> extractKnowledge(
             @RequestBody @Valid com.studyloop.ai.dto.KnowledgeExtractRequest request) {
         return Result.ok(knowledgeExtractService.extract(request));
+    }
+
+    @Operation(summary = "从试卷页面抽取真题")
+    @PostMapping("/extract-exam-items")
+    public Result<List<JsonNode>> extractExamItems(@RequestBody Map<String, Object> body) {
+        return Result.ok(examExtractService.extract(body));
     }
 
     @Operation(summary = "按知识点生成题目草稿（严格 Schema + 业务校验）")

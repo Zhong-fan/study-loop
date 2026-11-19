@@ -1,6 +1,7 @@
 package com.studyloop.practice.service;
 
 import com.studyloop.common.result.Result;
+import com.studyloop.practice.client.ContentExamClient;
 import com.studyloop.practice.client.ContentWeightClient;
 import com.studyloop.practice.entity.Question;
 import com.studyloop.practice.entity.QuestionKnowledge;
@@ -30,12 +31,14 @@ public class PredictService {
     private static final Logger LOG = LoggerFactory.getLogger(PredictService.class);
 
     private final ContentWeightClient contentClient;
+    private final ContentExamClient examClient;
     private final QuestionKnowledgeMapper questionKnowledgeMapper;
     private final QuestionMapper questionMapper;
 
-    public PredictService(ContentWeightClient contentClient, QuestionKnowledgeMapper questionKnowledgeMapper,
-                          QuestionMapper questionMapper) {
+    public PredictService(ContentWeightClient contentClient, ContentExamClient examClient,
+                          QuestionKnowledgeMapper questionKnowledgeMapper, QuestionMapper questionMapper) {
         this.contentClient = contentClient;
+        this.examClient = examClient;
         this.questionKnowledgeMapper = questionKnowledgeMapper;
         this.questionMapper = questionMapper;
     }
@@ -57,6 +60,37 @@ public class PredictService {
             result.put("items", List.of());
             result.put("message", "还没有知识点权重，先解析资料并抽取知识点");
             return result;
+        }
+
+        // 真题里出现过的知识点，优先级再抬一点：最多 +30%
+        Map<Long, Map<String, Object>> examById = new HashMap<>();
+        try {
+            Result<List<Map<String, Object>>> examResponse = examClient.weighted(userId, courseId);
+            if (examResponse != null && examResponse.getData() != null) {
+                for (Map<String, Object> row : examResponse.getData()) {
+                    Object id = row.get("knowledgeId");
+                    if (id != null) {
+                        examById.put(Long.valueOf(String.valueOf(id)), row);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOG.warn("取真题频次失败: {}", e.getMessage());
+        }
+
+        for (Map<String, Object> item : weights) {
+            Object id = item.get("knowledgeId");
+            if (id == null) {
+                continue;
+            }
+            Map<String, Object> exam = examById.get(Long.valueOf(String.valueOf(id)));
+            int examCount = exam == null ? 0 : Integer.parseInt(String.valueOf(exam.getOrDefault("examCount", 0)));
+            item.put("examCount", examCount);
+            if (examCount > 0) {
+                double base = Double.parseDouble(String.valueOf(item.getOrDefault("weight", 0)));
+                double boosted = Math.min(1.0, base * (1 + Math.min(0.3, examCount * 0.1)));
+                item.put("weight", Math.round(boosted * 100) / 100.0);
+            }
         }
 
         Map<Long, Map<String, Object>> weightById = new LinkedHashMap<>();
@@ -112,7 +146,8 @@ public class PredictService {
                     item.setWeight(entry.getValue());
                     Map<String, Object> best = bestOf(knowledgeIds, weightById);
                     item.setReason(reasonOf(best));
-                    item.setEvidenceQuote(String.valueOf(best.getOrDefault("topQuote", "")));
+                    Object quote = best.get("topQuote");
+                    item.setEvidenceQuote(quote == null ? null : String.valueOf(quote));
                     Object topPage = best.get("topPage");
                     item.setEvidencePage(topPage == null ? null : Integer.valueOf(String.valueOf(topPage)));
                     items.add(item);
@@ -154,7 +189,9 @@ public class PredictService {
         } else {
             why = "课件里讲到过";
         }
-        return "「" + name + "」" + why + where;
+        int examCount = Integer.parseInt(String.valueOf(weight.getOrDefault("examCount", 0)));
+        String examHint = examCount > 0 ? "，真题里出现过 " + examCount + " 次" : "";
+        return "「" + name + "」" + why + where + examHint;
     }
 
     private double weight(Map<Long, Map<String, Object>> weightById, Long id) {
