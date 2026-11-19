@@ -104,7 +104,8 @@ export const aiGenerateDrafts = (data: object) => http.post('/ai/generate-drafts
 export const saveDrafts = (courseId: number, chapterId: number | null, drafts: any[]) =>
     http.post('/questions/from-drafts', drafts, { params: { courseId, chapterId } });
 
-export const getNotifications = () => http.get('/insight/notifications');
+export const getNotifications = (page = 1, size = 10) =>
+    http.get('/insight/notifications', { page, size });
 
 export const markNotificationsRead = () => http.post('/insight/notifications/read-all');
 

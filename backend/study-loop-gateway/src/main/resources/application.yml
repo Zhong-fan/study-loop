@@ -9,6 +9,8 @@ spring:
       discovery:
         server-addr: 127.0.0.1:8848
     gateway:
+      default-filters:
+        - AddRequestHeader=X-Internal-Token, ${INTERNAL_TOKEN:dev-internal-token}
       routes:
         - id: auth
           uri: lb://user-service
@@ -35,3 +37,8 @@ spring:
 logging:
   level:
     org.springframework.cloud.gateway: info
+
+app:
+  internal:
+    enabled: true
+    token: ${INTERNAL_TOKEN:dev-internal-token}

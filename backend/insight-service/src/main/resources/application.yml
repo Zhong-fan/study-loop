@@ -21,6 +21,9 @@ spring:
 
 # 今日待练缓存：Redis 挂了就直连数据库，不影响功能
 app:
+  internal:
+    enabled: true
+    token: ${INTERNAL_TOKEN:dev-internal-token}
   cache:
     enabled: true
     due-ttl-seconds: 60
