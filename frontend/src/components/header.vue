@@ -88,11 +88,14 @@ const noticeLoading = ref(false);
 
 const loadNotifications = async (append = false) => {
     noticeLoading.value = true;
+    const target = append ? noticePage.value + 1 : 1;
     try {
-        const data = await getNotifications(append ? noticePage.value : 1, 10);
+        const data = await getNotifications(target, 10);
         notices.value = append ? [...notices.value, ...(data.items || [])] : (data.items || []);
         unread.value = data.unread || 0;
         noticeTotal.value = data.total || 0;
+        // 只有请求成功才推进页码，失败后重试不会跳页
+        noticePage.value = target;
     } catch (e) {
         // 后端没起来时不显示消息，不打断页面
     } finally {
@@ -101,7 +104,6 @@ const loadNotifications = async (append = false) => {
 };
 
 const loadMoreNotices = async () => {
-    noticePage.value += 1;
     await loadNotifications(true);
 };
 

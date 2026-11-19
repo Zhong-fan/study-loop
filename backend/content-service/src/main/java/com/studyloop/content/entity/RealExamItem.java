@@ -29,6 +29,11 @@ public class RealExamItem {
 
     private Integer pageNo;
 
+    /** 题干归一化键，导入去重用 */
+    private String stemKey;
+
+    private Integer deleted;
+
     private Long knowledgeId;
 
     private Long chapterId;

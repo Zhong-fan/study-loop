@@ -81,6 +81,10 @@ public class KnowledgeExtractServiceImpl implements KnowledgeExtractService {
             throw new BizException(ErrorCode.SYSTEM_ERROR, "没有已解析的页面，请先执行页面解析");
         }
 
+        // 同一份资料重复抽取：先清掉旧证据再写，避免 AI 改写句子导致证据翻倍
+        evidenceMapper.delete(new QueryWrapper<KnowledgeEvidence>()
+                .eq("material_id", materialId));
+
         // 归一化键 → 已有知识点；别名也进同一张索引
         Map<String, Knowledge> keyIndex = new HashMap<>();
         List<Knowledge> existingList = knowledgeMapper.selectList(new LambdaQueryWrapper<Knowledge>()
@@ -191,7 +195,7 @@ public class KnowledgeExtractServiceImpl implements KnowledgeExtractService {
         knowledge.setImportance(toImportance(node.path("confidence").asDouble(0.6)));
         knowledge.setMaterialId(materialId);
         knowledge.setCreatedAt(LocalDateTime.now());
-        knowledge.setDeleted(0);
+        knowledge.setDeleted(0L);
 
         JsonNode evidence = node.path("evidence");
         if (evidence.isArray() && !evidence.isEmpty()) {
@@ -245,8 +249,24 @@ public class KnowledgeExtractServiceImpl implements KnowledgeExtractService {
             evidence.setWeight(1.0);
             evidence.setVerified(1);
             evidence.setCreatedAt(LocalDateTime.now());
-            evidenceMapper.insert(evidence);
-            count++;
+            QueryWrapper<KnowledgeEvidence> exists = new QueryWrapper<>();
+            exists.eq("knowledge_id", knowledgeId);
+            exists.eq("page_no", evidence.getPageNo());
+            exists.eq("quote", evidence.getQuote());
+            if (materialId == null) {
+                exists.isNull("material_id");
+            } else {
+                exists.eq("material_id", materialId);
+            }
+            if (evidenceMapper.selectCount(exists) > 0) {
+                continue;
+            }
+            try {
+                evidenceMapper.insert(evidence);
+                count++;
+            } catch (org.springframework.dao.DuplicateKeyException e) {
+                LOG.debug("证据重复，跳过：{}", evidence.getQuote());
+            }
         }
         return count;
     }

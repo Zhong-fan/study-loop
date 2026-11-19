@@ -1,6 +1,7 @@
 package com.studyloop.content.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.studyloop.common.exception.BizException;
@@ -9,17 +10,23 @@ import com.studyloop.common.validate.JsonSchemaValidator;
 import com.studyloop.content.client.AiExamClient;
 import com.studyloop.content.dto.ExamCreateRequest;
 import com.studyloop.content.entity.Knowledge;
+import com.studyloop.content.entity.KnowledgeAlias;
 import com.studyloop.content.entity.MaterialPage;
 import com.studyloop.content.entity.RealExam;
+import com.studyloop.content.entity.RealExamImport;
 import com.studyloop.content.entity.RealExamItem;
+import com.studyloop.content.mapper.KnowledgeAliasMapper;
 import com.studyloop.content.mapper.KnowledgeMapper;
 import com.studyloop.content.mapper.MaterialPageMapper;
+import com.studyloop.content.mapper.RealExamImportMapper;
 import com.studyloop.content.mapper.RealExamItemMapper;
 import com.studyloop.content.mapper.RealExamMapper;
 import com.studyloop.content.service.ExamService;
+import com.studyloop.content.support.ExamStemNormalizer;
 import com.studyloop.content.support.KnowledgeNameNormalizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,16 +45,21 @@ public class ExamServiceImpl implements ExamService {
 
     private final RealExamMapper examMapper;
     private final RealExamItemMapper itemMapper;
+    private final RealExamImportMapper importMapper;
     private final KnowledgeMapper knowledgeMapper;
+    private final KnowledgeAliasMapper aliasMapper;
     private final MaterialPageMapper pageMapper;
     private final AiExamClient aiExamClient;
 
     public ExamServiceImpl(RealExamMapper examMapper, RealExamItemMapper itemMapper,
-                           KnowledgeMapper knowledgeMapper, MaterialPageMapper pageMapper,
-                           AiExamClient aiExamClient) {
+                           RealExamImportMapper importMapper,
+                           KnowledgeMapper knowledgeMapper, KnowledgeAliasMapper aliasMapper,
+                           MaterialPageMapper pageMapper, AiExamClient aiExamClient) {
         this.examMapper = examMapper;
         this.itemMapper = itemMapper;
+        this.importMapper = importMapper;
         this.knowledgeMapper = knowledgeMapper;
+        this.aliasMapper = aliasMapper;
         this.pageMapper = pageMapper;
         this.aiExamClient = aiExamClient;
     }
@@ -92,7 +104,9 @@ public class ExamServiceImpl implements ExamService {
             item.put("examYear", exam.getExamYear());
             item.put("school", exam.getSchool());
             item.put("materialId", exam.getMaterialId());
-            item.put("itemCount", itemMapper.selectCount(new QueryWrapper<RealExamItem>().eq("exam_id", exam.getId())));
+            item.put("itemCount", itemMapper.selectCount(new QueryWrapper<RealExamItem>()
+                    .eq("exam_id", exam.getId())
+                    .eq("deleted", 0)));
             result.add(item);
         }
         return result;
@@ -104,13 +118,24 @@ public class ExamServiceImpl implements ExamService {
         RealExam exam = owned(userId, id);
         exam.setDeleted(1);
         examMapper.updateById(exam);
-        itemMapper.delete(new QueryWrapper<RealExamItem>().eq("exam_id", id));
+
+        // 题目跟着软删，避免"试卷能恢复、题目没了"
+        itemMapper.update(null, new UpdateWrapper<RealExamItem>()
+                .eq("exam_id", id)
+                .set("deleted", 1));
     }
 
     @Override
     @Transactional
     public Map<String, Object> importItems(Long userId, Long examId, Long materialId) {
         RealExam exam = owned(userId, examId);
+
+        // 同一份资料只导一次：AI 每次改写题干，靠题干去重挡不住重复导入
+        if (importMapper.selectCount(new QueryWrapper<RealExamImport>()
+                .eq("exam_id", examId)
+                .eq("material_id", materialId)) > 0) {
+            throw new BizException(ErrorCode.PARAM_ERROR, "这份资料已经导入过这张试卷，如需重导请先删除试卷");
+        }
 
         List<MaterialPage> pages = pageMapper.selectList(new QueryWrapper<MaterialPage>()
                 .eq("material_id", materialId)
@@ -144,17 +169,12 @@ public class ExamServiceImpl implements ExamService {
             return Map.of("imported", 0, "skipped", 0, "message", "没有识别到题目");
         }
 
-        Map<String, Knowledge> keyIndex = new HashMap<>();
-        for (Knowledge knowledge : knowledgeMapper.selectList(new QueryWrapper<Knowledge>()
-                .eq("course_id", exam.getCourseId())
-                .eq("deleted", 0))) {
-            String key = knowledge.getNameKey() == null || knowledge.getNameKey().isBlank()
-                    ? KnowledgeNameNormalizer.key(knowledge.getName())
-                    : knowledge.getNameKey();
-            keyIndex.putIfAbsent(key, knowledge);
-        }
+        // 知识点索引：名称键 + 别名，和去重规则保持一致
+        Map<String, Knowledge> keyIndex = buildKnowledgeIndex(exam.getCourseId());
 
-        int seq = Math.toIntExact(itemMapper.selectCount(new QueryWrapper<RealExamItem>().eq("exam_id", examId))) + 1;
+        int seq = Math.toIntExact(itemMapper.selectCount(new QueryWrapper<RealExamItem>()
+                .eq("exam_id", examId)
+                .eq("deleted", 0))) + 1;
         int imported = 0;
         int skipped = 0;
 
@@ -170,14 +190,30 @@ public class ExamServiceImpl implements ExamService {
                 continue;
             }
 
+            String stem = node.path("stem").asText("");
+            String stemKey = ExamStemNormalizer.key(stem);
+            if (stemKey.isEmpty()) {
+                skipped++;
+                continue;
+            }
+            if (itemMapper.selectCount(new QueryWrapper<RealExamItem>()
+                    .eq("exam_id", examId)
+                    .eq("stem_key", stemKey)) > 0) {
+                // 同一份卷子重复导入，直接跳过
+                skipped++;
+                continue;
+            }
+
             RealExamItem item = new RealExamItem();
             item.setExamId(examId);
-            item.setSeq(seq++);
+            item.setSeq(seq);
             item.setItemType(node.path("type").asText("SINGLE"));
-            item.setStem(node.path("stem").asText(""));
+            item.setStem(stem);
+            item.setStemKey(stemKey);
             item.setAnswer(node.path("answer").asText(""));
             item.setScore(BigDecimal.valueOf(node.path("score").asDouble(2)));
             item.setPageNo(node.path("page").asInt(1));
+            item.setDeleted(0);
             item.setCreatedAt(LocalDateTime.now());
 
             String knowledgeName = node.path("knowledge").asText("");
@@ -188,8 +224,26 @@ public class ExamServiceImpl implements ExamService {
                     item.setChapterId(matched.getChapterId());
                 }
             }
-            itemMapper.insert(item);
-            imported++;
+            try {
+                itemMapper.insert(item);
+                seq++;
+                imported++;
+            } catch (DuplicateKeyException e) {
+                skipped++;
+            }
+        }
+
+        if (imported > 0) {
+            RealExamImport record = new RealExamImport();
+            record.setExamId(examId);
+            record.setMaterialId(materialId);
+            record.setItemCount(imported);
+            record.setCreatedAt(LocalDateTime.now());
+            try {
+                importMapper.insert(record);
+            } catch (DuplicateKeyException e) {
+                LOG.debug("导入记录已存在：exam={}, material={}", examId, materialId);
+            }
         }
 
         Map<String, Object> result = new LinkedHashMap<>();
@@ -202,7 +256,9 @@ public class ExamServiceImpl implements ExamService {
     @Override
     public Map<String, Object> distribution(Long userId, Long examId) {
         owned(userId, examId);
-        List<RealExamItem> items = itemMapper.selectList(new QueryWrapper<RealExamItem>().eq("exam_id", examId));
+        List<RealExamItem> items = itemMapper.selectList(new QueryWrapper<RealExamItem>()
+                .eq("exam_id", examId)
+                .eq("deleted", 0));
 
         Map<Long, int[]> countByKnowledge = new LinkedHashMap<>();
         Map<Long, BigDecimal> scoreByKnowledge = new LinkedHashMap<>();
@@ -220,7 +276,8 @@ public class ExamServiceImpl implements ExamService {
             }
             linked++;
             countByKnowledge.computeIfAbsent(knowledgeId, k -> new int[1])[0]++;
-            scoreByKnowledge.merge(knowledgeId, item.getScore() == null ? BigDecimal.ZERO : item.getScore(), BigDecimal::add);
+            scoreByKnowledge.merge(knowledgeId,
+                    item.getScore() == null ? BigDecimal.ZERO : item.getScore(), BigDecimal::add);
             if (item.getChapterId() != null) {
                 chapterOf.putIfAbsent(knowledgeId, item.getChapterId());
             }
@@ -254,9 +311,10 @@ public class ExamServiceImpl implements ExamService {
     }
 
     @Override
-    public List<Map<String, Object>> weighted(Long courseId) {
+    public List<Map<String, Object>> weighted(Long userId, Long courseId) {
         List<RealExam> exams = examMapper.selectList(new QueryWrapper<RealExam>()
                 .eq("course_id", courseId)
+                .eq("created_by", userId)
                 .eq("deleted", 0));
         if (exams.isEmpty()) {
             return List.of();
@@ -264,6 +322,7 @@ public class ExamServiceImpl implements ExamService {
         List<Long> examIds = exams.stream().map(RealExam::getId).toList();
         List<RealExamItem> items = itemMapper.selectList(new QueryWrapper<RealExamItem>()
                 .in("exam_id", examIds)
+                .eq("deleted", 0)
                 .isNotNull("knowledge_id"));
 
         Map<Long, int[]> count = new LinkedHashMap<>();
@@ -283,6 +342,31 @@ public class ExamServiceImpl implements ExamService {
             result.add(row);
         });
         return result;
+    }
+
+    private Map<String, Knowledge> buildKnowledgeIndex(Long courseId) {
+        Map<String, Knowledge> index = new HashMap<>();
+        List<Knowledge> knowledges = knowledgeMapper.selectList(new QueryWrapper<Knowledge>()
+                .eq("course_id", courseId)
+                .eq("deleted", 0));
+        Map<Long, Knowledge> byId = new HashMap<>();
+        for (Knowledge knowledge : knowledges) {
+            byId.put(knowledge.getId(), knowledge);
+            String key = knowledge.getNameKey() == null || knowledge.getNameKey().isBlank()
+                    ? KnowledgeNameNormalizer.key(knowledge.getName())
+                    : knowledge.getNameKey();
+            index.putIfAbsent(key, knowledge);
+        }
+        if (!byId.isEmpty()) {
+            for (KnowledgeAlias alias : aliasMapper.selectList(
+                    new QueryWrapper<KnowledgeAlias>().in("knowledge_id", byId.keySet()))) {
+                Knowledge owner = byId.get(alias.getKnowledgeId());
+                if (owner != null) {
+                    index.putIfAbsent(alias.getAliasKey(), owner);
+                }
+            }
+        }
+        return index;
     }
 
     private RealExam owned(Long userId, Long id) {

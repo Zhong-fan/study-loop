@@ -63,6 +63,6 @@ public class ExamController {
     @Operation(summary = "真题频次（给预测模型用）")
     @GetMapping("/weighted")
     public Result<List<Map<String, Object>>> weighted(@RequestParam Long courseId) {
-        return Result.ok(examService.weighted(courseId));
+        return Result.ok(examService.weighted(UserContext.requireUserId(), courseId));
     }
 }
