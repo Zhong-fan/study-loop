@@ -13,6 +13,9 @@ import java.util.List;
 @Data
 public class AttemptRequest {
 
+    /** 作答 id，用作幂等键；老调用方可以不传 */
+    private Long attemptId;
+
     /** 主知识点，legacy 字段 */
     private Long knowledgeId;
 

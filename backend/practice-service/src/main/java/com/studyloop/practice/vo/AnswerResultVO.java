@@ -22,6 +22,9 @@ public class AnswerResultVO {
     /** 下次复习日期，前端用它显示"明天再来" */
     private LocalDate nextDueDate;
 
+    /** 掌握度是否已同步；false 表示稍后自动重试 */
+    private Boolean masterySynced;
+
     private List<String> correctAnswer;
 
     private String analysis;

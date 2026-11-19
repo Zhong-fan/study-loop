@@ -20,5 +20,7 @@ public interface ReviewService {
     AnswerResultVO answerQuestion(Long questionId, List<String> answer, Long costMs);
 
     /** 主观题：自评 0/1/2 分 */
+    int retryUnsynced(int limit);
+
     AnswerResultVO rateQuestion(Long questionId, int rating, Long costMs);
 }

@@ -1,6 +1,7 @@
 package com.studyloop.practice.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.studyloop.common.context.UserContext;
 import com.studyloop.common.exception.BizException;
 import com.studyloop.common.result.ErrorCode;
@@ -22,7 +23,6 @@ import com.studyloop.practice.util.JsonConverter;
 import com.studyloop.practice.vo.AnswerResultVO;
 import com.studyloop.practice.vo.DueQueueVO;
 import com.studyloop.practice.vo.DueQuestionVO;
-import io.seata.spring.annotation.GlobalTransactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -130,7 +130,6 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     @Override
-    @GlobalTransactional
     @Transactional
     public AnswerResultVO answerQuestion(Long questionId, List<String> answer, Long costMs) {
         Question question = findOwned(questionId);
@@ -153,7 +152,6 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     @Override
-    @GlobalTransactional
     @Transactional
     public AnswerResultVO rateQuestion(Long questionId, int rating, Long costMs) {
         Question question = findOwned(questionId);
@@ -191,26 +189,98 @@ public class ReviewServiceImpl implements ReviewService {
             attemptDetailMapper.insert(row);
         }
 
+        // attempt 已经是事实；掌握度是投影，失败只标记，下次重试
         LocalDate next = LocalDate.now().plusDays(1);
+        boolean synced = true;
         if (!details.isEmpty()) {
-            // 这里不吞异常：覆盖服务失败就整体回滚，
-            // 否则 attempt 写进去了、掌握度没更新，账就对不上。
-            Result<MasteryDue> response = insightClient.record(
-                    question.getUserId(),
-                    new AttemptPayload(question.getKnowledgeId(), question.getCourseId(),
-                            rating >= 1, details));
-            if (response != null && response.getData() != null && response.getData().getNextReview() != null) {
-                next = response.getData().getNextReview();
+            MasteryDue masteryDue = pushMastery(question.getUserId(), attempt,
+                    new AttemptPayload(attempt.getId(), question.getKnowledgeId(),
+                            question.getCourseId(), rating >= 1, details));
+            if (masteryDue != null && masteryDue.getNextReview() != null) {
+                next = masteryDue.getNextReview();
+            } else {
+                synced = false;
             }
         }
+        markSync(attempt.getId(), synced, synced ? null : "投影服务暂不可用");
+        attempt.setSynced(synced ? 1 : 0);
 
         AnswerResultVO result = new AnswerResultVO();
         result.setScore(score);
         result.setRating(rating);
         result.setNextDueDate(next);
+        result.setMasterySynced(synced);
         result.setCorrectAnswer(JsonConverter.toList(question.getAnswer()));
         result.setAnalysis(question.getAnalysis());
         return result;
+    }
+
+    /** 把作答事件推给覆盖服务；失败不抛异常，交给重试任务 */
+    private MasteryDue pushMastery(Long userId, Attempt attempt, AttemptPayload payload) {
+        try {
+            Result<MasteryDue> response = insightClient.record(userId, payload);
+            if (response != null && response.getCode() == 0) {
+                return response.getData();
+            }
+            LOG.warn("掌握度投影失败 attempt={} code={}", attempt.getId(),
+                    response == null ? "null" : response.getCode());
+        } catch (Exception e) {
+            LOG.warn("掌握度投影异常 attempt={}: {}", attempt.getId(), e.getMessage());
+        }
+        return null;
+    }
+
+    private void markSync(Long attemptId, boolean synced, String error) {
+        UpdateWrapper<Attempt> wrapper = new UpdateWrapper<>();
+        wrapper.eq("id", attemptId);
+        wrapper.set("synced", synced ? 1 : 0);
+        if (error == null) {
+            wrapper.set("last_sync_error", null);
+        } else {
+            wrapper.set("last_sync_error", error.length() > 190 ? error.substring(0, 190) : error);
+        }
+        attemptMapper.update(null, wrapper);
+    }
+
+    @Override
+    public int retryUnsynced(int limit) {
+        List<Attempt> pending = attemptMapper.selectList(new QueryWrapper<Attempt>()
+                .eq("synced", 0)
+                .lt("sync_attempts", 10)
+                .orderByAsc("id")
+                .last("limit " + Math.max(1, Math.min(limit, 200))));
+        int success = 0;
+        for (Attempt attempt : pending) {
+            Question question = questionMapper.selectById(attempt.getQuestionId());
+            if (question == null) {
+                continue;
+            }
+            List<AttemptDetail> rows = attemptDetailMapper.selectList(
+                    new QueryWrapper<AttemptDetail>().eq("attempt_id", attempt.getId()));
+            List<AttemptPayload.Detail> details = new ArrayList<>();
+            for (AttemptDetail row : rows) {
+                details.add(new AttemptPayload.Detail(row.getKnowledgeId(), row.getContext(),
+                        row.getScore(), row.getWeight()));
+            }
+            if (details.isEmpty()) {
+                continue;
+            }
+            MasteryDue due = pushMastery(attempt.getUserId(), attempt,
+                    new AttemptPayload(attempt.getId(), attempt.getKnowledgeId(),
+                            question.getCourseId(), attempt.getScore() != null && attempt.getScore() >= 1,
+                            details));
+            if (due != null) {
+                markSync(attempt.getId(), true, null);
+                success++;
+            } else {
+                UpdateWrapper<Attempt> wrapper = new UpdateWrapper<>();
+                wrapper.eq("id", attempt.getId());
+                wrapper.setSql("sync_attempts = sync_attempts + 1");
+                wrapper.set("last_sync_error", "重试失败");
+                attemptMapper.update(null, wrapper);
+            }
+        }
+        return success;
     }
 
     /**

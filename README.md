@@ -202,6 +202,14 @@ curl -X POST http://localhost:10080/api/courses \
 SERVER_ADDRESS=0.0.0.0 NACOS_IP=<容器可达地址>
 ```
 
+### 掌握度投影
+
+作答只写 attempt（本地事务），掌握度由 insight 异步投影：
+
+- insight 不可用时，作答照常成功，attempt 标记 `synced=0`
+- practice 每 60 秒补投一次，insight 用 `attempt_event(attempt_id)` 做幂等
+- 因此 Seata 不再是作答的必要依赖，`SEATA_ENABLED` 默认 false
+
 ### 内部调用凭证
 
 服务之间以及网关到服务之间，都会带一个内部凭证头 `X-Internal-Token`（默认 `dev-internal-token`，可用环境变量 `INTERNAL_TOKEN` 覆盖）。
