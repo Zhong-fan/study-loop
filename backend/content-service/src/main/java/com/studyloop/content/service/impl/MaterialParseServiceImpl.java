@@ -22,6 +22,8 @@ import org.springframework.stereotype.Service;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.time.LocalDateTime;
@@ -49,6 +51,9 @@ public class MaterialParseServiceImpl implements MaterialParseService {
     /** 渲染 DPI：太低看不清，太高图片过大，140 够用 */
     private static final int RENDER_DPI = 140;
 
+    /** 纯文本每页最多字符数，约等于一页 A4 */
+    private static final int TEXT_PAGE_CHARS = 1800;
+
     private final MaterialPageMapper pageMapper;
     private final MaterialMapper materialMapper;
     private final TaskMapper taskMapper;
@@ -73,6 +78,13 @@ public class MaterialParseServiceImpl implements MaterialParseService {
                 .eq(MaterialPage::getMaterialId, materialId)
                 .eq(MaterialPage::getUserId, userId)
                 .orderByAsc(MaterialPage::getPageNo));
+
+        // txt / md：上传时没有文字层，这里先把文件切成页，后面的流程就能复用
+        Material material = materialMapper.selectById(materialId);
+        if (material != null && isPlainText(material.getFileType())
+                && pages.stream().noneMatch(p -> p.getContent() != null && !p.getContent().isBlank())) {
+            pages = seedTextPages(userId, material);
+        }
 
         boolean hasText = pages.stream().anyMatch(p -> p.getContent() != null && !p.getContent().isBlank());
         if (!hasText) {
@@ -116,6 +128,52 @@ public class MaterialParseServiceImpl implements MaterialParseService {
 
         finishTask(task, failures);
         return summary(pages.size(), parsed, review, failures);
+    }
+
+    private boolean isPlainText(String fileType) {
+        if (fileType == null) {
+            return false;
+        }
+        String type = fileType.toLowerCase();
+        return "txt".equals(type) || "md".equals(type);
+    }
+
+    /** 把纯文本文件按段落切成页，写入 material_page，后续解析流程直接复用 */
+    private List<MaterialPage> seedTextPages(Long userId, Material material) {
+        String text;
+        try (InputStream in = fileStorage.open(material.getFileKey())) {
+            text = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            throw new BizException(ErrorCode.SYSTEM_ERROR, "读取文本资料失败：" + e.getMessage());
+        }
+
+        List<MaterialPage> created = new ArrayList<>();
+        StringBuilder buffer = new StringBuilder();
+        int pageNo = 1;
+        for (String paragraph : text.split("\r?\n\s*\r?\n")) {
+            if (buffer.length() + paragraph.length() > TEXT_PAGE_CHARS && buffer.length() > 0) {
+                created.add(insertTextPage(userId, material.getId(), pageNo++, buffer.toString()));
+                buffer.setLength(0);
+            }
+            buffer.append(paragraph).append("\n\n");
+        }
+        if (buffer.length() > 0) {
+            created.add(insertTextPage(userId, material.getId(), pageNo, buffer.toString()));
+        }
+        return created;
+    }
+
+    private MaterialPage insertTextPage(Long userId, Long materialId, int pageNo, String content) {
+        MaterialPage page = new MaterialPage();
+        page.setUserId(userId);
+        page.setMaterialId(materialId);
+        page.setPageNo(pageNo);
+        page.setDocType("TEXT");
+        page.setContent(content.trim());
+        page.setParseStatus("SUCCESS");
+        page.setCreatedAt(LocalDateTime.now());
+        pageMapper.insert(page);
+        return page;
     }
 
     /** 只渲染 PDF 的某一页，交给视觉模型（用于混合 PDF 的空白页） */

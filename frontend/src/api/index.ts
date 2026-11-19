@@ -90,6 +90,13 @@ export const getDueMastery = () => http.get('/insight/due');
 
 export const getWeakKnowledge = () => http.get('/insight/weak');
 export const getTransfer = () => http.get('/insight/transfer');
+export const getExams = (courseId: number) => http.get('/exams', { courseId });
+export const createExam = (data: any) => http.post('/exams', data);
+export const deleteExam = (id: number) => http.delete(`/exams/${id}`);
+export const importExam = (id: number, materialId: number) =>
+    http.post(`/exams/${id}/import?materialId=${materialId}`, {});
+export const getExamDistribution = (id: number) => http.get(`/exams/${id}/distribution`);
+
 export const getPredict = (courseId: number, size: number) =>
     http.get('/review/predict', { courseId, size });
 

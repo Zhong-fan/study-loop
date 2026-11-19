@@ -45,6 +45,12 @@ export const menuData: Menus[] = [
         icon: 'Aim'
     },
     {
+        id: '8',
+        title: '真题',
+        index: '/exams',
+        icon: 'Files'
+    },
+    {
         id: '6',
         title: '用户管理',
         index: '/admin',
