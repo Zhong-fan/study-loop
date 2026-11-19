@@ -44,5 +44,5 @@ public class Knowledge {
 
     private LocalDateTime createdAt;
 
-    private Integer deleted;
+    private Long deleted;
 }

@@ -145,7 +145,15 @@ public class PredictService {
                     item.setKnowledgeIds(knowledgeIds);
                     item.setWeight(entry.getValue());
                     Map<String, Object> best = bestOf(knowledgeIds, weightById);
-                    item.setReason(reasonOf(best));
+                    String reason = reasonOf(best);
+                    int maxExam = knowledgeIds.stream().mapToInt(id -> {
+                        Map<String, Object> w = weightById.get(id);
+                        return w == null ? 0 : Integer.parseInt(String.valueOf(w.getOrDefault("examCount", 0)));
+                    }).max().orElse(0);
+                    if (maxExam > 0 && !reason.contains("真题")) {
+                        reason = reason + "，关联知识点里真题出现过 " + maxExam + " 次";
+                    }
+                    item.setReason(reason);
                     Object quote = best.get("topQuote");
                     item.setEvidenceQuote(quote == null ? null : String.valueOf(quote));
                     Object topPage = best.get("topPage");

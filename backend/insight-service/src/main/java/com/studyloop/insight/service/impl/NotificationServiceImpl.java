@@ -18,6 +18,8 @@ import java.util.Map;
 @Service
 public class NotificationServiceImpl implements NotificationService {
 
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(NotificationServiceImpl.class);
+
     private final NotificationMapper notificationMapper;
     private final MasteryMapper masteryMapper;
 
@@ -100,6 +102,11 @@ public class NotificationServiceImpl implements NotificationService {
         notification.setContent("有 " + due + " 个知识点到期，记得复习");
         notification.setDedupKey(dedupKey);
         notification.setCreatedAt(LocalDateTime.now());
-        notificationMapper.insert(notification);
+        try {
+            notificationMapper.insert(notification);
+        } catch (org.springframework.dao.DuplicateKeyException e) {
+            // 并发下另一个请求已经写入了同一天的提醒
+            LOG.debug("今日待练提醒已存在：{}", dedupKey);
+        }
     }
 }

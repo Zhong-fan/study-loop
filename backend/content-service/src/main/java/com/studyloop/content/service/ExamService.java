@@ -20,5 +20,5 @@ public interface ExamService {
     Map<String, Object> distribution(Long userId, Long examId);
 
     /** 给预测模型用的真题频次 */
-    List<Map<String, Object>> weighted(Long courseId);
+    List<Map<String, Object>> weighted(Long userId, Long courseId);
 }

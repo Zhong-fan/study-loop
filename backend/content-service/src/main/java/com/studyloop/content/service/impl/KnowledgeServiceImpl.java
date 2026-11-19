@@ -104,7 +104,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         knowledge.setPageNo(request.getPageNo());
         knowledge.setMaterialId(request.getMaterialId());
         knowledge.setCreatedAt(LocalDateTime.now());
-        knowledge.setDeleted(0);
+        knowledge.setDeleted(0L);
 
         knowledgeMapper.insert(knowledge);
         return knowledge.getId();
@@ -149,7 +149,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     @Override
     public void delete(Long id) {
         Knowledge knowledge = findOwned(id);
-        knowledge.setDeleted(1);
+        knowledge.setDeleted(knowledge.getId());
         knowledgeMapper.updateById(knowledge);
 
         // 顺手清掉掌握记录；失败只记日志，不影响删除结果
@@ -185,7 +185,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         Long userId = UserContext.requireUserId();
 
         Knowledge knowledge = knowledgeMapper.selectById(id);
-        if (knowledge == null || knowledge.getDeleted() == 1 || !userId.equals(knowledge.getUserId())) {
+        if (knowledge == null || !Long.valueOf(0L).equals(knowledge.getDeleted()) || !userId.equals(knowledge.getUserId())) {
             throw new BizException(ErrorCode.NOT_FOUND, "知识点不存在");
         }
         return knowledge;
