@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
@@ -25,8 +26,9 @@ public class NotificationController {
 
     @Operation(summary = "消息列表（顺便生成今日待练提醒）")
     @GetMapping
-    public Result<Map<String, Object>> list() {
-        return Result.ok(notificationService.list(UserContext.requireUserId()));
+    public Result<Map<String, Object>> list(@RequestParam(defaultValue = "1") int page,
+                                            @RequestParam(defaultValue = "10") int size) {
+        return Result.ok(notificationService.list(UserContext.requireUserId(), page, size));
     }
 
     @Operation(summary = "全部标为已读")

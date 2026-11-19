@@ -14,7 +14,7 @@ import java.util.Map;
 public interface NotificationService {
 
     /** 拉取消息，顺便按今天的情况补一条"今日待练" */
-    Map<String, Object> list(Long userId);
+    Map<String, Object> list(Long userId, int page, int size);
 
     /** 全部标为已读 */
     void markAllRead(Long userId);

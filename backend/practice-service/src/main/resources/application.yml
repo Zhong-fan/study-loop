@@ -40,3 +40,8 @@ knife4j:
 logging:
   level:
     com.studyloop.practice: debug
+
+app:
+  internal:
+    enabled: true
+    token: ${INTERNAL_TOKEN:dev-internal-token}

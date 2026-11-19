@@ -16,6 +16,9 @@ spring:
 
 # 大模型配置：key 从环境变量读，仓库里不放明文
 app:
+  internal:
+    enabled: true
+    token: ${INTERNAL_TOKEN:dev-internal-token}
   ai:
     enabled: ${AI_ENABLED:false}
     base-url: ${AI_BASE_URL:https://api.deepseek.com}

@@ -25,6 +25,17 @@
                         <el-button link type="primary" size="small" @click="readAll">全部已读</el-button>
                     </div>
                     <el-empty v-if="notices.length === 0" description="暂无消息" :image-size="50" />
+                    <el-button
+                        v-if="notices.length < noticeTotal"
+                        class="notice-more"
+                        link
+                        type="primary"
+                        size="small"
+                        :loading="noticeLoading"
+                        @click="loadMoreNotices"
+                    >
+                        加载更多（{{ notices.length }}/{{ noticeTotal }}）
+                    </el-button>
                     <div
                         v-for="item in notices"
                         :key="item.id"
@@ -71,15 +82,27 @@ const username: string = cached.nickname || cached.username || '未登录';
 
 const notices = ref<any[]>([]);
 const unread = ref(0);
+const noticePage = ref(1);
+const noticeTotal = ref(0);
+const noticeLoading = ref(false);
 
-const loadNotifications = async () => {
+const loadNotifications = async (append = false) => {
+    noticeLoading.value = true;
     try {
-        const data = await getNotifications();
-        notices.value = data.items || [];
+        const data = await getNotifications(append ? noticePage.value : 1, 10);
+        notices.value = append ? [...notices.value, ...(data.items || [])] : (data.items || []);
         unread.value = data.unread || 0;
+        noticeTotal.value = data.total || 0;
     } catch (e) {
         // 后端没起来时不显示消息，不打断页面
+    } finally {
+        noticeLoading.value = false;
     }
+};
+
+const loadMoreNotices = async () => {
+    noticePage.value += 1;
+    await loadNotifications(true);
 };
 
 const readAll = async () => {
@@ -107,6 +130,7 @@ onMounted(async () => {
     }
     try {
         await loadNotifications();
+        noticePage.value = 1;
     } catch (e) {
         // 忽略：顶栏不因为消息接口失败而报错
     }

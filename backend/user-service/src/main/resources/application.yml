@@ -20,6 +20,9 @@ mybatis-plus:
 
 # 启动时若不存在该账号就自动创建管理员
 app:
+  internal:
+    enabled: true
+    token: ${INTERNAL_TOKEN:dev-internal-token}
   admin:
     username: ${ADMIN_USERNAME:admin}
     password: ${ADMIN_PASSWORD:123456}

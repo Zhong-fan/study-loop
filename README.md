@@ -193,6 +193,11 @@ curl -X POST http://localhost:10080/api/courses \
 
 接口文档：<http://localhost:10080/doc.html>（网关转发），或各服务端口下的 `/doc.html`。
 
+### 内部调用凭证
+
+服务之间以及网关到服务之间，都会带一个内部凭证头 `X-Internal-Token`（默认 `dev-internal-token`，可用环境变量 `INTERNAL_TOKEN` 覆盖）。
+不带这个头的请求，即使直接访问服务端口也会被 401 拒绝——避免绕过网关冒充用户。
+
 ### 为什么端口是 1008x 而不是 808x
 
 Windows 的 Hyper-V/WSL 会动态保留一段 TCP 端口（本机保留段覆盖了 7998–8197），
@@ -253,7 +258,7 @@ netsh interface ipv4 show excludedportrange protocol=tcp
 | GET | `/api/insight/weak` | 盲区清单 | 是 |
 | GET | `/api/insight/coverage?courseId=` | 覆盖率 | 是 |
 | GET | `/api/insight/summary` | 练过 / 掌握 / 今日到期 | 是 |
-| GET | `/api/insight/notifications` | 站内信列表（顺便生成今日待练提醒） | 是 |
+| GET | `/api/insight/notifications?page=&size=` | 站内信分页（顺便生成今日待练提醒） | 是 |
 | POST | `/api/insight/notifications/read-all` | 全部标为已读 | 是 |
 | GET | `/api/ai/status` | AI 是否可用 | 是 |
 | POST | `/api/ai/questions` | 按知识点生成题目草稿 | 是 |

@@ -27,14 +27,30 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    public Map<String, Object> list(Long userId) {
+    public Map<String, Object> list(Long userId, int page, int size) {
         refreshDue(userId);
 
-        List<Notification> items = latest(userId, 20);
-        long unread = items.stream().filter(n -> n.getReadAt() == null).count();
+        int current = Math.max(1, page);
+        int pageSize = Math.max(1, Math.min(size, 50));
+        int offset = (current - 1) * pageSize;
+
+        long total = notificationMapper.selectCount(new QueryWrapper<Notification>().eq("user_id", userId));
+        long unread = notificationMapper.selectCount(new QueryWrapper<Notification>()
+                .eq("user_id", userId)
+                .isNull("read_at"));
+
+        QueryWrapper<Notification> wrapper = new QueryWrapper<>();
+        wrapper.eq("user_id", userId);
+        wrapper.orderByDesc("created_at");
+        wrapper.last("limit " + offset + "," + pageSize);
+        List<Notification> items = notificationMapper.selectList(wrapper);
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("unread", unread);
+        result.put("total", total);
+        result.put("page", current);
+        result.put("size", pageSize);
+        result.put("hasMore", offset + items.size() < total);
         result.put("items", items);
         return result;
     }
