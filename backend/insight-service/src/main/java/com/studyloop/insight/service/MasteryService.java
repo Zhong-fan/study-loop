@@ -11,7 +11,7 @@ public interface MasteryService {
     MasteryVO record(Long userId, Long knowledgeId, Long courseId, boolean correct);
 
     /** 按知识点拆分的作答：分别更新表层/深层掌握度 */
-    MasteryVO recordDetails(Long userId, Long courseId, java.util.List<com.studyloop.insight.dto.AttemptRequest.Detail> details);
+    MasteryVO recordDetails(Long userId, Long courseId, Long attemptId, java.util.List<com.studyloop.insight.dto.AttemptRequest.Detail> details);
 
     /** 今天该复习的知识点 */
     List<MasteryVO> due(Long userId);

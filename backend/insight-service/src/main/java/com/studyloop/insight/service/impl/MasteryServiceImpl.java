@@ -8,7 +8,9 @@ import com.studyloop.common.result.ErrorCode;
 import com.studyloop.common.result.Result;
 import com.studyloop.insight.client.ContentClient;
 import com.studyloop.insight.dto.AttemptRequest;
+import com.studyloop.insight.entity.AttemptEvent;
 import com.studyloop.insight.entity.Mastery;
+import com.studyloop.insight.mapper.AttemptEventMapper;
 import com.studyloop.insight.mapper.MasteryMapper;
 import com.studyloop.insight.schedule.ReviewScheduler;
 import com.studyloop.insight.service.MasteryService;
@@ -32,6 +34,9 @@ import java.util.Map;
 @Service
 public class MasteryServiceImpl implements MasteryService {
 
+    private static final org.slf4j.Logger LOG =
+            org.slf4j.LoggerFactory.getLogger(MasteryServiceImpl.class);
+
     private static final Logger log = LoggerFactory.getLogger(MasteryServiceImpl.class);
 
     /** 正确率到多少算掌握 */
@@ -41,6 +46,7 @@ public class MasteryServiceImpl implements MasteryService {
     private static final int MASTERED_MIN_COUNT = 2;
 
     private final MasteryMapper masteryMapper;
+    private final AttemptEventMapper attemptEventMapper;
     private final ContentClient contentClient;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
@@ -51,9 +57,11 @@ public class MasteryServiceImpl implements MasteryService {
     @Value("${app.cache.due-ttl-seconds:60}")
     private long dueTtlSeconds;
 
-    public MasteryServiceImpl(MasteryMapper masteryMapper, ContentClient contentClient,
+    public MasteryServiceImpl(MasteryMapper masteryMapper, AttemptEventMapper attemptEventMapper,
+                              ContentClient contentClient,
                               StringRedisTemplate redisTemplate, ObjectMapper objectMapper) {
         this.masteryMapper = masteryMapper;
+        this.attemptEventMapper = attemptEventMapper;
         this.contentClient = contentClient;
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
@@ -99,10 +107,25 @@ public class MasteryServiceImpl implements MasteryService {
 
     @Override
     @Transactional
-    public MasteryVO recordDetails(Long userId, Long courseId, List<AttemptRequest.Detail> details) {
+    public MasteryVO recordDetails(Long userId, Long courseId, Long attemptId,
+                                   List<AttemptRequest.Detail> details) {
         if (details == null || details.isEmpty()) {
             throw new BizException(ErrorCode.PARAM_ERROR, "没有可记录的作答明细");
         }
+
+        // 幂等：同一个 attempt 只投影一次，重试不会把次数刷高
+        if (attemptId != null) {
+            AttemptEvent event = new AttemptEvent();
+            event.setAttemptId(attemptId);
+            event.setAppliedAt(LocalDateTime.now());
+            try {
+                attemptEventMapper.insert(event);
+            } catch (org.springframework.dao.DuplicateKeyException e) {
+                LOG.debug("作答 {} 已经投影过，跳过", attemptId);
+                return null;
+            }
+        }
+
         MasteryVO first = null;
         for (AttemptRequest.Detail detail : details) {
             MasteryVO vo = applyDetail(userId, courseId, detail);

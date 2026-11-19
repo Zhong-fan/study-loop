@@ -37,7 +37,7 @@ public class MasteryController {
     public Result<MasteryVO> record(@RequestBody @Valid AttemptRequest request) {
         Long userId = UserContext.requireUserId();
         if (request.getDetails() != null && !request.getDetails().isEmpty()) {
-            return Result.ok(masteryService.recordDetails(userId, request.getCourseId(), request.getDetails()));
+            return Result.ok(masteryService.recordDetails(userId, request.getCourseId(), request.getAttemptId(), request.getDetails()));
         }
         if (request.getKnowledgeId() == null || request.getCorrect() == null) {
             throw new com.studyloop.common.exception.BizException(

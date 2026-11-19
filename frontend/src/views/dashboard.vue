@@ -101,6 +101,9 @@
             >
                 <div>正确答案：{{ (result.correctAnswer || []).join('、') }}</div>
                 <div v-if="result.analysis">解析：{{ result.analysis }}</div>
+                <div v-if="result.masterySynced === false" class="sync-hint">
+                    成绩已保存，掌握度统计会在一分钟内自动补上
+                </div>
             </el-alert>
         </el-card>
     </div>
@@ -229,6 +232,11 @@ onMounted(load);
 </script>
 
 <style scoped>
+.sync-hint {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--sl-muted);
+}
 .page {
     padding: 20px;
 }

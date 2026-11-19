@@ -36,4 +36,11 @@ public class Attempt {
     private Long costMs;
 
     private LocalDateTime answeredAt;
+
+    /** 掌握度是否已投影成功 */
+    private Integer synced;
+
+    private Integer syncAttempts;
+
+    private String lastSyncError;
 }
