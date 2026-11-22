@@ -9,13 +9,39 @@
 
 USE study_course;
 
+-- 幂等辅助：列/索引不存在才执行，重复跑不会报错
+DROP PROCEDURE IF EXISTS sl_add_column;
+DROP PROCEDURE IF EXISTS sl_add_index;
+DELIMITER $$
+CREATE PROCEDURE sl_add_column(IN p_schema VARCHAR(64), IN p_table VARCHAR(64), IN p_column VARCHAR(64), IN p_def TEXT)
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_schema = p_schema AND table_name = p_table AND column_name = p_column) THEN
+        SET @ddl = CONCAT('ALTER TABLE `', p_schema, '`.`', p_table, '` ADD COLUMN `', p_column, '` ', p_def);
+        PREPARE stmt FROM @ddl;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+    END IF;
+END$$
+CREATE PROCEDURE sl_add_index(IN p_schema VARCHAR(64), IN p_table VARCHAR(64), IN p_index VARCHAR(64), IN p_def TEXT)
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.statistics
+                   WHERE table_schema = p_schema AND table_name = p_table AND index_name = p_index) THEN
+        SET @ddl = CONCAT('ALTER TABLE `', p_schema, '`.`', p_table, '` ADD ', p_def);
+        PREPARE stmt FROM @ddl;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+    END IF;
+END$$
+DELIMITER ;
+
+
 -- 页面解析结果：保留结构化块、强调信号、解析状态
-ALTER TABLE material_page
-    ADD COLUMN blocks JSON NULL COMMENT '结构化块 JSON',
-    ADD COLUMN emphasis JSON NULL COMMENT '强调信号 JSON',
-    ADD COLUMN doc_type VARCHAR(20) NOT NULL DEFAULT 'PDF' COMMENT 'SLIDE/PDF/IMAGE/DOC',
-    ADD COLUMN parse_status VARCHAR(20) NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING/SUCCESS/NEEDS_REVIEW',
-    ADD COLUMN parse_warnings JSON NULL COMMENT '解析警告';
+CALL sl_add_column('study_course', 'material_page', 'blocks', 'JSON NULL COMMENT ''结构化块 JSON''');
+CALL sl_add_column('study_course', 'material_page', 'emphasis', 'JSON NULL COMMENT ''强调信号 JSON''');
+CALL sl_add_column('study_course', 'material_page', 'doc_type', 'VARCHAR(20) NOT NULL DEFAULT ''PDF'' COMMENT ''SLIDE/PDF/IMAGE/DOC''');
+CALL sl_add_column('study_course', 'material_page', 'parse_status', 'VARCHAR(20) NOT NULL DEFAULT ''PENDING'' COMMENT ''PENDING/SUCCESS/NEEDS_REVIEW''');
+CALL sl_add_column('study_course', 'material_page', 'parse_warnings', 'JSON NULL COMMENT ''解析警告''');
 
 -- 知识点证据：每条知识点至少一条，能指回原文
 CREATE TABLE IF NOT EXISTS knowledge_evidence (
@@ -76,9 +102,11 @@ CREATE TABLE IF NOT EXISTS attempt_detail (
 USE study_insight;
 
 -- 掌握度双轨：单点情境 / 综合情境
-ALTER TABLE mastery
-    ADD COLUMN surface_accuracy DOUBLE NOT NULL DEFAULT 0 COMMENT '单点题正确率',
-    ADD COLUMN deep_accuracy DOUBLE NOT NULL DEFAULT 0 COMMENT '综合题得分率',
-    ADD COLUMN surface_count INT NOT NULL DEFAULT 0 COMMENT '单点题作答次数',
-    ADD COLUMN deep_count INT NOT NULL DEFAULT 0 COMMENT '综合题作答次数',
-    ADD COLUMN transfer_flag TINYINT NOT NULL DEFAULT 0 COMMENT '1 表示会背不会用';
+CALL study_course.sl_add_column('study_insight', 'mastery', 'surface_accuracy', 'DOUBLE NOT NULL DEFAULT 0 COMMENT ''单点题正确率''');
+CALL study_course.sl_add_column('study_insight', 'mastery', 'deep_accuracy', 'DOUBLE NOT NULL DEFAULT 0 COMMENT ''综合题得分率''');
+CALL study_course.sl_add_column('study_insight', 'mastery', 'surface_count', 'INT NOT NULL DEFAULT 0 COMMENT ''单点题作答次数''');
+CALL study_course.sl_add_column('study_insight', 'mastery', 'deep_count', 'INT NOT NULL DEFAULT 0 COMMENT ''综合题作答次数''');
+CALL study_course.sl_add_column('study_insight', 'mastery', 'transfer_flag', 'TINYINT NOT NULL DEFAULT 0 COMMENT ''1 表示会背不会用''');
+
+DROP PROCEDURE IF EXISTS sl_add_column;
+DROP PROCEDURE IF EXISTS sl_add_index;
