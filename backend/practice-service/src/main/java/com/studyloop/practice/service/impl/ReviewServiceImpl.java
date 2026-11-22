@@ -193,13 +193,12 @@ public class ReviewServiceImpl implements ReviewService {
         LocalDate next = LocalDate.now().plusDays(1);
         boolean synced = true;
         if (!details.isEmpty()) {
-            MasteryDue masteryDue = pushMastery(question.getUserId(), attempt,
+            SyncOutcome outcome = pushMastery(question.getUserId(), attempt,
                     new AttemptPayload(attempt.getId(), question.getKnowledgeId(),
                             question.getCourseId(), rating >= 1, details));
-            if (masteryDue != null && masteryDue.getNextReview() != null) {
-                next = masteryDue.getNextReview();
-            } else {
-                synced = false;
+            synced = outcome.ok();
+            if (outcome.ok() && outcome.due() != null && outcome.due().getNextReview() != null) {
+                next = outcome.due().getNextReview();
             }
         }
         markSync(attempt.getId(), synced, synced ? null : "投影服务暂不可用");
@@ -215,19 +214,28 @@ public class ReviewServiceImpl implements ReviewService {
         return result;
     }
 
-    /** 把作答事件推给覆盖服务；失败不抛异常，交给重试任务 */
-    private MasteryDue pushMastery(Long userId, Attempt attempt, AttemptPayload payload) {
+    /**
+     * 把作答事件推给覆盖服务。
+     * <p>
+     * 注意：code == 0 就代表服务端已受理——包括「这个 attempt 已经投影过」的幂等重复，
+     * 此时 data 可能为 null，不能当作失败，否则会永远重试。
+     */
+    private SyncOutcome pushMastery(Long userId, Attempt attempt, AttemptPayload payload) {
         try {
             Result<MasteryDue> response = insightClient.record(userId, payload);
             if (response != null && response.getCode() == 0) {
-                return response.getData();
+                return new SyncOutcome(true, response.getData());
             }
             LOG.warn("掌握度投影失败 attempt={} code={}", attempt.getId(),
                     response == null ? "null" : response.getCode());
         } catch (Exception e) {
             LOG.warn("掌握度投影异常 attempt={}: {}", attempt.getId(), e.getMessage());
         }
-        return null;
+        return new SyncOutcome(false, null);
+    }
+
+    /** ok=服务端已受理（含幂等重复），due 可能为 null */
+    private record SyncOutcome(boolean ok, MasteryDue due) {
     }
 
     private void markSync(Long attemptId, boolean synced, String error) {
@@ -265,18 +273,24 @@ public class ReviewServiceImpl implements ReviewService {
             if (details.isEmpty()) {
                 continue;
             }
-            MasteryDue due = pushMastery(attempt.getUserId(), attempt,
+            SyncOutcome outcome = pushMastery(attempt.getUserId(), attempt,
                     new AttemptPayload(attempt.getId(), attempt.getKnowledgeId(),
                             question.getCourseId(), attempt.getScore() != null && attempt.getScore() >= 1,
                             details));
-            if (due != null) {
+            if (outcome.ok()) {
                 markSync(attempt.getId(), true, null);
                 success++;
             } else {
+                int nextAttempts = (attempt.getSyncAttempts() == null ? 0 : attempt.getSyncAttempts()) + 1;
                 UpdateWrapper<Attempt> wrapper = new UpdateWrapper<>();
                 wrapper.eq("id", attempt.getId());
                 wrapper.setSql("sync_attempts = sync_attempts + 1");
-                wrapper.set("last_sync_error", "重试失败");
+                if (nextAttempts >= 10) {
+                    wrapper.set("last_sync_error", "超过重试上限，需人工介入");
+                    LOG.error("掌握度补投失败超过上限 attempt={}，需要人工处理", attempt.getId());
+                } else {
+                    wrapper.set("last_sync_error", "重试失败");
+                }
                 attemptMapper.update(null, wrapper);
             }
         }

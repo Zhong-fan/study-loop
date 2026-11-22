@@ -16,8 +16,17 @@ public class JwtHelper {
      * 签名密钥。默认值和网关保持一致，生产环境通过 JWT_SECRET 覆盖，
      * 两个服务必须用同一个值，否则网关验签必然失败。
      */
+    private static final String DEFAULT_SECRET = "study-loop-secret-2026-change-me";
+
     private static final String SECRET_TEXT = System.getenv().getOrDefault(
-            "JWT_SECRET", "study-loop-secret-2026-change-me");
+            "JWT_SECRET", DEFAULT_SECRET);
+
+    static {
+        if (System.getenv("JWT_SECRET") == null) {
+            org.slf4j.LoggerFactory.getLogger(JwtHelper.class)
+                    .warn("JWT_SECRET 未设置，正在使用仓库里的默认密钥；部署前必须覆盖");
+        }
+    }
 
     private static final byte[] SECRET = SECRET_TEXT.getBytes(java.nio.charset.StandardCharsets.UTF_8);
 

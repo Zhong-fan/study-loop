@@ -43,6 +43,9 @@ public class ExamServiceImpl implements ExamService {
 
     private static final Logger LOG = LoggerFactory.getLogger(ExamServiceImpl.class);
 
+    /** 每次送模型的页数，和知识点抽取保持一致 */
+    private static final int EXAM_BATCH_SIZE = 4;
+
     private final RealExamMapper examMapper;
     private final RealExamItemMapper itemMapper;
     private final RealExamImportMapper importMapper;
@@ -95,8 +98,26 @@ public class ExamServiceImpl implements ExamService {
         }
         wrapper.orderByDesc("exam_year").orderByDesc("id");
 
+        List<RealExam> exams = examMapper.selectList(wrapper);
+        if (exams.isEmpty()) {
+            return List.of();
+        }
+        List<Long> ids = exams.stream().map(RealExam::getId).toList();
+        Map<Long, Long> countByExam = new HashMap<>();
+        for (Map<String, Object> row : itemMapper.selectMaps(new QueryWrapper<RealExamItem>()
+                .select("exam_id AS examId", "count(*) AS cnt")
+                .eq("deleted", 0)
+                .in("exam_id", ids)
+                .groupBy("exam_id"))) {
+            Object examId = row.get("examId") != null ? row.get("examId") : row.get("exam_id");
+            Object cnt = row.get("cnt") != null ? row.get("cnt") : row.get("CNT");
+            if (examId != null && cnt != null) {
+                countByExam.put(Long.valueOf(String.valueOf(examId)), Long.valueOf(String.valueOf(cnt)));
+            }
+        }
+
         List<Map<String, Object>> result = new ArrayList<>();
-        for (RealExam exam : examMapper.selectList(wrapper)) {
+        for (RealExam exam : exams) {
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("id", exam.getId());
             item.put("courseId", exam.getCourseId());
@@ -104,9 +125,7 @@ public class ExamServiceImpl implements ExamService {
             item.put("examYear", exam.getExamYear());
             item.put("school", exam.getSchool());
             item.put("materialId", exam.getMaterialId());
-            item.put("itemCount", itemMapper.selectCount(new QueryWrapper<RealExamItem>()
-                    .eq("exam_id", exam.getId())
-                    .eq("deleted", 0)));
+            item.put("itemCount", countByExam.getOrDefault(exam.getId(), 0L));
             result.add(item);
         }
         return result;
@@ -149,23 +168,29 @@ public class ExamServiceImpl implements ExamService {
             throw new BizException(ErrorCode.PARAM_ERROR, "这份资料还没有可用的解析结果");
         }
 
-        List<Map<String, Object>> payload = new ArrayList<>();
-        for (MaterialPage page : usable) {
-            Map<String, Object> item = new HashMap<>();
-            item.put("page", page.getPageNo());
-            item.put("text", page.getContent());
-            payload.add(item);
+        // 分批送模型：整份资料一次塞进去容易超上下文
+        List<JsonNode> nodes = new ArrayList<>();
+        for (int i = 0; i < usable.size(); i += EXAM_BATCH_SIZE) {
+            List<MaterialPage> batch = usable.subList(i, Math.min(i + EXAM_BATCH_SIZE, usable.size()));
+            List<Map<String, Object>> payload = new ArrayList<>();
+            for (MaterialPage page : batch) {
+                Map<String, Object> item = new HashMap<>();
+                item.put("page", page.getPageNo());
+                item.put("text", page.getContent());
+                payload.add(item);
+            }
+            Map<String, Object> body = new HashMap<>();
+            body.put("pages", payload);
+            try {
+                List<JsonNode> part = aiExamClient.extract(userId, body).getData();
+                if (part != null) {
+                    nodes.addAll(part);
+                }
+            } catch (Exception e) {
+                throw new BizException(ErrorCode.SYSTEM_ERROR, "真题抽取失败：" + e.getMessage());
+            }
         }
-        Map<String, Object> body = new HashMap<>();
-        body.put("pages", payload);
-
-        List<JsonNode> nodes;
-        try {
-            nodes = aiExamClient.extract(userId, body).getData();
-        } catch (Exception e) {
-            throw new BizException(ErrorCode.SYSTEM_ERROR, "真题抽取失败：" + e.getMessage());
-        }
-        if (nodes == null || nodes.isEmpty()) {
+        if (nodes.isEmpty()) {
             return Map.of("imported", 0, "skipped", 0, "message", "没有识别到题目");
         }
 

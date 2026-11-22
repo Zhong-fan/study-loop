@@ -19,6 +19,11 @@ import org.springframework.beans.factory.annotation.Value;
 @ConditionalOnProperty(name = "app.internal.enabled", havingValue = "true")
 public class InternalAuthAutoConfiguration {
 
+    private static final String DEFAULT_TOKEN = "dev-internal-token";
+
+    private static final org.slf4j.Logger LOG =
+            org.slf4j.LoggerFactory.getLogger(InternalAuthAutoConfiguration.class);
+
     /** 服务端：校验进来的请求 */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
@@ -28,6 +33,9 @@ public class InternalAuthAutoConfiguration {
         public FilterRegistrationBean<InternalTokenFilter> internalTokenFilter(
                 @Value("${app.internal.token:}") String token) {
             FilterRegistrationBean<InternalTokenFilter> bean = new FilterRegistrationBean<>();
+            if (DEFAULT_TOKEN.equals(token)) {
+                LOG.warn("INTERNAL_TOKEN 未设置，正在使用默认值；部署前必须覆盖");
+            }
             bean.setFilter(new InternalTokenFilter(token));
             bean.addUrlPatterns("/*");
             bean.setOrder(-100);

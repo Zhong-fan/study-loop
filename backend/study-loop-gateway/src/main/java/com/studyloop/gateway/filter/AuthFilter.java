@@ -29,9 +29,20 @@ import java.util.List;
 public class AuthFilter implements GlobalFilter, Ordered {
 
     /** 必须和 user-service 的 JwtHelper 用同一个 JWT_SECRET，否则验签失败 */
+    private static final String DEFAULT_SECRET = "study-loop-secret-2026-change-me";
+
     private static final byte[] SECRET = System.getenv()
-            .getOrDefault("JWT_SECRET", "study-loop-secret-2026-change-me")
+            .getOrDefault("JWT_SECRET", DEFAULT_SECRET)
             .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+
+    private static final org.slf4j.Logger LOG =
+            org.slf4j.LoggerFactory.getLogger(AuthFilter.class);
+
+    static {
+        if (System.getenv("JWT_SECRET") == null) {
+            LOG.warn("JWT_SECRET 未设置，正在使用仓库里的默认密钥；部署前必须覆盖");
+        }
+    }
 
     /** 登录和注册不需要 token */
     private static final List<String> WHITE_LIST = List.of(
