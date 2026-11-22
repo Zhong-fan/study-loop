@@ -15,11 +15,11 @@
 
 ## 使用
 
-把脚本放到 `C:\cmmr-run`（与 jar 同目录），双击对应 `.vbs` 即可。
+把脚本放到仓库的 `runtime/`（与 jar 同目录），双击对应 `.vbs` 即可。
 也可以直接运行：
 
 ```powershell
-wscript.exe C:\cmmr-run\start-all.vbs
+wscript.exe runtime\start-all.vbs
 ```
 
 ## 注意

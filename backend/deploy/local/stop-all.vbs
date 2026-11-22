@@ -1,2 +1,4 @@
+Set fso = CreateObject("Scripting.FileSystemObject")
 Set sh = CreateObject("WScript.Shell")
-sh.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""C:\cmmr-run\stop-all.ps1""", 0, False
+dir = fso.GetParentFolderName(WScript.ScriptFullName)
+sh.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File """ & dir & "\stop-all.ps1""", 0, False
