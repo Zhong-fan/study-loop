@@ -30,6 +30,9 @@ public class AiProperties {
 
     private int timeoutSeconds = 60;
 
+    /** 配置不可用时是否直接启动失败（AI_STRICT=true） */
+    private boolean strict = false;
+
     public boolean usable() {
         return enabled && apiKey != null && !apiKey.isBlank();
     }
