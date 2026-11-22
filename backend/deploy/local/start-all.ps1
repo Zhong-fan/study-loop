@@ -1,10 +1,13 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 $dir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repo = Split-Path -Parent $dir
 $java = "C:\Program Files\Microsoft\jdk-17.0.19.10-hotspot\bin\java.exe"
+$log = Join-Path $dir "startup.log"
 
-# 读取 .env（AI 等配置都在这里）
-$envFile = Join-Path $dir ".env"
+# 配置只有一个来源：仓库根目录 .env
+$envFile = Join-Path $repo ".env"
+$loaded = @()
+$masked = @()
 if (Test-Path $envFile) {
     Get-Content $envFile -Encoding UTF8 | Where-Object { $_ -match '^\s*[^#].*=' } | ForEach-Object {
         $i = $_.IndexOf('=')
@@ -12,10 +15,29 @@ if (Test-Path $envFile) {
             $k = $_.Substring(0, $i).Trim()
             $v = $_.Substring($i + 1).Trim()
             [Environment]::SetEnvironmentVariable($k, $v, "Process")
+            $loaded += $k
+            if ($k -match 'KEY|SECRET|TOKEN') {
+                if ([string]::IsNullOrEmpty($v)) {
+                    $masked += "$k=(空)"
+                } else {
+                    $masked += "$k=(已设置)"
+                }
+            } else {
+                $masked += "$k=$v"
+            }
         }
     }
 }
 $env:SEATA_ENABLED = "false"
+
+$lines = @(
+    "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] 启动",
+    "配置来源: $envFile $(if (Test-Path $envFile) { '(存在)' } else { '(缺失，使用默认值)' })",
+    "读取变量: $($loaded -join ', ')",
+    "关键配置: $($masked -join ', ')",
+    "SEATA_ENABLED=false"
+)
+$lines | Set-Content -Path $log -Encoding UTF8
 
 $schemas = @{
     "user-service"     = "study_auth"
