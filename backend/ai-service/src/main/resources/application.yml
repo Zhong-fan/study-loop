@@ -26,6 +26,7 @@ app:
     base-url: ${AI_BASE_URL:https://api.deepseek.com}
     model: ${AI_MODEL:deepseek-chat}
     api-key: ${AI_API_KEY:}
+    strict: ${AI_STRICT:false}
     timeout-seconds: 60
 
 mybatis-plus:

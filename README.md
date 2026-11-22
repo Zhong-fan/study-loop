@@ -239,6 +239,25 @@ netsh interface ipv4 show excludedportrange protocol=tcp
 
 因此本项目把服务端口整体挪到 10080–10086，避开保留段。端口表见上文。
 
+## 常见故障
+
+| 现象 | 先查 | 处理 |
+| --- | --- | --- |
+| 启动时弹命令框 | 是否双击了旧的 `.cmd` | 改用 `runtime\start-all.vbs` / `start-web.vbs` |
+| AI 功能没反应 / `usable=false` | 仓库根目录 `.env` 的 `AI_API_KEY` | 补齐后重启 ai-service；设置 `AI_STRICT=true` 可让配置缺失时启动失败 |
+| 接口 401 | 请求是否带 `Authorization` | 重新登录；服务间调用需要 `X-Internal-Token` |
+| 接口 503 | 目标服务是否在 Nacos 注册 | 看对应 `runtime/*.log`；确认服务已启动 |
+| 端口绑定失败 | Windows 保留端口段 | `netsh interface ipv4 show excludedportrange protocol=tcp`，换到保留段之外的端口 |
+| 页面 5173 打不开 | Vite 是否在跑 | `runtime\start-web.vbs`；看 `runtime\web.err.log` |
+| MySQL 连不上 | 容器状态 | `docker start cmmr-mysql` |
+| 作答成功但统计没变 | insight 是否可用 | 等 60 秒自动补投；查 `attempt.synced` |
+
+一键自检：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\doctor.ps1
+```
+
 ## 接口一览
 
 | 方法 | 路径 | 说明 | 需要 token |
