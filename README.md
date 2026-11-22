@@ -115,37 +115,61 @@ dto / vo    → 入参 / 出参，不直接暴露 entity
 
 ## 快速开始
 
-> 本地运行时目录是仓库下的 `runtime/`（已 gitignore），jar、日志、`.env`、上传文件都在里面。
-> 启动：双击 `runtime\start-all.vbs`、`runtime\start-web.vbs`；停止：`runtime\stop-all.vbs`。
-> 不要用旧的 `cmd` 启动方式，会弹命令框。
+本机运行三步：配置 → 构建 → 启动。
 
+### 1. 配置
 
-### 1. 启动中间件
+```bash
+cp .env.example .env
+```
+
+编辑 `.env`，至少填 `AI_API_KEY`。
+
+`.env` 只有**一个位置**：仓库根目录。启动脚本只读这一份，不识别运行目录里的副本。
+
+### 2. 启动中间件
 
 ```bash
 docker compose -f backend/deploy/docker-compose.yml up -d
 ```
 
-MySQL 首次启动会自动执行 `backend/deploy/mysql/init/` 下的脚本，建好 `study_auth`、`study_course`、`study_review`、`study_insight`、`study_ai` 五个库。
+MySQL 首次启动会自动执行 `backend/deploy/mysql/init/` 下的脚本，建好五个库。
 Nacos 控制台：<http://localhost:8848/nacos>（默认 nacos / nacos）。
-Seata 控制台：<http://localhost:7091>（TC 监听 8091）。**作答接口依赖它**，没起 Seata 时会返回 5000。
 
-### 2. 构建
+Seata 可选：作答链路已改为「attempt 本地落库 + 掌握度异步投影」，不依赖 TC。
+需要时把 `.env` 里的 `SEATA_ENABLED` 设为 `true`，并启动 compose 中的 seata。
 
-```bash
-mvn -f backend/pom.xml clean package -DskipTests
+### 3. 构建并收集产物
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\build-runtime.ps1
 ```
 
-### 3. 启动五个服务
+脚本执行 `mvn package`，把 6 个服务的 jar 复制到 `runtime/`，并打印文件名、大小和构建时间。
 
-```bash
-java -jar backend/user-service/target/user-service-1.0.0.jar
-java -jar backend/content-service/target/content-service-1.0.0.jar
-java -jar backend/practice-service/target/practice-service-1.0.0.jar
-java -jar backend/insight-service/target/insight-service-1.0.0.jar
-java -jar backend/ai-service/target/ai-service-1.0.0.jar
-java -jar backend/study-loop-gateway/target/study-loop-gateway-1.0.0.jar
+### 4. 启动
+
+```powershell
+wscript.exe runtime\start-all.vbs      # 后端
+wscript.exe runtime\start-web.vbs      # 前端
+wscript.exe runtime\stop-all.vbs       # 停止
 ```
+
+隐藏窗口启动，不会弹命令框。
+启动摘要写到 `runtime\startup.log`：配置来源、读取到的变量、关键项脱敏状态。
+
+### 运行目录结构
+
+| 路径 | 内容 |
+|---|---|
+| `runtime/*.jar` | 构建产物（`scripts/build-runtime.ps1` 生成） |
+| `runtime/*.log` | 各服务日志、`startup.log`、`web.log` |
+| `runtime/uploads/` | 上传的资料文件 |
+| `runtime/_payload/` | 本地排查用的临时请求体 |
+
+`runtime/` 已被 `.gitignore` 忽略。
+
+### 端口
 
 | 服务 | 端口 | 说明 |
 | --- | --- | --- |
@@ -155,24 +179,6 @@ java -jar backend/study-loop-gateway/target/study-loop-gateway-1.0.0.jar
 | practice-service | 10083 | 题目 / 作答 / 判分 |
 | insight-service | 10085 | 掌握度 / 覆盖率 / 排期 |
 | ai-service | 10086 | 大模型出题与判分 |
-
-AI 需要 key：在仓库根目录建 `.env`（已被 git 忽略），参考 `.env.example` 填 `AI_API_KEY`。
-Spring 本身不读 `.env`，需要在启动 ai-service 前把里面的变量导出成环境变量（仓库里的启动脚本会解析它）。不填也能启动，接口会返回「AI 未配置」。
-Seata 同理：默认关闭（`seata.enabled: ${SEATA_ENABLED:false}`），这样只起 MySQL + Nacos 也能跑通作答；
-把 `SEATA_ENABLED=true` 打开后，作答走全局事务，前提是 `docker compose` 里的 seata 已启动。
-
-### 4. 启动前端
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-打开 <http://127.0.0.1:5173>，注册一个账号就能用。
-开发服务器已配置代理，`/api` 会被转发到 `http://localhost:10080`（网关），不需要处理跨域。
-
-> 前端模板来自 [vue-manage-system](https://github.com/lin-xin/vue-manage-system)：保留了它的布局、菜单、标签页和请求封装，路由与业务页面换成了本项目的。
 
 ### 5. 验证
 
