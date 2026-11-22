@@ -115,8 +115,9 @@ dto / vo    → 入参 / 出参，不直接暴露 entity
 
 ## 快速开始
 
-> 本地启动请用 `C:\cmmr-run\start-all.vbs` 与 `start-web.vbs`（无窗口）。
-> 不要用旧的 `run-*.cmd`，会弹命令框；说明见 `notes/04-过程/本地启动与停止.md`。
+> 本地运行时目录是仓库下的 `runtime/`（已 gitignore），jar、日志、`.env`、上传文件都在里面。
+> 启动：双击 `runtime\start-all.vbs`、`runtime\start-web.vbs`；停止：`runtime\stop-all.vbs`。
+> 不要用旧的 `cmd` 启动方式，会弹命令框。
 
 
 ### 1. 启动中间件
