@@ -81,15 +81,16 @@ public class KnowledgeExtractServiceImpl implements KnowledgeExtractService {
             throw new BizException(ErrorCode.SYSTEM_ERROR, "没有已解析的页面，请先执行页面解析");
         }
 
-        // 同一份资料重复抽取：先清掉旧证据再写，避免 AI 改写句子导致证据翻倍
-        evidenceMapper.delete(new QueryWrapper<KnowledgeEvidence>()
-                .eq("material_id", materialId));
+        // 同一份资料重复抽取：用新证据覆盖旧的，避免 AI 改写句子导致证据翻倍。
+        // 但必须等真的抽到内容再删——AI 返回空时不能把旧证据清空。
+        boolean[] evidenceCleaned = {false};
 
         // 归一化键 → 已有知识点；别名也进同一张索引
         Map<String, Knowledge> keyIndex = new HashMap<>();
         List<Knowledge> existingList = knowledgeMapper.selectList(new LambdaQueryWrapper<Knowledge>()
                 .eq(Knowledge::getCourseId, courseId)
-                .eq(Knowledge::getUserId, userId));
+                .eq(Knowledge::getUserId, userId)
+                .eq(Knowledge::getDeleted, 0L));
         Map<Long, Knowledge> byId = new HashMap<>();
         for (Knowledge k : existingList) {
             byId.put(k.getId(), k);
@@ -161,11 +162,21 @@ public class KnowledgeExtractServiceImpl implements KnowledgeExtractService {
                 if (matched != null) {
                     // 同一个知识点再次出现：不建新记录，把证据累加上去
                     duplicates++;
+                    if (!evidenceCleaned[0]) {
+                        evidenceMapper.delete(new QueryWrapper<KnowledgeEvidence>()
+                                .eq("material_id", materialId));
+                        evidenceCleaned[0] = true;
+                    }
                     evidenceCount += saveEvidence(matched.getId(), materialId, node);
                     saveAliases(matched.getId(), node, keyIndex, matched);
                     continue;
                 }
 
+                if (!evidenceCleaned[0]) {
+                    evidenceMapper.delete(new QueryWrapper<KnowledgeEvidence>()
+                            .eq("material_id", materialId));
+                    evidenceCleaned[0] = true;
+                }
                 Knowledge knowledge = buildKnowledge(userId, courseId, chapterId, materialId, node, name);
                 knowledge.setNameKey(key);
                 knowledgeMapper.insert(knowledge);
