@@ -14,14 +14,13 @@ $repo = Split-Path -Parent $scripts
 $runtime = Join-Path $repo "runtime"
 $pom = Join-Path $repo "backend\pom.xml"
 
-if (-not $env:JAVA_HOME) {
-    $candidate = "C:\Program Files\Microsoft\jdk-17.0.19.10-hotspot"
-    if (Test-Path $candidate) {
-        $env:JAVA_HOME = $candidate
-        $env:Path = "$candidate\bin;$env:Path"
-    } else {
-        throw "未找到 JAVA_HOME，请先安装 JDK 17 或设置 JAVA_HOME"
-    }
+# 固定用 JDK 17：Lombok 在更高版本 JDK 上可能注解处理失败
+$candidate = "C:\Program Files\Microsoft\jdk-17.0.19.10-hotspot"
+if (Test-Path $candidate) {
+    $env:JAVA_HOME = $candidate
+    $env:Path = "$candidate\bin;$env:Path"
+} elseif (-not $env:JAVA_HOME) {
+    throw "未找到 JDK 17，请安装或设置 JAVA_HOME"
 }
 
 if (-not (Get-Command mvn -ErrorAction SilentlyContinue)) {

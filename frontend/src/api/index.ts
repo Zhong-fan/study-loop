@@ -118,6 +118,9 @@ export const markNotificationsRead = () => http.post('/insight/notifications/rea
 
 /** 教育 AI */
 export const getAiStatus = () => http.get('/ai/status');
+export const getAiConfig = () => http.get('/ai/admin/config');
+export const saveAiConfig = (data: object) => http.put('/ai/admin/config', data);
+export const testAiConfig = (data: object) => http.post('/ai/admin/config/test', data);
 
 export const aiGenerateQuestions = (data: object) => http.post('/ai/questions', data);
 

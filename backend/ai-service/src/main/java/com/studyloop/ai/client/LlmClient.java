@@ -2,6 +2,8 @@ package com.studyloop.ai.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.studyloop.ai.config.AiProperties;
+import com.studyloop.common.exception.BizException;
+import com.studyloop.common.result.ErrorCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
@@ -11,55 +13,30 @@ import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 大模型客户端：OpenAI 的 Responses API（POST /responses）。
+ * 大模型客户端：OpenAI Responses API（POST /responses）。
  * <p>
- * 和 chat/completions 的区别：系统提示放 instructions，用户输入放 input，
- * 取结果要从 output 数组里挑 type=message 的那一项，再取 output_text。
- * 只负责发一次请求拿文本，重试和降级由上层服务决定。
+ * 每次调用都从 {@link AiProperties} 读当前生效的 baseUrl / model / key，
+ * 这样管理员在后台改完配置后不需要重启服务。
  */
 @Component
 public class LlmClient {
 
     private final AiProperties properties;
-    private final RestClient restClient;
+    private final Map<String, RestClient> clients = new ConcurrentHashMap<>();
 
     public LlmClient(AiProperties properties) {
         this.properties = properties;
-
-        // 不设超时的话，模型卡住会一直占着 Tomcat 线程
-        HttpClient httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(5))
-                .build();
-        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
-        requestFactory.setReadTimeout(Duration.ofSeconds(properties.getTimeoutSeconds()));
-
-        this.restClient = RestClient.builder()
-                .baseUrl(properties.getBaseUrl())
-                .requestFactory(requestFactory)
-                .build();
     }
 
     public String chat(String systemPrompt, String userPrompt) {
-        Map<String, Object> body = Map.of(
+        return call(systemPrompt, Map.of(
                 "model", properties.getModel(),
                 "instructions", systemPrompt,
                 "input", userPrompt
-        );
-
-        JsonNode response = restClient.post()
-                .uri("/responses")
-                .header("Authorization", "Bearer " + properties.getApiKey())
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(body)
-                .retrieve()
-                .body(JsonNode.class);
-
-        if (response == null) {
-            throw new IllegalStateException("大模型返回空响应");
-        }
-        return extractText(response);
+        ));
     }
 
     /**
@@ -67,7 +44,7 @@ public class LlmClient {
      * 图片用 data URL（data:image/png;base64,...），模型侧不需要公网地址。
      */
     public String chatWithImage(String systemPrompt, String userPrompt, String imageDataUrl) {
-        Map<String, Object> body = Map.of(
+        return call(systemPrompt, Map.of(
                 "model", properties.getModel(),
                 "instructions", systemPrompt,
                 "input", List.of(Map.of(
@@ -77,11 +54,35 @@ public class LlmClient {
                                 Map.of("type", "input_image", "image_url", imageDataUrl)
                         )
                 ))
-        );
+        ));
+    }
 
-        JsonNode response = restClient.post()
+    /** 测试连接：发一个极小请求，返回耗时毫秒 */
+    public long ping(String baseUrl, String model, String apiKey) {
+        long start = System.currentTimeMillis();
+        callWith(baseUrl, model, apiKey, Map.of(
+                "model", model,
+                "instructions", "只回复 OK",
+                "input", "ping"
+        ));
+        return System.currentTimeMillis() - start;
+    }
+
+    private String call(String systemPrompt, Map<String, Object> body) {
+        return callWith(properties.getBaseUrl(), properties.getModel(), properties.getApiKey(), body);
+    }
+
+    private String callWith(String baseUrl, String model, String apiKey, Map<String, Object> body) {
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new BizException(ErrorCode.SYSTEM_ERROR, "AI 未配置：缺少 API Key");
+        }
+        if (baseUrl == null || baseUrl.isBlank()) {
+            throw new BizException(ErrorCode.SYSTEM_ERROR, "AI 未配置：缺少 Base URL");
+        }
+
+        JsonNode response = clientFor(baseUrl).post()
                 .uri("/responses")
-                .header("Authorization", "Bearer " + properties.getApiKey())
+                .header("Authorization", "Bearer " + apiKey)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(body)
                 .retrieve()
@@ -91,6 +92,20 @@ public class LlmClient {
             throw new IllegalStateException("大模型返回空响应");
         }
         return extractText(response);
+    }
+
+    private RestClient clientFor(String baseUrl) {
+        return clients.computeIfAbsent(baseUrl, url -> {
+            HttpClient httpClient = HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(5))
+                    .build();
+            JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(httpClient);
+            factory.setReadTimeout(Duration.ofSeconds(properties.getTimeoutSeconds()));
+            return RestClient.builder()
+                    .baseUrl(url)
+                    .requestFactory(factory)
+                    .build();
+        });
     }
 
     /**

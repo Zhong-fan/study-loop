@@ -1,6 +1,8 @@
 package com.studyloop.ai.controller;
 
+import com.studyloop.ai.config.AiConfigService;
 import com.studyloop.ai.config.AiProperties;
+import com.studyloop.ai.config.AiRuntimeConfig;
 import com.studyloop.ai.dto.GenerateRequest;
 import com.studyloop.ai.dto.GradeRequest;
 import com.studyloop.ai.dto.PageParseRequest;
@@ -31,28 +33,36 @@ public class AiController {
     private final com.studyloop.ai.service.KnowledgeExtractService knowledgeExtractService;
     private final com.studyloop.ai.service.DraftGenerateService draftGenerateService;
     private final com.studyloop.ai.service.ExamExtractService examExtractService;
+    private final AiConfigService aiConfigService;
     private final AiProperties properties;
 
     public AiController(AiService aiService, PageParseService pageParseService,
                         com.studyloop.ai.service.KnowledgeExtractService knowledgeExtractService,
                         com.studyloop.ai.service.DraftGenerateService draftGenerateService,
                         com.studyloop.ai.service.ExamExtractService examExtractService,
+                        AiConfigService aiConfigService,
                         AiProperties properties) {
         this.aiService = aiService;
         this.pageParseService = pageParseService;
         this.knowledgeExtractService = knowledgeExtractService;
         this.draftGenerateService = draftGenerateService;
         this.examExtractService = examExtractService;
+        this.aiConfigService = aiConfigService;
         this.properties = properties;
     }
 
     @Operation(summary = "AI 是否可用")
     @GetMapping("/status")
     public Result<Map<String, Object>> status() {
-        return Result.ok(Map.of(
-                "usable", properties.usable(),
-                "model", properties.getModel()
-        ));
+        AiRuntimeConfig config = aiConfigService.current();
+        Map<String, Object> status = new java.util.LinkedHashMap<>();
+        status.put("usable", config.usable());
+        status.put("model", config.model());
+        status.put("baseUrl", config.baseUrl());
+        status.put("keySet", config.apiKey() != null && !config.apiKey().isBlank());
+        status.put("source", config.fromDb() ? "数据库" : "环境变量");
+        status.put("updatedAt", config.updatedAt());
+        return Result.ok(status);
     }
 
     @Operation(summary = "页面解析：一段原文 → 结构化页面")

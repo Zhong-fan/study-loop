@@ -127,6 +127,11 @@ cp .env.example .env
 
 `.env` 只有**一个位置**：仓库根目录。启动脚本只读这一份，不识别运行目录里的副本。
 
+登录管理员后，可在「用户管理 → AI 配置」里直接改 Base URL、模型和 API Key：
+- Key 加密存库（`study_ai.ai_config`），接口只返回是否已设置
+- 保存后立即生效，不需要重启 ai-service
+- 加密密钥来自 `AI_CONFIG_SECRET`，部署前务必修改
+
 ### 2. 启动中间件
 
 ```bash
