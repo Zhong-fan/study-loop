@@ -3,6 +3,7 @@ package com.studyloop.practice.controller;
 import com.studyloop.common.result.Result;
 import com.studyloop.practice.dto.AnswerSubmitRequest;
 import com.studyloop.practice.dto.RateRequest;
+import com.studyloop.practice.dto.GradeAnswerRequest;
 import com.studyloop.practice.service.ReviewService;
 import com.studyloop.practice.vo.AnswerResultVO;
 import com.studyloop.practice.vo.DueQueueVO;
@@ -47,6 +48,13 @@ public class ReviewController {
     public Result<AnswerResultVO> answerQuestion(@PathVariable Long questionId,
                                                  @RequestBody @Valid AnswerSubmitRequest request) {
         return Result.ok(reviewService.answerQuestion(questionId, request.getAnswer(), request.getCostMs()));
+    }
+
+    @Operation(summary = "主观题 AI 判分（按评分点给分）")
+    @PostMapping("/questions/{questionId}/ai-grade")
+    public Result<java.util.Map<String, Object>> aiGrade(@PathVariable Long questionId,
+                                                         @RequestBody GradeAnswerRequest request) {
+        return Result.ok(reviewService.aiGrade(questionId, request.getAnswer()));
     }
 
     @Operation(summary = "按题目自评（主观题）")

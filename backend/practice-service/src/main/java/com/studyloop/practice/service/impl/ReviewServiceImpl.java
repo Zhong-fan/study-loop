@@ -6,6 +6,7 @@ import com.studyloop.common.context.UserContext;
 import com.studyloop.common.exception.BizException;
 import com.studyloop.common.result.ErrorCode;
 import com.studyloop.common.result.Result;
+import com.studyloop.practice.client.AiGradeClient;
 import com.studyloop.practice.client.AttemptPayload;
 import com.studyloop.practice.client.InsightClient;
 import com.studyloop.practice.client.MasteryDue;
@@ -13,11 +14,13 @@ import com.studyloop.practice.entity.Attempt;
 import com.studyloop.practice.entity.AttemptDetail;
 import com.studyloop.practice.entity.Question;
 import com.studyloop.practice.entity.QuestionKnowledge;
+import com.studyloop.practice.entity.QuestionRubric;
 import com.studyloop.practice.judge.AnswerJudge;
 import com.studyloop.practice.mapper.AttemptDetailMapper;
 import com.studyloop.practice.mapper.AttemptMapper;
 import com.studyloop.practice.mapper.QuestionKnowledgeMapper;
 import com.studyloop.practice.mapper.QuestionMapper;
+import com.studyloop.practice.mapper.QuestionRubricMapper;
 import com.studyloop.practice.service.ReviewService;
 import com.studyloop.practice.util.JsonConverter;
 import com.studyloop.practice.vo.AnswerResultVO;
@@ -31,8 +34,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -54,17 +59,23 @@ public class ReviewServiceImpl implements ReviewService {
     private final AttemptDetailMapper attemptDetailMapper;
     private final QuestionKnowledgeMapper questionKnowledgeMapper;
     private final InsightClient insightClient;
+    private final AiGradeClient aiGradeClient;
+    private final QuestionRubricMapper rubricMapper;
 
     public ReviewServiceImpl(QuestionMapper questionMapper,
                              AttemptMapper attemptMapper,
                              AttemptDetailMapper attemptDetailMapper,
                              QuestionKnowledgeMapper questionKnowledgeMapper,
-                             InsightClient insightClient) {
+                             InsightClient insightClient,
+                             AiGradeClient aiGradeClient,
+                             QuestionRubricMapper rubricMapper) {
         this.questionMapper = questionMapper;
         this.attemptMapper = attemptMapper;
         this.attemptDetailMapper = attemptDetailMapper;
         this.questionKnowledgeMapper = questionKnowledgeMapper;
         this.insightClient = insightClient;
+        this.aiGradeClient = aiGradeClient;
+        this.rubricMapper = rubricMapper;
     }
 
     @Override
@@ -316,6 +327,55 @@ public class ReviewServiceImpl implements ReviewService {
             details.add(new AttemptPayload.Detail(question.getKnowledgeId(), "SINGLE", score, 1.0));
         }
         return details;
+    }
+
+    @Override
+    public Map<String, Object> aiGrade(Long questionId, String answer) {
+        Question question = findOwned(questionId);
+        String type = question.getType() == null ? "" : question.getType().toUpperCase();
+        if (!"SHORT".equals(type) && !"COMPOSITE".equals(type)) {
+            throw new BizException(ErrorCode.PARAM_ERROR, "只有简答/综合题支持 AI 判分");
+        }
+        if (answer == null || answer.isBlank()) {
+            throw new BizException(ErrorCode.PARAM_ERROR, "请先填写学生作答");
+        }
+
+        List<QuestionRubric> rubrics = rubricMapper.selectList(
+                new QueryWrapper<QuestionRubric>().eq("question_id", questionId).orderByAsc("sub_no"));
+        StringBuilder reference = new StringBuilder();
+        if (!rubrics.isEmpty()) {
+            for (QuestionRubric rubric : rubrics) {
+                reference.append(rubric.getSubNo() == null ? "-" : rubric.getSubNo()).append(". ")
+                        .append(rubric.getPointText() == null ? "" : rubric.getPointText());
+                if (rubric.getScore() != null) {
+                    reference.append("（").append(rubric.getScore()).append(" 分）");
+                }
+                reference.append("\n");
+            }
+        } else {
+            reference.append(String.join("；", JsonConverter.toList(question.getAnswer())));
+            if (question.getAnalysis() != null) {
+                reference.append("\n解析：").append(question.getAnalysis());
+            }
+        }
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("knowledgeId", question.getKnowledgeId());
+        body.put("stem", question.getStem());
+        body.put("reference", reference.toString());
+        body.put("answer", answer);
+
+        Result<Map<String, Object>> response = aiGradeClient.grade(question.getUserId(), body);
+        if (response == null || response.getCode() != 0 || response.getData() == null) {
+            throw new BizException(ErrorCode.SYSTEM_ERROR,
+                    response == null ? "AI 判分失败" : "AI 判分失败：" + response.getMessage());
+        }
+
+        Map<String, Object> result = new HashMap<>(response.getData());
+        result.put("questionId", question.getId());
+        result.put("type", question.getType());
+        result.put("reference", reference.toString());
+        return result;
     }
 
     private Question findOwned(Long questionId) {

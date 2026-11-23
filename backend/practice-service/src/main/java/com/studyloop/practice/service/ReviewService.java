@@ -22,5 +22,7 @@ public interface ReviewService {
     /** 主观题：自评 0/1/2 分 */
     int retryUnsynced(int limit);
 
+    java.util.Map<String, Object> aiGrade(Long questionId, String answer);
+
     AnswerResultVO rateQuestion(Long questionId, int rating, Long costMs);
 }
