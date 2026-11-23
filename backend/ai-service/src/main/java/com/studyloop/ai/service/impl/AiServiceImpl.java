@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.studyloop.ai.client.LlmClient;
 import com.studyloop.ai.config.AiProperties;
-import com.studyloop.ai.dto.GenerateRequest;
 import com.studyloop.ai.dto.GradeRequest;
 import com.studyloop.ai.entity.AiLog;
 import com.studyloop.ai.mapper.AiLogMapper;
@@ -45,42 +44,6 @@ public class AiServiceImpl implements AiService {
     }
 
     @Override
-    public List<Map<String, Object>> generateQuestions(Long userId, GenerateRequest request) {
-        requireUsable();
-
-        String userPrompt = """
-                知识点：%s
-                题型：%s
-                数量：%d
-                请生成题目，JSON 数组格式，每项包含字段：
-                stem（题干）、options（选项数组，判断题和填空题为空数组）、
-                answer（答案数组，选择题填选项字母）、analysis（解析）。
-                """.formatted(request.getKnowledgeName(), request.getType(), request.getCount());
-
-        long start = System.currentTimeMillis();
-        try {
-            String content = llmClient.chat(SYSTEM_PROMPT, userPrompt);
-            JsonNode root = objectMapper.readTree(stripFence(content));
-
-            List<Map<String, Object>> result = new ArrayList<>();
-            for (JsonNode node : root) {
-                Map<String, Object> item = new LinkedHashMap<>();
-                item.put("stem", node.path("stem").asText());
-                item.put("options", normalizeOptions(node.path("options")));
-                item.put("answer", normalizeAnswers(node.path("answer")));
-                item.put("analysis", node.path("analysis").asText());
-                result.add(item);
-            }
-
-            writeLog(userId, "GENERATE_QUESTION", request.getKnowledgeId(), start, true, null);
-            return result;
-        } catch (Exception e) {
-            writeLog(userId, "GENERATE_QUESTION", request.getKnowledgeId(), start, false, e.getMessage());
-            throw new BizException(ErrorCode.SYSTEM_ERROR, "生成题目失败：" + e.getMessage());
-        }
-    }
-
-    @Override
     public Map<String, Object> gradeSubjective(Long userId, GradeRequest request) {
         requireUsable();
 
@@ -118,36 +81,6 @@ public class AiServiceImpl implements AiService {
             writeLog(userId, "GRADE_SUBJECTIVE", request.getKnowledgeId(), start, false, e.getMessage());
             throw new BizException(ErrorCode.SYSTEM_ERROR, "判分失败：" + e.getMessage());
         }
-    }
-
-    /** 模型有时会写 "A. 选项内容"，这里去掉字母前缀，和后端存储格式一致 */
-    private List<String> normalizeOptions(JsonNode options) {
-        List<String> result = new ArrayList<>();
-        if (options == null || !options.isArray()) {
-            return result;
-        }
-        for (JsonNode node : options) {
-            String text = node.asText("").trim().replaceFirst("^[A-Fa-f][.、)）]\\s*", "");
-            if (!text.isEmpty()) {
-                result.add(text);
-            }
-        }
-        return result;
-    }
-
-    /** 答案统一成大写字母 / 文本，去掉多余符号 */
-    private List<String> normalizeAnswers(JsonNode answers) {
-        List<String> result = new ArrayList<>();
-        if (answers == null || !answers.isArray()) {
-            return result;
-        }
-        for (JsonNode node : answers) {
-            String text = node.asText("").trim().replaceFirst("^[A-Fa-f][.、)）]\\s*", "");
-            if (!text.isEmpty()) {
-                result.add(text.toUpperCase());
-            }
-        }
-        return result;
     }
 
     private void requireUsable() {

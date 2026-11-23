@@ -313,7 +313,6 @@ powershell -ExecutionPolicy Bypass -File scripts\doctor.ps1
 | GET | `/api/insight/notifications?page=&size=` | 站内信分页（顺便生成今日待练提醒） | 是 |
 | POST | `/api/insight/notifications/read-all` | 全部标为已读 | 是 |
 | GET | `/api/ai/status` | AI 是否可用 | 是 |
-| POST | `/api/ai/questions` | 按知识点生成题目草稿 | 是 |
 | POST | `/api/ai/grade` | 主观题按要点判分 | 是 |
 | GET | `/api/admin/users` | 用户列表（仅管理员） | 是 |
 | PUT | `/api/admin/users/{id}/status?deleted=` | 禁用 / 启用账号（仅管理员） | 是 |

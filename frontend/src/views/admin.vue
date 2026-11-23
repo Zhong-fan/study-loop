@@ -16,7 +16,16 @@
                     <el-input v-model="ai.baseUrl" placeholder="https://api.deepseek.com/v1" />
                 </el-form-item>
                 <el-form-item label="模型">
-                    <el-input v-model="ai.model" placeholder="例如 deepseek-chat" />
+                    <el-select
+                        v-model="ai.model"
+                        filterable
+                        allow-create
+                        default-first-option
+                        placeholder="选择或输入模型名"
+                        style="width: 100%"
+                    >
+                        <el-option v-for="m in modelOptions" :key="m" :label="m" :value="m" />
+                    </el-select>
                 </el-form-item>
                 <el-form-item label="API Key">
                     <el-input
@@ -98,6 +107,14 @@ import { ElMessage } from 'element-plus';
 import { getAiConfig, getUsers, saveAiConfig, setUserStatus, testAiConfig } from '@/api';
 
 const users = ref<any[]>([]);
+
+const modelOptions = [
+    'deepseek-v4-1-flash',
+    'deepseek-chat',
+    'deepseek-reasoner',
+    'gpt-4o-mini',
+    'qwen-plus'
+];
 
 const ai = reactive<any>({ enabled: true, baseUrl: '', model: '', apiKey: '', keySet: false, source: '', updatedAt: '', updatedBy: null });
 const aiSaving = ref(false);

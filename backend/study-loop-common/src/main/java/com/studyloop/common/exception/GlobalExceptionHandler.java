@@ -5,7 +5,10 @@ import com.studyloop.common.result.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.FieldError;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -46,6 +49,13 @@ public class GlobalExceptionHandler {
     public Result<Void> handleBadRequest(Exception e) {
         log.warn("请求参数不正确: {}", e.getMessage());
         return Result.fail(ErrorCode.PARAM_ERROR.getCode(), "请求参数缺失或格式不正确");
+    }
+
+    /** 路由不存在：返回 404，而不是被兜底成"系统繁忙" */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Result<Void>> handleNotFound(NoResourceFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Result.fail(404, "接口不存在：" + e.getResourcePath()));
     }
 
     /** 兜底：没预料到的异常，记录日志，对外只说系统繁忙 */
