@@ -11,6 +11,11 @@
 
         <div class="header-right">
             <div class="header-user-con">
+                <!-- 资料与工具：低频入口收在这里 -->
+                <div class="btn-icon" title="资料与工具" @click="router.push('/tools')">
+                    <el-icon><Tools /></el-icon>
+                </div>
+
                 <!-- 站内信：数字是未读数，点开看列表 -->
                 <el-popover placement="bottom" :width="330" trigger="click" @show="loadNotifications">
                     <template #reference>
@@ -56,7 +61,8 @@
                     </span>
                     <template #dropdown>
                         <el-dropdown-menu>
-                            <el-dropdown-item command="dashboard">今日复习</el-dropdown-item>
+                            <el-dropdown-item command="dashboard">概览</el-dropdown-item>
+                            <el-dropdown-item command="tools">资料与工具</el-dropdown-item>
                             <el-dropdown-item divided command="loginout">退出登录</el-dropdown-item>
                         </el-dropdown-menu>
                     </template>
@@ -71,6 +77,7 @@ import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSidebarStore } from '../store/sidebar';
 import { getNotifications, markNotificationsRead } from '@/api';
+import { Tools } from '@element-plus/icons-vue';
 import imgurl from '../assets/img/img.jpg';
 
 const router = useRouter();
@@ -123,6 +130,8 @@ const handleCommand = (command: string) => {
         router.push('/login');
     } else if (command === 'dashboard') {
         router.push('/dashboard');
+    } else if (command === 'tools') {
+        router.push('/tools');
     }
 };
 

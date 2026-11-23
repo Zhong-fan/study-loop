@@ -22,7 +22,7 @@ const routes: RouteRecordRaw[] = [
             {
                 path: '/dashboard',
                 name: 'dashboard',
-                meta: { title: '今日复习' },
+                meta: { title: '概览' },
                 component: () => import('../views/dashboard.vue')
             },
             {
@@ -30,6 +30,12 @@ const routes: RouteRecordRaw[] = [
                 name: 'practice',
                 meta: { title: '做题' },
                 component: () => import('../views/practice.vue')
+            },
+            {
+                path: '/tools',
+                name: 'tools',
+                meta: { title: '资料与工具' },
+                component: () => import('../views/tools.vue')
             },
             {
                 path: '/courses',

@@ -1,78 +1,154 @@
 <template>
-    <div class="page">
-        <el-card v-if="loading" shadow="never">
-            <el-skeleton :rows="4" animated />
-        </el-card>
+    <div class="dash">
+        <el-skeleton v-if="loading" :rows="6" animated />
 
-        <el-card v-else-if="!questions.length" shadow="never">
-            <el-empty :description="pending.length > 0
-                ? `有 ${pending.length} 个知识点到期，但还没有题目`
-                : '今天没有需要复习的题目'">
-                <el-button v-if="pending.length > 0" type="primary" @click="router.push('/ai')">去 AI 出题</el-button>
-                <el-button @click="load">刷新</el-button>
-            </el-empty>
-        </el-card>
-
-        <el-card v-else shadow="never" class="summary">
-            <template #header>
-                <div class="card-header">
-                    <span>今日复习</span>
-                    <el-button size="small" @click="load">刷新</el-button>
+        <template v-else>
+            <section class="hero">
+                <div class="hero-text">
+                    <p class="eyebrow">{{ today }}</p>
+                    <h1 v-if="dueCount">今天还有 <b>{{ dueCount }}</b> 道题待复习</h1>
+                    <h1 v-else>今天的复习已经完成</h1>
+                    <p class="sub">
+                        <template v-if="dueCount">涉及 {{ pendingCount }} 个到期知识点，按 1 / 3 / 7 / 14 天节奏安排。</template>
+                        <template v-else>可以再做一组自测，或者去补一些新题。</template>
+                    </p>
+                    <div class="hero-actions">
+                        <el-button v-if="dueCount" type="primary" size="large" @click="router.push('/practice')">
+                            开始复习
+                        </el-button>
+                        <el-button v-else type="primary" size="large" @click="router.push('/quiz')">
+                            做一组自测
+                        </el-button>
+                        <el-button size="large" @click="router.push('/tools')">资料与工具</el-button>
+                    </div>
                 </div>
-            </template>
 
-            <div class="count-row">
-                <div class="count">
-                    <b>{{ questions.length }}</b>
-                    <span>道待复习</span>
+                <div class="streak">
+                    <span>连续复习</span>
+                    <b>{{ overview.streakDays }}</b>
+                    <span>天</span>
                 </div>
-                <div class="split"></div>
-                <div class="count">
-                    <b>{{ pending.length }}</b>
-                    <span>个知识点到期</span>
+            </section>
+
+            <section class="kpis">
+                <div class="kpi">
+                    <span class="kpi-label">已掌握知识点</span>
+                    <b>{{ overview.masteredQuestions }}</b>
                 </div>
-            </div>
+                <div class="kpi">
+                    <span class="kpi-label">今天已复习</span>
+                    <b>{{ overview.reviewedToday }}</b>
+                </div>
+                <div class="kpi">
+                    <span class="kpi-label">题库题量</span>
+                    <b>{{ overview.totalQuestions }}</b>
+                </div>
+                <div class="kpi">
+                    <span class="kpi-label">待复习知识点</span>
+                    <b>{{ overview.dueToday }}</b>
+                </div>
+            </section>
 
-            <el-button class="start" type="primary" size="large" @click="router.push('/practice')">
-                开始复习
-            </el-button>
-
-            <p class="hint">按 1 / 3 / 7 / 14 天的间隔安排；做完自动更新掌握度与下次复习时间。</p>
-        </el-card>
-
-        <div class="links">
-            <button class="link-card" @click="router.push('/questions')">
-                <span class="link-title">题库</span>
-                <span class="link-sub">查看和编辑所有题目</span>
-            </button>
-            <button class="link-card" @click="router.push('/stats')">
-                <span class="link-title">统计</span>
-                <span class="link-sub">覆盖率、掌握度与盲区</span>
-            </button>
-            <button class="link-card" @click="router.push('/ai')">
-                <span class="link-title">AI 出题</span>
-                <span class="link-sub">按知识点补题</span>
-            </button>
-        </div>
+            <el-card shadow="never" class="trend-card">
+                <template #header>
+                    <div class="card-head">
+                        <span>最近 14 天</span>
+                        <span class="muted">复习次数与正确率</span>
+                    </div>
+                </template>
+                <base-chart v-if="trend.length" :option="trendOption" height="220px" />
+                <el-empty v-else description="还没有复习记录" :image-size="70" />
+            </el-card>
+        </template>
     </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { getDueQuestions } from '@/api';
+import { getDueQuestions, getOverview, getTrend } from '@/api';
+import BaseChart from '@/components/base-chart.vue';
 
 const router = useRouter();
 const loading = ref(true);
 const questions = ref<any[]>([]);
 const pending = ref<number[]>([]);
+const trend = ref<any[]>([]);
+const overview = ref<any>({
+    totalQuestions: 0,
+    dueToday: 0,
+    masteredQuestions: 0,
+    streakDays: 0,
+    reviewedToday: 0,
+    totalReviews: 0
+});
+
+const dueCount = computed(() => questions.value.length);
+const pendingCount = computed(() => pending.value.length);
+
+const today = new Date().toLocaleDateString('zh-CN', {
+    month: 'long',
+    day: 'numeric',
+    weekday: 'long'
+});
+
+const trendOption = computed(() => ({
+    tooltip: { trigger: 'axis' },
+    grid: { left: 8, right: 12, top: 28, bottom: 4, containLabel: true },
+    xAxis: {
+        type: 'category',
+        data: trend.value.map((t: any) => t.statDate?.slice(5) ?? ''),
+        axisLine: { lineStyle: { color: '#e5e7eb' } },
+        axisLabel: { color: '#9ca3af', fontSize: 11 }
+    },
+    yAxis: [
+        {
+            type: 'value',
+            splitLine: { lineStyle: { color: '#f3f4f6' } },
+            axisLabel: { color: '#9ca3af', fontSize: 11 }
+        },
+        {
+            type: 'value',
+            min: 0,
+            max: 1,
+            axisLabel: { formatter: (v: number) => `${Math.round(v * 100)}%`, color: '#9ca3af', fontSize: 11 },
+            splitLine: { show: false }
+        }
+    ],
+    series: [
+        {
+            name: '复习次数',
+            type: 'bar',
+            barMaxWidth: 18,
+            itemStyle: { color: '#bfdbfe', borderRadius: [4, 4, 0, 0] },
+            data: trend.value.map((t: any) => t.reviewCount)
+        },
+        {
+            name: '正确率',
+            type: 'line',
+            yAxisIndex: 1,
+            smooth: true,
+            symbol: 'circle',
+            symbolSize: 6,
+            lineStyle: { width: 2, color: '#2563eb' },
+            itemStyle: { color: '#2563eb' },
+            data: trend.value.map((t: any) => t.accuracy ?? 0)
+        }
+    ]
+}));
 
 const load = async () => {
     loading.value = true;
     try {
-        const data = await getDueQuestions();
-        questions.value = data.questions || [];
-        pending.value = data.pendingKnowledgeIds || [];
+        const [due, stats, trendData] = await Promise.all([
+            getDueQuestions(),
+            getOverview(),
+            getTrend(14)
+        ]);
+        questions.value = due.questions || [];
+        pending.value = due.pendingKnowledgeIds || [];
+        overview.value = stats || overview.value;
+        trend.value = trendData || [];
     } finally {
         loading.value = false;
     }
@@ -82,106 +158,128 @@ onMounted(load);
 </script>
 
 <style scoped>
-.page {
-    padding: 24px;
-    max-width: 880px;
+.dash {
+    max-width: 900px;
     margin: 0 auto;
+    padding: 24px 24px 56px;
 }
 
-.card-header {
+.hero {
     display: flex;
+    align-items: flex-end;
     justify-content: space-between;
-    align-items: center;
+    gap: 24px;
+    padding: 26px 28px;
+    background: #fff;
+    border: 1px solid #eef2f7;
+    border-radius: 16px;
 }
-
-.summary {
-    border-radius: 14px;
+.eyebrow {
+    margin: 0 0 8px;
+    font-size: 12px;
+    color: #94a3b8;
 }
-
-.count-row {
+.hero h1 {
+    margin: 0;
+    font-size: 26px;
+    line-height: 1.35;
+    font-weight: 700;
+    color: #0f172a;
+}
+.hero h1 b {
+    color: #2563eb;
+    font-variant-numeric: tabular-nums;
+}
+.sub {
+    margin: 10px 0 20px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #64748b;
+}
+.hero-actions {
     display: flex;
-    align-items: center;
-    gap: 32px;
-    padding: 8px 0 24px;
+    gap: 10px;
 }
-.split {
-    width: 1px;
-    height: 48px;
-    background: #eef2f7;
+.hero-actions :deep(.el-button) {
+    border-radius: 10px;
 }
-.count {
+
+.streak {
+    flex: none;
     display: flex;
     flex-direction: column;
+    align-items: flex-end;
     gap: 2px;
+    padding: 14px 18px;
+    background: #f8fafc;
+    border: 1px solid #eef2f7;
+    border-radius: 12px;
 }
-.count b {
-    font-size: 36px;
+.streak span {
+    font-size: 12px;
+    color: #94a3b8;
+}
+.streak b {
+    font-size: 30px;
     line-height: 1.1;
     color: #0f172a;
     font-variant-numeric: tabular-nums;
 }
-.count span {
-    font-size: 13px;
-    color: #64748b;
-}
 
-.start {
-    min-width: 160px;
-    height: 46px;
-    border-radius: 10px;
-    font-weight: 600;
-}
-
-.hint {
-    margin: 16px 0 0;
-    font-size: 12px;
-    color: #94a3b8;
-}
-
-.links {
+.kpis {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px;
-    margin-top: 16px;
+    margin-top: 14px;
 }
-.link-card {
+.kpi {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding: 18px;
-    text-align: left;
+    gap: 6px;
+    padding: 16px 18px;
     background: #fff;
     border: 1px solid #eef2f7;
     border-radius: 12px;
-    cursor: pointer;
-    transition: border-color 0.15s ease, transform 0.15s ease;
 }
-.link-card:hover {
-    border-color: #bfdbfe;
-    transform: translateY(-1px);
+.kpi-label {
+    font-size: 12px;
+    color: #94a3b8;
 }
-.link-title {
-    font-size: 14px;
-    font-weight: 600;
+.kpi b {
+    font-size: 24px;
+    line-height: 1.2;
     color: #0f172a;
+    font-variant-numeric: tabular-nums;
 }
-.link-sub {
+
+.trend-card {
+    margin-top: 14px;
+    border-radius: 14px;
+}
+.card-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+}
+.muted {
     font-size: 12px;
     color: #94a3b8;
 }
 
-@media (max-width: 640px) {
-    .page {
-        padding: 16px;
+@media (max-width: 720px) {
+    .dash {
+        padding: 16px 14px 40px;
     }
-    .count-row {
-        gap: 20px;
+    .hero {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 20px;
     }
-    .count b {
-        font-size: 30px;
+    .streak {
+        align-items: flex-start;
     }
-    .links {
-        grid-template-columns: 1fr;
+    .kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 </style>

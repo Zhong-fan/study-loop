@@ -58,10 +58,7 @@ import { useRoute } from 'vue-router';
 import { menuData } from '@/components/menu';
 
 const route = useRoute();
-const onRoutes = computed(() => {
-    // 做题页属于「今日复习」流程，菜单保持高亮
-    return route.path === '/practice' ? '/dashboard' : route.path;
-});
+const onRoutes = computed(() => route.path);
 
 const sidebar = useSidebarStore();
 </script>
