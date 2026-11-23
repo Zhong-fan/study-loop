@@ -122,7 +122,6 @@ export const getAiConfig = () => http.get('/ai/admin/config');
 export const saveAiConfig = (data: object) => http.put('/ai/admin/config', data);
 export const testAiConfig = (data: object) => http.post('/ai/admin/config/test', data);
 
-export const aiGenerateQuestions = (data: object) => http.post('/ai/questions', data);
 
 export const aiGrade = (data: object) => http.post('/ai/grade', data);
 export const aiGradeQuestion = (id: number, answer: string) =>

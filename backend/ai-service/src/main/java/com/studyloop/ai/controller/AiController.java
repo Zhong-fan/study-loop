@@ -3,7 +3,6 @@ package com.studyloop.ai.controller;
 import com.studyloop.ai.config.AiConfigService;
 import com.studyloop.ai.config.AiProperties;
 import com.studyloop.ai.config.AiRuntimeConfig;
-import com.studyloop.ai.dto.GenerateRequest;
 import com.studyloop.ai.dto.GradeRequest;
 import com.studyloop.ai.dto.PageParseRequest;
 import com.studyloop.ai.service.AiService;
@@ -89,12 +88,6 @@ public class AiController {
     public Result<List<JsonNode>> generateDrafts(
             @RequestBody @Valid com.studyloop.ai.dto.DraftGenerateRequest request) {
         return Result.ok(draftGenerateService.generate(request));
-    }
-
-    @Operation(summary = "按知识点生成题目草稿")
-    @PostMapping("/questions")
-    public Result<List<Map<String, Object>>> generate(@RequestBody @Valid GenerateRequest request) {
-        return Result.ok(aiService.generateQuestions(UserContext.requireUserId(), request));
     }
 
     @Operation(summary = "主观题按要点判分")
