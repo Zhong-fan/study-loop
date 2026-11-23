@@ -80,6 +80,11 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '登录', noAuth: true },
         component: () => import('../views/pages/login.vue')
     },
+    {
+        path: '/register',
+        meta: { title: '注册', noAuth: true },
+        component: () => import('../views/pages/login.vue')
+    },
     { path: '/:path(.*)', redirect: '/dashboard' }
 ];
 
@@ -94,7 +99,7 @@ router.beforeEach((to, _from, next) => {
 
     if (!token && to.meta.noAuth !== true) {
         next('/login');
-    } else if (token && to.path === '/login') {
+    } else if (token && (to.path === '/login' || to.path === '/register')) {
         next('/dashboard');
     } else {
         next();
