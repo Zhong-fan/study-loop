@@ -26,6 +26,12 @@ const routes: RouteRecordRaw[] = [
                 component: () => import('../views/dashboard.vue')
             },
             {
+                path: '/practice',
+                name: 'practice',
+                meta: { title: '做题' },
+                component: () => import('../views/practice.vue')
+            },
+            {
                 path: '/courses',
                 name: 'courses',
                 meta: { title: '课程与资料' },
