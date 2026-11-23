@@ -88,7 +88,9 @@ public class AiServiceImpl implements AiService {
                 题目：%s
                 参考答案或要点：%s
                 学生作答：%s
-                请判分并输出 JSON：{"score": 0~1 的小数, "comment": "一句话点评"}。
+                请按评分点逐条判断，输出 JSON：
+                {"score": 0~1 的小数, "comment": "一句话点评", "points": [{"point": "评分点原文", "hit": true 或 false, "comment": "该点说明"}]}
+                没有评分点时 points 输出空数组。
                 """.formatted(request.getStem(), request.getReference(), request.getAnswer());
 
         long start = System.currentTimeMillis();
@@ -99,6 +101,16 @@ public class AiServiceImpl implements AiService {
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("score", root.path("score").asDouble(0));
             result.put("comment", root.path("comment").asText(""));
+
+            List<Map<String, Object>> points = new ArrayList<>();
+            for (JsonNode node : root.path("points")) {
+                Map<String, Object> point = new LinkedHashMap<>();
+                point.put("point", node.path("point").asText(""));
+                point.put("hit", node.path("hit").asBoolean(false));
+                point.put("comment", node.path("comment").asText(""));
+                points.add(point);
+            }
+            result.put("points", points);
 
             writeLog(userId, "GRADE_SUBJECTIVE", request.getKnowledgeId(), start, true, null);
             return result;

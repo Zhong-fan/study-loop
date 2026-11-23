@@ -125,6 +125,8 @@ export const testAiConfig = (data: object) => http.post('/ai/admin/config/test',
 export const aiGenerateQuestions = (data: object) => http.post('/ai/questions', data);
 
 export const aiGrade = (data: object) => http.post('/ai/grade', data);
+export const aiGradeQuestion = (id: number, answer: string) =>
+    http.post(`/review/questions/${id}/ai-grade`, { answer });
 
 /** 管理员 */
 export const getUsers = () => http.get('/admin/users');

@@ -30,8 +30,16 @@
                 </el-table-column>
                 <el-table-column prop="difficulty" label="难度" width="70" />
                 <el-table-column prop="createdAt" label="创建时间" width="180" />
-                <el-table-column label="操作" width="130">
+                <el-table-column label="操作" width="210">
                     <template #default="{ row }">
+                        <el-button
+                            v-if="row.type === 'SHORT' || row.type === 'COMPOSITE'"
+                            link
+                            type="warning"
+                            @click="openGrade(row)"
+                        >
+                            AI 判分
+                        </el-button>
                         <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
                         <el-button link type="danger" @click="remove(row)">删除</el-button>
                     </template>
@@ -140,6 +148,41 @@
                 <el-button type="primary" :loading="saving" @click="save">保存</el-button>
             </template>
         </el-dialog>
+
+        <el-dialog v-model="gradeVisible" title="AI 判分（按评分点）" width="680px">
+            <p class="grade-stem">{{ gradeQuestion?.stem }}</p>
+            <el-input
+                v-model="gradeAnswer"
+                type="textarea"
+                :rows="5"
+                placeholder="把学生的作答粘贴进来"
+            />
+            <div class="grade-actions">
+                <el-button type="primary" :loading="grading" :disabled="!gradeAnswer.trim()" @click="submitGrade">
+                    开始判分
+                </el-button>
+            </div>
+
+            <div v-if="gradeResult" class="grade-result">
+                <el-alert
+                    :type="gradeResult.score >= 0.6 ? 'success' : gradeResult.score > 0 ? 'warning' : 'error'"
+                    :closable="false"
+                    :title="`得分 ${Math.round((gradeResult.score || 0) * 100)} 分`"
+                    :description="gradeResult.comment"
+                />
+                <el-table :data="gradeResult.points || []" size="small" class="grade-points" empty-text="本次没有返回要点明细">
+                    <el-table-column prop="point" label="评分点" min-width="260" />
+                    <el-table-column label="是否命中" width="100">
+                        <template #default="{ row }">
+                            <el-tag :type="row.hit ? 'success' : 'danger'" size="small">
+                                {{ row.hit ? '命中' : '未命中' }}
+                            </el-tag>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="comment" label="说明" min-width="180" />
+                </el-table>
+            </div>
+        </el-dialog>
     </div>
 </template>
 
@@ -147,7 +190,7 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { createQuestion, deleteQuestion, getChapters, getCourses, getKnowledgeByChapter, getQuestion, getQuestions, updateQuestion } from '@/api';
+import { aiGradeQuestion, createQuestion, deleteQuestion, getChapters, getCourses, getKnowledgeByChapter, getQuestion, getQuestions, updateQuestion } from '@/api';
 
 const route = useRoute();
 const router = useRouter();
@@ -255,6 +298,31 @@ const openCreate = () => {
 };
 
 /** 编辑：先拉详情，把选项和答案还原成文本框里的写法 */
+const gradeVisible = ref(false);
+const gradeQuestion = ref<any>(null);
+const gradeAnswer = ref('');
+const gradeResult = ref<any>(null);
+const grading = ref(false);
+
+const openGrade = (row: any) => {
+    gradeQuestion.value = row;
+    gradeAnswer.value = '';
+    gradeResult.value = null;
+    gradeVisible.value = true;
+};
+
+const submitGrade = async () => {
+    if (!gradeQuestion.value) {
+        return;
+    }
+    grading.value = true;
+    try {
+        gradeResult.value = await aiGradeQuestion(gradeQuestion.value.id, gradeAnswer.value.trim());
+    } finally {
+        grading.value = false;
+    }
+};
+
 const openEdit = async (row: any) => {
     const detail = await getQuestion(row.id);
 
@@ -378,6 +446,16 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.grade-stem {
+    margin: 0 0 12px;
+    font-weight: 600;
+}
+.grade-actions {
+    margin: 12px 0;
+}
+.grade-points {
+    margin-top: 12px;
+}
 .page {
     padding: 20px;
 }
