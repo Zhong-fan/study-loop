@@ -1,89 +1,87 @@
 <template>
-    <div class="header">
-        <div class="header-left">
-            <img class="logo" src="../assets/img/logo.svg" alt="" />
-            <div class="web-title">CMMR 学习助手</div>
-            <div class="collapse-btn" @click="collapseChage">
-                <el-icon v-if="sidebar.collapse"><Expand /></el-icon>
-                <el-icon v-else><Fold /></el-icon>
-            </div>
-        </div>
+    <header class="masthead">
+        <router-link to="/dashboard" class="brand">
+            <span class="brand-mark">CMMR</span>
+            <span class="brand-sub">学习手记</span>
+        </router-link>
 
-        <div class="header-right">
-            <div class="header-user-con">
-                <!-- 资料与工具：低频入口收在这里 -->
-                <div class="btn-icon" title="资料与工具" @click="router.push('/tools')">
-                    <el-icon><Tools /></el-icon>
+        <nav class="mast-nav">
+            <router-link
+                to="/dashboard"
+                class="nav-item link-underline"
+                :class="{ active: route.path === '/dashboard' }"
+            >
+                概览
+            </router-link>
+            <router-link
+                to="/practice"
+                class="nav-item link-underline"
+                :class="{ active: route.path === '/practice' }"
+            >
+                做题
+            </router-link>
+        </nav>
+
+        <div class="mast-tools">
+            <button type="button" class="tool-link" title="资料与工具" @click="router.push('/tools')">
+                <el-icon><Tools /></el-icon>
+                <span>资料与工具</span>
+            </button>
+
+            <el-popover placement="bottom-end" :width="340" trigger="click" @show="loadNotifications">
+                <template #reference>
+                    <button type="button" class="tool-link icon-only" title="消息">
+                        <el-icon><Bell /></el-icon>
+                        <span v-if="unread > 0" class="badge">{{ unread > 99 ? '99+' : unread }}</span>
+                    </button>
+                </template>
+
+                <div class="notice-head">
+                    <span class="mono">消息</span>
+                    <button type="button" class="text-btn" @click="readAll">全部已读</button>
                 </div>
+                <p v-if="notices.length === 0" class="notice-empty">暂无消息</p>
+                <div v-for="item in notices" :key="item.id" class="notice-item" :class="{ unread: !item.readAt }">
+                    <div class="notice-title">{{ item.title }}</div>
+                    <div class="notice-content">{{ item.content }}</div>
+                </div>
+                <button
+                    v-if="notices.length < noticeTotal"
+                    type="button"
+                    class="text-btn more"
+                    :disabled="noticeLoading"
+                    @click="loadMoreNotices"
+                >
+                    加载更多（{{ notices.length }}/{{ noticeTotal }}）
+                </button>
+            </el-popover>
 
-                <!-- 站内信：数字是未读数，点开看列表 -->
-                <el-popover placement="bottom" :width="330" trigger="click" @show="loadNotifications">
-                    <template #reference>
-                        <div class="btn-icon">
-                            <i class="el-icon-lx-notice"></i>
-                            <span class="badge" v-if="unread > 0">{{ unread > 99 ? '99+' : unread }}</span>
-                        </div>
-                    </template>
-
-                    <div class="notice-head">
-                        <span>消息</span>
-                        <el-button link type="primary" size="small" @click="readAll">全部已读</el-button>
-                    </div>
-                    <el-empty v-if="notices.length === 0" description="暂无消息" :image-size="50" />
-                    <el-button
-                        v-if="notices.length < noticeTotal"
-                        class="notice-more"
-                        link
-                        type="primary"
-                        size="small"
-                        :loading="noticeLoading"
-                        @click="loadMoreNotices"
-                    >
-                        加载更多（{{ notices.length }}/{{ noticeTotal }}）
-                    </el-button>
-                    <div
-                        v-for="item in notices"
-                        :key="item.id"
-                        class="notice-item"
-                        :class="{ unread: !item.readAt }"
-                    >
-                        <div class="notice-title">{{ item.title }}</div>
-                        <div class="notice-content">{{ item.content }}</div>
-                    </div>
-                </el-popover>
-
-                <el-avatar class="user-avator" :size="30" :src="imgurl" />
-
-                <el-dropdown class="user-name" trigger="click" @command="handleCommand">
-                    <span class="el-dropdown-link">
-                        {{ username }}
-                        <el-icon class="el-icon--right"><arrow-down /></el-icon>
-                    </span>
-                    <template #dropdown>
-                        <el-dropdown-menu>
-                            <el-dropdown-item command="dashboard">概览</el-dropdown-item>
-                            <el-dropdown-item command="tools">资料与工具</el-dropdown-item>
-                            <el-dropdown-item divided command="loginout">退出登录</el-dropdown-item>
-                        </el-dropdown-menu>
-                    </template>
-                </el-dropdown>
-            </div>
+            <el-dropdown trigger="click" @command="handleCommand">
+                <button type="button" class="user-chip">
+                    <span>{{ username }}</span>
+                    <el-icon><ArrowDown /></el-icon>
+                </button>
+                <template #dropdown>
+                    <el-dropdown-menu>
+                        <el-dropdown-item command="dashboard">概览</el-dropdown-item>
+                        <el-dropdown-item command="tools">资料与工具</el-dropdown-item>
+                        <el-dropdown-item divided command="loginout">退出登录</el-dropdown-item>
+                    </el-dropdown-menu>
+                </template>
+            </el-dropdown>
         </div>
-    </div>
+    </header>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { useSidebarStore } from '../store/sidebar';
+import { useRoute, useRouter } from 'vue-router';
+import { ArrowDown, Bell, Tools } from '@element-plus/icons-vue';
 import { getNotifications, markNotificationsRead } from '@/api';
-import { Tools } from '@element-plus/icons-vue';
-import imgurl from '../assets/img/img.jpg';
 
 const router = useRouter();
-const sidebar = useSidebarStore();
+const route = useRoute();
 
-// 登录时写入的用户信息
 const cached = JSON.parse(localStorage.getItem('user') || '{}');
 const username: string = cached.nickname || cached.username || '未登录';
 
@@ -98,13 +96,12 @@ const loadNotifications = async (append = false) => {
     const target = append ? noticePage.value + 1 : 1;
     try {
         const data = await getNotifications(target, 10);
-        notices.value = append ? [...notices.value, ...(data.items || [])] : (data.items || []);
+        notices.value = append ? [...notices.value, ...(data.items || [])] : data.items || [];
         unread.value = data.unread || 0;
         noticeTotal.value = data.total || 0;
-        // 只有请求成功才推进页码，失败后重试不会跳页
         noticePage.value = target;
     } catch (e) {
-        // 后端没起来时不显示消息，不打断页面
+        // 后端没起来时不打断页面
     } finally {
         noticeLoading.value = false;
     }
@@ -117,10 +114,6 @@ const loadMoreNotices = async () => {
 const readAll = async () => {
     await markNotificationsRead();
     await loadNotifications();
-};
-
-const collapseChage = () => {
-    sidebar.handleCollapse();
 };
 
 const handleCommand = (command: string) => {
@@ -136,129 +129,194 @@ const handleCommand = (command: string) => {
 };
 
 onMounted(async () => {
-    if (document.body.clientWidth < 1180) {
-        collapseChage();
-    }
     try {
         await loadNotifications();
         noticePage.value = 1;
     } catch (e) {
-        // 忽略：顶栏不因为消息接口失败而报错
+        // 忽略
     }
 });
 </script>
 
 <style scoped>
-.header {
+.masthead {
+    position: sticky;
+    top: 0;
+    z-index: 20;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    box-sizing: border-box;
-    width: 100%;
+    gap: 40px;
     height: var(--sl-header-h);
-    color: var(--header-text-color);
-    background-color: var(--header-bg-color);
-    border-bottom: 1px solid #ddd;
+    padding: 0 40px;
+    background: rgba(246, 242, 233, 0.86);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--sl-border);
 }
-.header-left {
+
+.brand {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    text-decoration: none;
+}
+.brand-mark {
+    font-family: var(--sl-font-display);
+    font-size: 24px;
+    letter-spacing: -0.02em;
+    color: var(--sl-text);
+}
+.brand-sub {
+    font-family: var(--sl-font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--sl-muted);
+}
+
+.mast-nav {
     display: flex;
     align-items: center;
-    padding-left: 20px;
-    height: 100%;
+    gap: 28px;
 }
-.logo {
-    width: 35px;
+.nav-item {
+    padding: 4px 0;
+    font-family: var(--sl-font-mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--sl-text-secondary);
+    text-decoration: none;
+    transition: color 0.18s ease;
 }
-.web-title {
-    margin: 0 40px 0 10px;
-    font-size: 22px;
+.nav-item:hover,
+.nav-item.active {
+    color: var(--sl-primary);
 }
-.collapse-btn {
+
+.mast-tools {
     display: flex;
-    justify-content: center;
     align-items: center;
-    height: 100%;
-    padding: 0 10px;
-    cursor: pointer;
-    opacity: 0.8;
-    font-size: 22px;
+    gap: 18px;
+    margin-left: auto;
 }
-.collapse-btn:hover {
-    opacity: 1;
-}
-.header-right {
-    float: right;
-    padding-right: 50px;
-}
-.header-user-con {
-    display: flex;
-    height: var(--sl-header-h);
-    align-items: center;
-}
-.btn-icon {
+.tool-link {
     position: relative;
-    width: 30px;
-    height: 30px;
-    text-align: center;
-    cursor: pointer;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    color: var(--header-text-color);
-    margin: 0 8px;
-    font-size: 20px;
+    gap: 6px;
+    padding: 0;
+    font-family: var(--sl-font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--sl-muted);
+    background: none;
+    border: 0;
+    cursor: pointer;
+    transition: color 0.18s ease;
+}
+.tool-link:hover {
+    color: var(--sl-primary);
+}
+.tool-link.icon-only {
+    font-size: 16px;
 }
 .badge {
     position: absolute;
-    right: -6px;
-    top: -4px;
-    min-width: 16px;
-    height: 16px;
-    padding: 0 4px;
-    border-radius: 8px;
-    background: #f56c6c;
+    top: -6px;
+    right: -8px;
+    min-width: 15px;
+    height: 15px;
+    padding: 0 3px;
+    font-family: var(--sl-font-mono);
+    font-size: 9px;
+    line-height: 15px;
+    text-align: center;
     color: #fff;
-    font-size: 11px;
-    line-height: 16px;
+    background: var(--sl-primary);
+    border-radius: 999px;
 }
-.user-avator {
-    margin: 0 10px 0 20px;
-}
-.el-dropdown-link {
-    color: var(--header-text-color);
-    cursor: pointer;
-    display: flex;
+
+.user-chip {
+    display: inline-flex;
     align-items: center;
+    gap: 6px;
+    padding: 6px 0;
+    font-family: var(--sl-font-body);
+    font-size: 13px;
+    color: var(--sl-text);
+    background: none;
+    border: 0;
+    cursor: pointer;
 }
+.user-chip:hover {
+    color: var(--sl-primary);
+}
+
 .notice-head {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-bottom: 6px;
-    border-bottom: 1px solid #ebeef5;
-    margin-bottom: 6px;
-    font-weight: 600;
+    padding-bottom: 8px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid var(--sl-border);
+}
+.text-btn {
+    padding: 0;
+    font-family: var(--sl-font-body);
+    font-size: 12px;
+    color: var(--sl-primary);
+    background: none;
+    border: 0;
+    cursor: pointer;
+}
+.text-btn.more {
+    margin-top: 10px;
+    color: var(--sl-muted);
+}
+.notice-empty {
+    margin: 16px 0;
+    font-family: var(--sl-font-display);
+    font-size: 15px;
+    color: var(--sl-muted);
+    text-align: center;
 }
 .notice-item {
-    padding: 6px 0;
-    border-bottom: 1px dashed #f0f0f0;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--sl-border);
 }
 .notice-item.unread .notice-title::before {
     content: '';
     display: inline-block;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #f56c6c;
-    margin-right: 6px;
+    width: 5px;
+    height: 5px;
+    margin-right: 7px;
     vertical-align: middle;
+    background: var(--sl-primary);
+    border-radius: 50%;
 }
 .notice-title {
     font-size: 13px;
-    color: #303133;
+    font-weight: 500;
+    color: var(--sl-text);
 }
 .notice-content {
+    margin-top: 3px;
     font-size: 12px;
-    color: #909399;
-    margin-top: 2px;
+    line-height: 1.6;
+    color: var(--sl-muted);
+}
+
+@media (max-width: 780px) {
+    .masthead {
+        gap: 20px;
+        padding: 0 18px;
+    }
+    .brand-sub,
+    .tool-link span:not(.badge) {
+        display: none;
+    }
+    .mast-nav {
+        gap: 18px;
+    }
 }
 </style>

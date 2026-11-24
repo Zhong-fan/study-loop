@@ -44,20 +44,20 @@
                         <base-chart :option="coverageOption" height="220px" />
                         <div class="coverage-legend">
                             <div class="legend-row">
-                                <span class="dot" style="background: #2563eb"></span>
+                                <span class="dot" style="background: #b23a1f"></span>
                                 <span>已掌握</span><b>{{ coverage.mastered }}</b>
                             </div>
                             <div class="legend-row">
-                                <span class="dot" style="background: #e5e7eb"></span>
+                                <span class="dot" style="background: #ddd3c1"></span>
                                 <span>未掌握</span>
                                 <b>{{ Math.max(coverage.totalKnowledge - coverage.mastered, 0) }}</b>
                             </div>
                             <div class="legend-row">
-                                <span class="dot" style="background: #10b981"></span>
+                                <span class="dot" style="background: #2f6b4f"></span>
                                 <span>练过</span><b>{{ coverage.practiced }}</b>
                             </div>
                             <div class="legend-row">
-                                <span class="dot" style="background: #f59e0b"></span>
+                                <span class="dot" style="background: #a9761d"></span>
                                 <span>知识点总数</span><b>{{ coverage.totalKnowledge }}</b>
                             </div>
                         </div>
@@ -146,28 +146,28 @@ const statCards = computed(() => [
         label: '题库里的题目',
         value: overview.value.totalQuestions,
         unit: ' 道',
-        color: '#2563eb',
+        color: '#b23a1f',
         icon: 'Document'
     },
     {
         label: '今天该复习',
         value: overview.value.dueToday,
         unit: ' 个知识点',
-        color: '#f59e0b',
+        color: '#a9761d',
         icon: 'AlarmClock'
     },
     {
         label: '已经掌握',
         value: overview.value.masteredQuestions,
         unit: ' 个知识点',
-        color: '#10b981',
+        color: '#2f6b4f',
         icon: 'CircleCheck'
     },
     {
         label: '连续复习',
         value: overview.value.streakDays,
         unit: ' 天',
-        color: '#8b5cf6',
+        color: '#6b5a45',
         icon: 'Calendar'
     }
 ]);
@@ -184,19 +184,19 @@ const coverageOption = computed(() => {
                 type: 'pie',
                 radius: ['62%', '82%'],
                 avoidLabelOverlap: false,
-                itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
+                itemStyle: { borderRadius: 6, borderColor: '#f6f2e9', borderWidth: 2 },
                 label: {
                     show: true,
                     position: 'center',
                     formatter: total === 0 ? '暂无数据' : `${Math.round((mastered / total) * 100)}%`,
                     fontSize: 22,
                     fontWeight: 700,
-                    color: '#1f2937'
+                    color: '#161310'
                 },
                 emphasis: { label: { show: true } },
                 data: [
-                    { value: mastered, name: '已掌握', itemStyle: { color: '#2563eb' } },
-                    { value: rest, name: '未掌握', itemStyle: { color: '#e5e7eb' } }
+                    { value: mastered, name: '已掌握', itemStyle: { color: '#b23a1f' } },
+                    { value: rest, name: '未掌握', itemStyle: { color: '#ddd3c1' } }
                 ]
             }
         ]
@@ -210,14 +210,14 @@ const trendOption = computed(() => ({
     xAxis: {
         type: 'category',
         data: trend.value.map((t) => t.statDate?.slice(5) ?? ''),
-        axisLine: { lineStyle: { color: '#e5e7eb' } },
-        axisLabel: { color: '#6b7280', fontSize: 11 }
+        axisLine: { lineStyle: { color: '#ddd3c1' } },
+        axisLabel: { color: '#8b8172', fontSize: 11 }
     },
     yAxis: [
         {
             type: 'value',
-            splitLine: { lineStyle: { color: '#f3f4f6' } },
-            axisLabel: { color: '#9ca3af', fontSize: 11 }
+            splitLine: { lineStyle: { color: '#e8dfcf' } },
+            axisLabel: { color: '#8b8172', fontSize: 11 }
         },
         {
             type: 'value',
@@ -225,7 +225,7 @@ const trendOption = computed(() => ({
             max: 1,
             axisLabel: {
                 formatter: (v: number) => `${Math.round(v * 100)}%`,
-                color: '#9ca3af',
+                color: '#8b8172',
                 fontSize: 11
             },
             splitLine: { show: false }
@@ -236,7 +236,7 @@ const trendOption = computed(() => ({
             name: '复习次数',
             type: 'bar',
             barMaxWidth: 18,
-            itemStyle: { color: '#bfdbfe', borderRadius: [4, 4, 0, 0] },
+            itemStyle: { color: '#e0d3bd', borderRadius: [4, 4, 0, 0] },
             data: trend.value.map((t) => t.reviewCount)
         },
         {
@@ -246,8 +246,8 @@ const trendOption = computed(() => ({
             smooth: true,
             symbol: 'circle',
             symbolSize: 6,
-            lineStyle: { width: 2, color: '#2563eb' },
-            itemStyle: { color: '#2563eb' },
+            lineStyle: { width: 2, color: '#b23a1f' },
+            itemStyle: { color: '#b23a1f' },
             data: trend.value.map((t) => t.accuracy ?? 0)
         }
     ]
@@ -271,30 +271,30 @@ const weakOption = computed(() => {
             max: 1,
             axisLabel: {
                 formatter: (v: number) => `${Math.round(v * 100)}%`,
-                color: '#9ca3af',
+                color: '#8b8172',
                 fontSize: 11
             },
-            splitLine: { lineStyle: { color: '#f3f4f6' } }
+            splitLine: { lineStyle: { color: '#e8dfcf' } }
         },
         yAxis: {
             type: 'category',
             data: rows.map((r) => `#${r.knowledgeId}`),
             axisLine: { show: false },
             axisTick: { show: false },
-            axisLabel: { color: '#4b5563', fontSize: 12 }
+            axisLabel: { color: '#4b4337', fontSize: 12 }
         },
         series: [
             {
                 type: 'bar',
                 barMaxWidth: 16,
                 showBackground: true,
-                backgroundStyle: { color: '#f3f4f6', borderRadius: [0, 4, 4, 0] },
-                itemStyle: { color: '#fca5a5', borderRadius: [0, 4, 4, 0] },
+                backgroundStyle: { color: '#e8dfcf', borderRadius: [0, 4, 4, 0] },
+                itemStyle: { color: '#c98a75', borderRadius: [0, 4, 4, 0] },
                 label: {
                     show: true,
                     position: 'right',
                     formatter: (p: any) => `${Math.round(p.value * 100)}%`,
-                    color: '#6b7280',
+                    color: '#8b8172',
                     fontSize: 11
                 },
                 data: rows.map((r) => r.accuracy)
@@ -354,8 +354,9 @@ onMounted(async () => {
 }
 .stat-value {
     margin-top: var(--sl-s3);
-    font-size: 30px;
-    font-weight: 700;
+    font-family: var(--sl-font-display);
+    font-size: 40px;
+    font-weight: 400;
     color: var(--sl-text);
     font-variant-numeric: tabular-nums;
     line-height: 1.1;
@@ -434,7 +435,7 @@ onMounted(async () => {
     padding: 10px 12px;
     border: 1px solid var(--sl-border);
     border-radius: var(--sl-radius-sm);
-    background: #fffbeb;
+    background: rgba(169, 118, 29, 0.07);
 }
 .transfer-item b {
     color: var(--sl-text);

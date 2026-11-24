@@ -32,3 +32,7 @@ npm run test:e2e
 ## 失败现场
 
 失败时截图写到 `runtime/_payload/e2e/`（该目录已被 gitignore）。
+
+## 截图
+
+`node e2e/shots.mjs` 会把主要页面截图写到 `runtime/_payload/redesign/`，用于视觉回归对照。

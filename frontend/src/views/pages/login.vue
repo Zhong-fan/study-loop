@@ -1,31 +1,51 @@
 <template>
-    <div class="auth-page">
-        <div class="auth-card">
-            <div class="brand">
-                <img src="../../assets/img/logo.svg" alt="" />
-                <span>CMMR 学习助手</span>
-            </div>
+    <div class="auth">
+        <header class="auth-head">
+            <router-link to="/login" class="brand">
+                <span class="mark">CMMR</span>
+                <span class="sub">学习手记</span>
+            </router-link>
+            <span class="mono">课程资料管理与错题复习</span>
+        </header>
 
-            <div class="tabs" role="tablist">
-                <router-link to="/login" class="tab" :class="{ active: !registerMode }">登录</router-link>
-                <router-link to="/register" class="tab" :class="{ active: registerMode }">注册</router-link>
-            </div>
+        <main class="auth-main">
+            <section class="lede">
+                <p class="eyebrow">Study loop / {{ year }}</p>
+                <h1>
+                    把课件<br />
+                    变成<em>会考</em>的题。
+                </h1>
+                <p class="dek">
+                    上传资料，抽出知识点与证据；按掌握度安排复习，只练不会的。
+                </p>
+                <ol class="facts">
+                    <li><span class="mono">01</span>PDF / 图片自动解析，保留原文证据</li>
+                    <li><span class="mono">02</span>按 1 / 3 / 7 / 14 天推进复习</li>
+                    <li><span class="mono">03</span>单点会、综合不会，也能看出来</li>
+                </ol>
+            </section>
 
-            <h1 class="title">{{ registerMode ? '创建你的账号' : '欢迎回来' }}</h1>
-            <p class="subtitle">
-                {{ registerMode ? '注册后即可上传资料，自动生成知识点与复习计划。' : '登录后继续你的复习计划。' }}
-            </p>
+            <section class="panel">
+                <div class="tabs">
+                    <router-link to="/login" class="tab" :class="{ active: !registerMode }">登录</router-link>
+                    <span class="slash">/</span>
+                    <router-link to="/register" class="tab" :class="{ active: registerMode }">注册</router-link>
+                </div>
 
-            <el-form
-                ref="loginRef"
-                :model="form"
-                :rules="rules"
-                label-position="top"
-                hide-required-asterisk
-                class="form"
-                @submit.prevent
-            >
-                <div class="field">
+                <h2>{{ registerMode ? '创建账号' : '欢迎回来' }}</h2>
+                <p class="panel-sub">
+                    {{ registerMode ? '注册后即可上传资料，自动生成知识点与复习计划。' : '登录后继续你的复习计划。' }}
+                </p>
+
+                <el-form
+                    ref="loginRef"
+                    :model="form"
+                    :rules="rules"
+                    label-position="top"
+                    hide-required-asterisk
+                    class="form"
+                    @submit.prevent
+                >
                     <label class="field-label" for="username">用户名</label>
                     <el-form-item prop="username">
                         <el-input
@@ -36,21 +56,19 @@
                             autocomplete="username"
                         />
                     </el-form-item>
-                </div>
 
-                <div v-if="registerMode" class="field">
-                    <label class="field-label" for="nickname">昵称</label>
-                    <el-form-item prop="nickname">
-                        <el-input
-                            id="nickname"
-                            v-model.trim="form.nickname"
-                            size="large"
-                            placeholder="展示在页面右上角，可留空"
-                        />
-                    </el-form-item>
-                </div>
+                    <template v-if="registerMode">
+                        <label class="field-label" for="nickname">昵称</label>
+                        <el-form-item prop="nickname">
+                            <el-input
+                                id="nickname"
+                                v-model.trim="form.nickname"
+                                size="large"
+                                placeholder="展示在右上角，可留空"
+                            />
+                        </el-form-item>
+                    </template>
 
-                <div class="field">
                     <label class="field-label" for="password">密码</label>
                     <el-form-item prop="password">
                         <el-input
@@ -64,42 +82,48 @@
                             @keyup.enter="submit"
                         />
                     </el-form-item>
+
+                    <template v-if="registerMode">
+                        <label class="field-label" for="confirm">确认密码</label>
+                        <el-form-item prop="confirm">
+                            <el-input
+                                id="confirm"
+                                v-model="form.confirm"
+                                type="password"
+                                size="large"
+                                show-password
+                                placeholder="再输入一次"
+                                autocomplete="new-password"
+                                @keyup.enter="submit"
+                            />
+                        </el-form-item>
+                    </template>
+
+                    <button type="button" class="submit" :disabled="loading" @click="submit">
+                        {{ loading ? '处理中…' : registerMode ? '注册并登录' : '登录' }}
+                        <span aria-hidden="true">→</span>
+                    </button>
+                </el-form>
+
+                <div v-if="!registerMode" class="demo">
+                    <span class="mono">Demo</span>
+                    <code>admin / 123456</code>
+                    <button type="button" class="fill" @click="fillDemo">填入</button>
                 </div>
 
-                <div v-if="registerMode" class="field">
-                    <label class="field-label" for="confirm">确认密码</label>
-                    <el-form-item prop="confirm">
-                        <el-input
-                            id="confirm"
-                            v-model="form.confirm"
-                            type="password"
-                            size="large"
-                            show-password
-                            placeholder="再输入一次"
-                            autocomplete="new-password"
-                            @keyup.enter="submit"
-                        />
-                    </el-form-item>
-                </div>
+                <p class="switch">
+                    {{ registerMode ? '已有账号？' : '还没有账号？' }}
+                    <router-link :to="registerMode ? '/login' : '/register'" class="switch-link">
+                        {{ registerMode ? '返回登录' : '立即注册' }}
+                    </router-link>
+                </p>
+            </section>
+        </main>
 
-                <el-button class="submit" type="primary" size="large" :loading="loading" @click="submit">
-                    {{ registerMode ? '注册并登录' : '登录' }}
-                </el-button>
-            </el-form>
-
-            <div v-if="!registerMode" class="demo">
-                <span>演示账号</span>
-                <code>admin / 123456</code>
-                <el-button link type="primary" @click="fillDemo">填入</el-button>
-            </div>
-
-            <p class="legal">
-                {{ registerMode ? '已有账号？' : '还没有账号？' }}
-                <router-link :to="registerMode ? '/login' : '/register'" class="legal-link">
-                    {{ registerMode ? '返回登录' : '立即注册' }}
-                </router-link>
-            </p>
-        </div>
+        <footer class="auth-foot">
+            <span>CMMR · 课程资料管理与错题复习</span>
+            <span class="mono">Built for review, not for busywork</span>
+        </footer>
     </div>
 </template>
 
@@ -115,6 +139,7 @@ const route = useRoute();
 const loginRef = ref<FormInstance>();
 const loading = ref(false);
 const registerMode = ref(route.path === '/register');
+const year = new Date().getFullYear();
 
 const form = reactive({
     username: '',
@@ -201,6 +226,8 @@ const submit = async () => {
             rememberUser(data);
             ElMessage.success('登录成功');
         }
+        // 收起移动端键盘/输入框带来的视口偏移
+        (document.activeElement as HTMLElement)?.blur();
         router.push('/dashboard');
     } catch (e) {
         // 错误提示由请求拦截器统一处理
@@ -217,193 +244,270 @@ const fillDemo = () => {
 </script>
 
 <style scoped>
-.auth-page {
-    position: relative;
+.auth {
+    animation: page-in 520ms cubic-bezier(0.16, 0.84, 0.3, 1) both;
     display: flex;
+    flex-direction: column;
     min-height: 100vh;
-    padding: 40px 24px;
-    background:
-        radial-gradient(1000px 500px at 12% -10%, rgba(37, 99, 235, 0.1), transparent 60%),
-        radial-gradient(800px 400px at 100% 0%, rgba(14, 165, 233, 0.08), transparent 55%),
-        #f6f8fb;
-    overflow: hidden;
-}
-.auth-page::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image: radial-gradient(rgba(15, 23, 42, 0.07) 1px, transparent 1px);
-    background-size: 22px 22px;
-    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.55), transparent 70%);
-    pointer-events: none;
+    padding: 0 40px;
 }
 
-.auth-card {
-    position: relative;
-    width: 100%;
-    max-width: 440px;
-    margin: auto;
-    padding: 40px;
-    background: #fff;
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    border-radius: 20px;
-    box-shadow:
-        0 1px 2px rgba(16, 24, 40, 0.04),
-        0 24px 60px -28px rgba(16, 24, 40, 0.22);
+.auth-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: var(--sl-header-h);
+    border-bottom: 1px solid var(--sl-border);
 }
-
 .brand {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 30px;
-    font-size: 15px;
-    font-weight: 600;
+    align-items: baseline;
+    gap: 10px;
+    text-decoration: none;
+}
+.mark {
+    font-family: var(--sl-font-display);
+    font-size: 24px;
+    letter-spacing: -0.02em;
     color: var(--sl-text);
 }
-.brand img {
-    width: 26px;
-    height: 26px;
+.sub {
+    font-family: var(--sl-font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--sl-muted);
+}
+.auth-head .mono {
+    color: var(--sl-muted);
 }
 
+.auth-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 400px;
+    gap: 80px;
+    align-items: start;
+    width: 100%;
+    max-width: var(--sl-content-w);
+    margin: 0 auto;
+    padding: 80px 0 72px;
+}
+
+.lede h1 {
+    margin: 26px 0 0;
+    font-size: clamp(46px, 6vw, 76px);
+    line-height: 1.08;
+    font-weight: 400;
+    letter-spacing: -0.03em;
+    color: var(--sl-text);
+}
+.lede h1 em {
+    font-style: italic;
+    color: var(--sl-primary);
+}
+.dek {
+    max-width: 430px;
+    margin: 24px 0 0;
+    font-size: 15px;
+    line-height: 1.9;
+    color: var(--sl-text-secondary);
+}
+
+.facts {
+    margin: 40px 0 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--sl-border);
+}
+.facts li {
+    display: flex;
+    gap: 20px;
+    padding: 14px 0;
+    font-size: 13px;
+    color: var(--sl-text-secondary);
+    border-bottom: 1px solid var(--sl-border);
+}
+.facts .mono {
+    color: var(--sl-muted);
+}
+
+.panel {
+    padding-top: 4px;
+}
 .tabs {
-    display: inline-flex;
-    gap: 4px;
-    padding: 4px;
-    margin-bottom: 26px;
-    background: #f1f5f9;
-    border-radius: 10px;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--sl-line-strong);
 }
 .tab {
-    padding: 7px 18px;
-    font-size: 13px;
-    font-weight: 500;
-    color: #64748b;
-    border-radius: 7px;
+    font-family: var(--sl-font-mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--sl-muted);
     text-decoration: none;
-    transition: all 0.16s ease;
+    transition: color 0.18s ease;
 }
+.tab.active,
 .tab:hover {
-    color: #0f172a;
+    color: var(--sl-primary);
 }
-.tab.active {
-    color: #0f172a;
-    background: #fff;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+.slash {
+    color: var(--sl-border);
 }
 
-.title {
-    margin: 0;
-    font-size: 27px;
-    line-height: 1.25;
-    font-weight: 700;
-    letter-spacing: -0.3px;
-    color: #0f172a;
+.panel h2 {
+    margin: 28px 0 0;
+    font-size: 34px;
+    line-height: 1.2;
+    font-weight: 400;
+    letter-spacing: -0.02em;
 }
-.subtitle {
+.panel-sub {
     margin: 10px 0 28px;
-    font-size: 14px;
-    line-height: 1.6;
-    color: #64748b;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--sl-muted);
 }
 
-.field {
-    margin-bottom: 4px;
-}
 .field-label {
     display: block;
-    margin-bottom: 8px;
-    font-size: 13px;
-    font-weight: 500;
-    color: #334155;
+    margin-bottom: 7px;
+    font-family: var(--sl-font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--sl-muted);
 }
 .form :deep(.el-form-item) {
-    margin-bottom: 16px;
+    margin-bottom: 18px;
 }
 .form :deep(.el-input__wrapper) {
-    padding: 2px 12px;
-    border-radius: 10px;
-    box-shadow: 0 0 0 1px #e2e8f0 inset;
+    padding: 1px 0;
+    border-radius: 0;
+    background: transparent !important;
+    box-shadow: none;
+    border-bottom: 1px solid var(--sl-line-strong);
+    transition: border-color 0.18s ease;
 }
-.form :deep(.el-input__wrapper:hover) {
-    box-shadow: 0 0 0 1px #cbd5e1 inset;
-}
+.form :deep(.el-input__wrapper:hover),
 .form :deep(.el-input__wrapper.is-focus) {
-    box-shadow: 0 0 0 1px #2563eb inset, 0 0 0 3px rgba(37, 99, 235, 0.12);
+    box-shadow: none;
+    border-bottom-color: var(--sl-primary);
 }
 .form :deep(.el-input__inner) {
-    height: 42px;
+    height: 40px;
 }
 .form :deep(.el-form-item__error) {
-    padding-top: 4px;
-    font-size: 12px;
+    padding-top: 5px;
+    font-size: 11px;
+    color: var(--sl-danger);
 }
 
 .submit {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     width: 100%;
-    height: 46px;
-    margin-top: 8px;
-    font-size: 15px;
-    font-weight: 600;
-    border-radius: 10px;
-    background: #2563eb;
-    border-color: #2563eb;
+    margin-top: 14px;
+    padding: 15px 20px;
+    font-family: var(--sl-font-body);
+    font-size: 14px;
+    letter-spacing: 0.02em;
+    color: var(--sl-surface);
+    background: var(--sl-text);
+    border: 1px solid var(--sl-text);
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease;
 }
-.submit:hover,
-.submit:focus {
-    background: #1d4ed8;
-    border-color: #1d4ed8;
+.submit span {
+    transition: transform 0.24s ease;
+}
+.submit:hover:not(:disabled) {
+    background: var(--sl-primary);
+    border-color: var(--sl-primary);
+}
+.submit:hover:not(:disabled) span {
+    transform: translateX(4px);
+}
+.submit:disabled {
+    opacity: 0.5;
+    cursor: default;
 }
 
 .demo {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-top: 22px;
-    padding: 10px 12px;
+    gap: 12px;
+    margin-top: 26px;
+    padding-top: 16px;
+    border-top: 1px solid var(--sl-border);
     font-size: 12px;
-    color: #64748b;
-    background: #f8fafc;
-    border: 1px dashed #e2e8f0;
-    border-radius: 10px;
+    color: var(--sl-muted);
 }
 .demo code {
-    padding: 2px 6px;
-    color: #0f172a;
-    background: #fff;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-family: var(--sl-font-mono);
+    font-size: 11px;
+    color: var(--sl-text-secondary);
 }
-.demo :deep(.el-button) {
+.fill {
     margin-left: auto;
+    padding: 0;
     font-size: 12px;
+    color: var(--sl-primary);
+    background: none;
+    border: 0;
+    cursor: pointer;
 }
 
-.legal {
-    margin: 20px 0 0;
+.switch {
+    margin: 22px 0 0;
     font-size: 12px;
-    color: #94a3b8;
-    text-align: center;
+    color: var(--sl-muted);
 }
-.legal-link {
-    color: #2563eb;
+.switch-link {
+    color: var(--sl-primary);
     text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.18s ease;
 }
-.legal-link:hover {
-    text-decoration: underline;
+.switch-link:hover {
+    border-color: var(--sl-primary);
 }
 
-@media (max-width: 520px) {
-    .auth-page {
-        padding: 20px;
+.auth-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: var(--sl-content-w);
+    margin: auto auto 0;
+    padding: 22px 0 30px;
+    font-size: 12px;
+    color: var(--sl-muted);
+    border-top: 1px solid var(--sl-border);
+}
+
+@media (max-width: 900px) {
+    .auth {
+        padding: 0 20px;
     }
-    .auth-card {
-        padding: 28px 22px;
-        border-radius: 16px;
+    .auth-main {
+        grid-template-columns: 1fr;
+        gap: 48px;
+        padding: 44px 0 56px;
     }
-    .title {
-        font-size: 24px;
+    .lede h1 {
+        font-size: clamp(38px, 10vw, 52px);
+    }
+    .facts {
+        margin-top: 28px;
+    }
+    .auth-head .mono,
+    .auth-foot .mono {
+        display: none;
     }
 }
 </style>

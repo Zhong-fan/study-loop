@@ -1,50 +1,45 @@
 <template>
     <div class="practice">
-        <div class="topbar">
-            <el-button link class="back" @click="exit">
-                <el-icon><ArrowLeft /></el-icon>
-                今日复习
-            </el-button>
+        <header class="run-head">
+            <button type="button" class="back" @click="exit">← 概览</button>
+            <div class="run-meta">
+                <span v-if="questions.length && !finished" class="mono">第 {{ index + 1 }} / {{ questions.length }} 题</span>
+                <span v-if="questions.length && !finished" class="mono">答对 {{ correct }} / {{ answered }}</span>
+            </div>
+        </header>
 
-            <template v-if="questions.length && !finished">
-                <span class="progress-text">第 {{ index + 1 }} / {{ questions.length }} 题</span>
-                <span class="score-text">已答 {{ answered }} · 答对 {{ correct }}</span>
-            </template>
+        <div v-if="questions.length && !finished" class="progress">
+            <span :style="{ width: `${Math.round((index / questions.length) * 100)}%` }"></span>
         </div>
 
-        <el-progress
-            v-if="questions.length && !finished"
-            class="bar"
-            :percentage="Math.round((index / questions.length) * 100)"
-            :show-text="false"
-            :stroke-width="4"
-        />
+        <el-skeleton v-if="loading" :rows="7" animated class="loading" />
 
-        <el-card v-if="loading" shadow="never" class="panel">
-            <el-skeleton :rows="7" animated />
-        </el-card>
-
-        <el-card v-else-if="!questions.length" shadow="never" class="panel">
-            <el-empty description="今天没有需要复习的题目">
-                <el-button type="primary" @click="router.push('/ai')">去 AI 出题</el-button>
-                <el-button @click="router.push('/dashboard')">返回今日复习</el-button>
-            </el-empty>
-        </el-card>
-
-        <el-card v-else-if="finished" shadow="never" class="panel done">
-            <div class="done-mark">✓</div>
-            <h2>这一组做完了</h2>
-            <p class="done-sub">共作答 {{ answered }} 题，答对 {{ correct }} 题</p>
-            <div class="done-actions">
-                <el-button type="primary" size="large" @click="restart">再来一组</el-button>
-                <el-button size="large" @click="router.push('/dashboard')">返回今日复习</el-button>
+        <section v-else-if="!questions.length" class="empty">
+            <p class="empty-mark mono">No questions due</p>
+            <h1>今天没有需要复习的题。</h1>
+            <p class="empty-dek">可以去补一些新题，或者直接做一组自测。</p>
+            <div class="empty-actions">
+                <button type="button" class="cta" @click="router.push('/ai')">去 AI 出题 <span>→</span></button>
+                <button type="button" class="ghost" @click="router.push('/dashboard')">返回概览</button>
             </div>
-        </el-card>
+        </section>
 
-        <el-card v-else shadow="never" class="panel">
-            <div class="meta">
-                <el-tag size="small" effect="plain">{{ typeText(current.type) }}</el-tag>
-                <span class="kp">知识点 #{{ current.knowledgeId }}</span>
+        <section v-else-if="finished" class="done">
+            <p class="empty-mark mono">Session complete</p>
+            <h1>这一组做完了。</h1>
+            <p class="done-line">
+                共作答 <b>{{ answered }}</b> 题，答对 <b>{{ correct }}</b> 题。
+            </p>
+            <div class="empty-actions">
+                <button type="button" class="cta" @click="restart">再来一组 <span>→</span></button>
+                <button type="button" class="ghost" @click="router.push('/dashboard')">返回概览</button>
+            </div>
+        </section>
+
+        <section v-else class="sheet">
+            <div class="sheet-meta">
+                <span class="mono">{{ typeText(current.type) }}</span>
+                <span class="mono">KP #{{ current.knowledgeId }}</span>
             </div>
 
             <h1 class="stem">{{ current.stem }}</h1>
@@ -84,21 +79,21 @@
                 />
 
                 <div class="subjective-actions">
-                    <el-button
-                        type="primary"
-                        :loading="grading"
-                        :disabled="!subjectiveAnswer.trim() || !!result"
+                    <button
+                        type="button"
+                        class="mini-cta"
+                        :disabled="!subjectiveAnswer.trim() || !!result || grading"
                         @click="gradeSubjective"
                     >
-                        AI 判分
-                    </el-button>
-                    <el-button v-if="!revealed" @click="revealAnswer">显示参考答案</el-button>
+                        {{ grading ? '判分中…' : 'AI 判分' }}
+                    </button>
+                    <button v-if="!revealed" type="button" class="ghost" @click="revealAnswer">显示参考答案</button>
                 </div>
 
                 <div v-if="gradeResult" class="grade-box">
                     <div class="grade-head">
-                        <b>AI 判分 {{ Math.round((gradeResult.score || 0) * 100) }} 分</b>
-                        <span class="muted">{{ gradeResult.comment }}</span>
+                        <b>{{ Math.round((gradeResult.score || 0) * 100) }} 分</b>
+                        <span>{{ gradeResult.comment }}</span>
                     </div>
                     <div v-for="(point, i) in gradeResult.points || []" :key="i" class="grade-point">
                         <span class="point-hit" :class="point.hit ? 'ok' : 'bad'">{{ point.hit ? '✓' : '✕' }}</span>
@@ -108,53 +103,46 @@
                 </div>
 
                 <div v-if="revealed" class="answer-box">
-                    <div><b>参考答案：</b>{{ revealedAnswer || '—' }}</div>
-                    <div v-if="revealedAnalysis" class="muted"><b>解析：</b>{{ revealedAnalysis }}</div>
+                    <div><span class="mono">答案</span> {{ revealedAnswer || '—' }}</div>
+                    <div v-if="revealedAnalysis" class="muted"><span class="mono">解析</span> {{ revealedAnalysis }}</div>
                 </div>
             </div>
 
             <div class="actions">
                 <template v-if="!result">
-                    <el-button
+                    <button
                         v-if="isObjective"
-                        type="primary"
-                        size="large"
-                        :loading="submitting"
-                        :disabled="!canSubmit"
+                        type="button"
+                        class="cta"
+                        :disabled="!canSubmit || submitting"
                         @click="submit"
                     >
-                        提交作答
-                    </el-button>
+                        {{ submitting ? '提交中…' : '提交作答' }} <span>→</span>
+                    </button>
                     <template v-else>
-                        <el-button v-if="revealed || gradeResult" size="large" :loading="submitting" @click="rate(0)">
-                            忘记
-                        </el-button>
-                        <el-button v-if="revealed || gradeResult" size="large" :loading="submitting" @click="rate(1)">
-                            模糊
-                        </el-button>
-                        <el-button v-if="revealed || gradeResult" type="primary" size="large" :loading="submitting" @click="rate(2)">
-                            记住
-                        </el-button>
+                        <template v-if="revealed || gradeResult">
+                            <button type="button" class="mini-cta" :disabled="submitting" @click="rate(0)">忘记</button>
+                            <button type="button" class="mini-cta" :disabled="submitting" @click="rate(1)">模糊</button>
+                            <button type="button" class="mini-cta" :disabled="submitting" @click="rate(2)">记住</button>
+                        </template>
                     </template>
-                    <el-button text class="skip" @click="skip">跳过这题</el-button>
+                    <button type="button" class="ghost skip" @click="skip">跳过这题</button>
                 </template>
-                <el-button v-else type="primary" size="large" @click="next">
-                    {{ index + 1 === questions.length ? '查看结果' : '下一题' }}
-                </el-button>
+                <button v-else type="button" class="cta" @click="next">
+                    {{ index + 1 === questions.length ? '查看结果' : '下一题' }} <span>→</span>
+                </button>
             </div>
 
             <div v-if="result" class="result" :class="resultClass">
                 <div class="result-head">
                     <b>{{ result.score >= 1 ? '回答正确' : result.score > 0 ? '部分正确' : '回答错误' }}</b>
-                    <span v-if="result.nextDueDate" class="next-due">下次复习 {{ result.nextDueDate }}</span>
+                    <span v-if="result.nextDueDate" class="mono">下次 {{ result.nextDueDate }}</span>
                 </div>
                 <div class="answer-line">正确答案：{{ (result.correctAnswer || []).join('、') || '—' }}</div>
                 <div v-if="result.analysis" class="analysis">解析：{{ result.analysis }}</div>
-                <div v-if="result.masterySynced === false" class="sync">
-                    成绩已保存，掌握度统计会在一分钟内补上
-                </div>
+                <div v-if="result.masterySynced === false" class="sync">成绩已保存，掌握度统计会在一分钟内补上</div>
             </div>
-        </el-card>
+        </section>
     </div>
 </template>
 
@@ -162,7 +150,6 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { ArrowLeft } from '@element-plus/icons-vue';
 import { aiGradeQuestion, getDueQuestions, rateQuestion, submitQuestionAnswer } from '@/api';
 import { http } from '@/utils/request';
 
@@ -394,124 +381,131 @@ onMounted(load);
 
 <style scoped>
 .practice {
-    max-width: 880px;
+    max-width: 820px;
     margin: 0 auto;
-    padding: 24px 24px 56px;
+    padding-top: 48px;
 }
 
-.topbar {
+.run-head {
     display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 12px;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--sl-line-strong);
 }
 .back {
-    font-size: 13px;
-    color: #64748b;
+    padding: 0;
+    font-family: var(--sl-font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--sl-muted);
+    background: none;
+    border: 0;
+    cursor: pointer;
+    transition: color 0.18s ease;
 }
-.progress-text {
-    margin-left: auto;
-    font-size: 13px;
-    color: #334155;
-    font-variant-numeric: tabular-nums;
+.back:hover {
+    color: var(--sl-primary);
 }
-.score-text {
-    font-size: 13px;
-    color: #94a3b8;
-    font-variant-numeric: tabular-nums;
-}
-
-.bar {
-    margin-bottom: 16px;
-}
-
-.panel {
-    border-radius: 14px;
-}
-
-.meta {
+.run-meta {
     display: flex;
-    align-items: center;
-    gap: 10px;
+    gap: 24px;
+    color: var(--sl-muted);
 }
-.kp {
-    font-size: 12px;
-    color: #94a3b8;
+
+.progress {
+    height: 1px;
+    margin-top: 14px;
+    background: var(--sl-border);
+}
+.progress span {
+    display: block;
+    height: 1px;
+    background: var(--sl-primary);
+    transition: width 0.4s cubic-bezier(0.16, 0.84, 0.3, 1);
+}
+
+.loading {
+    margin-top: 48px;
+}
+
+.sheet {
+    padding-top: 44px;
+}
+.sheet-meta {
+    display: flex;
+    gap: 18px;
+    color: var(--sl-muted);
 }
 
 .stem {
-    margin: 14px 0 22px;
-    font-size: 20px;
-    line-height: 1.65;
-    font-weight: 600;
-    color: #0f172a;
+    margin: 18px 0 34px;
+    font-family: var(--sl-font-display);
+    font-size: clamp(24px, 2.6vw, 32px);
+    line-height: 1.55;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    color: var(--sl-text);
 }
 
 .choices {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    border-top: 1px solid var(--sl-border);
 }
 .choice {
     display: flex;
-    align-items: center;
-    gap: 12px;
+    align-items: flex-start;
+    gap: 16px;
     width: 100%;
-    padding: 14px 16px;
-    font-size: 14px;
-    line-height: 1.55;
+    padding: 16px 4px;
     text-align: left;
-    color: #334155;
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
+    background: none;
+    border: 0;
+    border-bottom: 1px solid var(--sl-border);
     cursor: pointer;
-    transition: border-color 0.15s ease, background 0.15s ease;
+    transition: background 0.18s ease, padding-left 0.18s ease;
 }
 .choice:hover:not(:disabled) {
-    border-color: #93c5fd;
-    background: #f8fbff;
+    padding-left: 10px;
+    background: rgba(178, 58, 31, 0.04);
 }
 .choice:disabled {
     cursor: default;
 }
 .badge {
     flex: none;
-    width: 24px;
-    height: 24px;
-    line-height: 24px;
-    font-size: 12px;
-    text-align: center;
-    color: #64748b;
-    background: #f1f5f9;
-    border-radius: 50%;
+    width: 22px;
+    font-family: var(--sl-font-mono);
+    font-size: 11px;
+    line-height: 1.7;
+    color: var(--sl-muted);
 }
-.choice.selected {
-    border-color: #2563eb;
-    background: #eff6ff;
+.text {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--sl-text-secondary);
 }
-.choice.selected .badge {
-    color: #fff;
-    background: #2563eb;
+.choice.selected .badge,
+.choice.selected .text {
+    color: var(--sl-primary);
+}
+.choice.correct .badge,
+.choice.correct .text {
+    color: var(--sl-success);
 }
 .choice.correct {
-    border-color: #10b981;
-    background: #ecfdf5;
+    background: rgba(47, 107, 79, 0.05);
 }
-.choice.correct .badge {
-    color: #fff;
-    background: #10b981;
+.choice.wrong .badge,
+.choice.wrong .text {
+    color: var(--sl-danger);
 }
 .choice.wrong {
-    border-color: #ef4444;
-    background: #fef2f2;
+    background: rgba(163, 48, 34, 0.05);
 }
-.choice.wrong .badge {
-    color: #fff;
-    background: #ef4444;
-}
-.choice.muted {
-    color: #94a3b8;
+.choice.muted .text {
+    color: var(--sl-muted);
 }
 
 .blank {
@@ -519,150 +513,233 @@ onMounted(load);
 }
 
 .subjective {
-    margin-top: 4px;
+    margin-top: 6px;
 }
 .subjective-actions {
     display: flex;
-    gap: 10px;
-    margin-top: 12px;
+    align-items: center;
+    gap: 20px;
+    margin: 16px 0 6px;
 }
+
 .grade-box {
-    margin-top: 14px;
-    padding: 14px 16px;
-    background: #f8fafc;
-    border: 1px solid #eef2f7;
-    border-radius: 10px;
+    margin-top: 20px;
+    padding: 18px 20px;
+    border: 1px solid var(--sl-border);
+    background: var(--sl-surface-strong);
 }
 .grade-head {
     display: flex;
     align-items: baseline;
-    gap: 10px;
-    margin-bottom: 8px;
-    font-size: 13px;
+    gap: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--sl-border);
+}
+.grade-head b {
+    font-family: var(--sl-font-display);
+    font-size: 26px;
+    font-weight: 400;
+    color: var(--sl-primary);
+}
+.grade-head span {
+    font-size: 12px;
+    color: var(--sl-muted);
 }
 .grade-point {
     display: flex;
     align-items: flex-start;
-    gap: 8px;
-    padding: 5px 0;
+    gap: 10px;
+    padding: 7px 0;
     font-size: 12px;
-    line-height: 1.6;
-    color: #475569;
+    line-height: 1.7;
+    color: var(--sl-text-secondary);
+    border-bottom: 1px dotted var(--sl-border);
 }
 .point-hit.ok {
-    color: #10b981;
+    color: var(--sl-success);
 }
 .point-hit.bad {
-    color: #ef4444;
+    color: var(--sl-danger);
 }
 .point-text {
     flex: 1;
 }
 .point-comment {
-    color: #94a3b8;
+    color: var(--sl-muted);
 }
+
 .answer-box {
-    margin-top: 12px;
-    padding: 14px 16px;
-    line-height: 1.8;
-    background: #f8fafc;
-    border: 1px solid #eef2f7;
-    border-radius: 10px;
+    margin-top: 16px;
+    padding: 16px 0;
+    font-family: var(--sl-font-display);
+    font-size: 16px;
+    line-height: 1.9;
+    color: var(--sl-text-secondary);
+    border-top: 1px solid var(--sl-border);
 }
-.muted {
-    color: #909399;
-    font-size: 13px;
+.answer-box .mono {
+    margin-right: 8px;
+    color: var(--sl-muted);
 }
 
 .actions {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-top: 24px;
+    gap: 18px;
+    margin-top: 34px;
+}
+.cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 20px;
+    font-family: var(--sl-font-body);
+    font-size: 14px;
+    color: var(--sl-surface);
+    background: var(--sl-text);
+    border: 1px solid var(--sl-text);
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+.cta span {
+    transition: transform 0.24s ease;
+}
+.cta:hover:not(:disabled) {
+    background: var(--sl-primary);
+    border-color: var(--sl-primary);
+}
+.cta:hover:not(:disabled) span {
+    transform: translateX(4px);
+}
+.cta:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+.mini-cta {
+    padding: 9px 16px;
+    font-family: var(--sl-font-body);
+    font-size: 13px;
+    color: var(--sl-text);
+    background: none;
+    border: 1px solid var(--sl-line-strong);
+    cursor: pointer;
+    transition: border-color 0.18s ease, color 0.18s ease;
+}
+.mini-cta:hover:not(:disabled) {
+    color: var(--sl-primary);
+    border-color: var(--sl-primary);
+}
+.mini-cta:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+.ghost {
+    padding: 0 0 3px;
+    font-family: var(--sl-font-body);
+    font-size: 13px;
+    color: var(--sl-text-secondary);
+    background: none;
+    border: 0;
+    border-bottom: 1px solid var(--sl-line-strong);
+    cursor: pointer;
+}
+.ghost:hover {
+    color: var(--sl-primary);
+    border-color: var(--sl-primary);
 }
 .skip {
     margin-left: auto;
-    color: #94a3b8;
+    color: var(--sl-muted);
 }
 
 .result {
-    margin-top: 20px;
-    padding: 16px;
-    border: 1px solid #e5e7eb;
-    border-left-width: 4px;
-    border-radius: 10px;
-    background: #f8fafc;
+    margin-top: 32px;
+    padding: 18px 20px;
+    border-left: 2px solid var(--sl-line-strong);
+    background: var(--sl-surface-strong);
 }
 .result.ok {
-    border-left-color: #10b981;
-    background: #f0fdf4;
+    border-left-color: var(--sl-success);
 }
 .result.part {
-    border-left-color: #f59e0b;
-    background: #fffbeb;
+    border-left-color: var(--sl-warning);
 }
 .result.bad {
-    border-left-color: #ef4444;
-    background: #fef2f2;
+    border-left-color: var(--sl-danger);
 }
 .result-head {
     display: flex;
     justify-content: space-between;
-    gap: 12px;
-    font-size: 14px;
+    align-items: baseline;
+    font-family: var(--sl-font-display);
+    font-size: 20px;
 }
-.next-due {
-    font-size: 12px;
-    color: #94a3b8;
+.result-head b {
+    font-weight: 500;
 }
 .answer-line,
 .analysis {
     margin-top: 8px;
     font-size: 13px;
-    line-height: 1.7;
-    color: #334155;
+    line-height: 1.8;
+    color: var(--sl-text-secondary);
 }
 .sync {
-    margin-top: 6px;
+    margin-top: 8px;
     font-size: 12px;
-    color: #94a3b8;
+    color: var(--sl-muted);
 }
 
+.empty,
 .done {
-    padding: 48px 24px;
-    text-align: center;
+    padding-top: 96px;
 }
-.done-mark {
-    width: 56px;
-    height: 56px;
-    margin: 0 auto 16px;
-    font-size: 28px;
-    line-height: 56px;
-    color: #fff;
-    background: #10b981;
-    border-radius: 50%;
+.empty-mark {
+    color: var(--sl-muted);
 }
-.done h2 {
-    margin: 0 0 8px;
-    font-size: 22px;
-    color: #0f172a;
+.empty h1,
+.done h1 {
+    margin: 16px 0 0;
+    font-size: clamp(34px, 4.4vw, 48px);
+    line-height: 1.2;
+    font-weight: 400;
+    letter-spacing: -0.02em;
 }
-.done-sub {
-    margin: 0 0 24px;
-    color: #64748b;
+.empty-dek {
+    margin: 16px 0 0;
+    font-size: 15px;
+    color: var(--sl-text-secondary);
 }
-.done-actions {
+.done-line {
+    margin: 16px 0 0;
+    font-family: var(--sl-font-display);
+    font-size: 18px;
+    color: var(--sl-text-secondary);
+}
+.done-line b {
+    font-weight: 500;
+    color: var(--sl-primary);
+}
+.empty-actions {
     display: flex;
-    justify-content: center;
-    gap: 10px;
+    align-items: center;
+    gap: 22px;
+    margin-top: 30px;
 }
 
 @media (max-width: 640px) {
     .practice {
-        padding: 16px 14px 40px;
+        padding-top: 28px;
     }
     .stem {
-        font-size: 18px;
+        margin-bottom: 24px;
+    }
+    .run-meta {
+        gap: 12px;
+    }
+    .empty,
+    .done {
+        padding-top: 56px;
     }
 }
 </style>

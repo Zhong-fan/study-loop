@@ -1,79 +1,81 @@
 <template>
-    <div class="wrapper">
+    <div class="app-shell">
         <v-header />
-        <v-sidebar />
-        <div class="content-box" :class="{ 'content-collapse': sidebar.collapse }">
-            <v-tabs></v-tabs>
-            <div class="content">
-                <!-- 不做 transition/keep-alive：切换动画在部分环境下会卡在 leave 阶段，
-                     导致地址已变但旧页面不卸载，表现为"导航点不动"。 -->
-                <router-view />
-            </div>
-        </div>
+
+        <main class="app-main">
+            <router-view v-slot="{ Component, route }">
+                <transition name="page" mode="out-in">
+                    <component :is="Component" :key="route.path" />
+                </transition>
+            </router-view>
+        </main>
+
+        <footer class="app-footer">
+            <span>CMMR · 课程资料管理与错题复习</span>
+            <span class="mono">{{ year }} · 学习手记</span>
+        </footer>
     </div>
 </template>
+
 <script setup lang="ts">
-import { onMounted } from 'vue';
-import { useSidebarStore } from '@/store/sidebar';
+import { nextTick, onMounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import vHeader from '@/components/header.vue';
-import vSidebar from '@/components/sidebar.vue';
-import vTabs from '@/components/tabs.vue';
 
-const sidebar = useSidebarStore();
+const route = useRoute();
+const year = new Date().getFullYear();
 
-// 路由懒加载在开发模式下首次访问才编译，点击菜单会等好几秒。
-// 进入主界面后空闲预取，首次点击即可直接命中缓存。
-const prefetch = [
-    () => import('../views/courses.vue'),
-    () => import('../views/questions.vue'),
-    () => import('../views/quiz.vue'),
-    () => import('../views/ai.vue'),
-    () => import('../views/stats.vue'),
-    () => import('../views/predict.vue'),
-    () => import('../views/exams.vue'),
-    () => import('../views/admin.vue'),
-    () => import('../views/practice.vue')
-];
-
+// 移动端键盘/输入框滚动后，切页会沿用旧位置；路由稳定后再兜底滚到顶部
 onMounted(() => {
-    const warm = () => prefetch.forEach((load, i) => setTimeout(() => load().catch(() => {}), i * 120));
-    if ('requestIdleCallback' in window) {
-        (window as any).requestIdleCallback(warm, { timeout: 3000 });
-    } else {
-        setTimeout(warm, 500);
-    }
+    window.scrollTo(0, 0);
+    setTimeout(() => window.scrollTo(0, 0), 60);
 });
+
+watch(
+    () => route.path,
+    async () => {
+        await nextTick();
+        window.scrollTo(0, 0);
+        setTimeout(() => window.scrollTo(0, 0), 60);
+    }
+);
 </script>
 
-<style>
-.wrapper {
-    height: 100vh;
-    overflow: hidden;
-}
-.content-box {
-    position: absolute;
-    left: var(--sl-sidebar-w);
-    right: 0;
-    top: var(--sl-header-h);
-    bottom: 0;
-    -webkit-transition: left 0.25s ease;
-    transition: left 0.25s ease;
+<style scoped>
+.app-shell {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
     background: var(--sl-bg);
-    overflow: hidden;
 }
 
-.content {
-    width: auto;
-    height: 100%;
-    overflow-y: auto;
-    box-sizing: border-box;
+.app-main {
+    flex: 1;
+    width: 100%;
+    max-width: var(--sl-content-w);
+    margin: 0 auto;
+    padding: 0 40px 80px;
 }
 
-.content::-webkit-scrollbar {
-    width: 0;
+.app-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: var(--sl-content-w);
+    margin: 0 auto;
+    padding: 22px 40px 34px;
+    font-size: 12px;
+    color: var(--sl-muted);
+    border-top: 1px solid var(--sl-border);
 }
 
-.content-collapse {
-    left: var(--sl-sidebar-collapsed);
+@media (max-width: 780px) {
+    .app-main {
+        padding: 0 18px 56px;
+    }
+    .app-footer {
+        padding: 18px 18px 28px;
+    }
 }
 </style>
