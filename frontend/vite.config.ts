@@ -5,6 +5,14 @@ import AutoImport from 'unplugin-auto-import/vite';
 import Components from 'unplugin-vue-components/vite';
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers';
 
+const proxy = {
+    // 本地联调把 /api 转发到网关，避免跨域
+    '/api': {
+        target: 'http://127.0.0.1:10080',
+        changeOrigin: true
+    }
+};
+
 export default defineConfig({
     base: '/',
     plugins: [
@@ -20,13 +28,12 @@ export default defineConfig({
     server: {
         host: '127.0.0.1',
         port: 5173,
-        proxy: {
-            // 开发时把 /api 转发到网关，避免跨域
-            '/api': {
-                target: 'http://127.0.0.1:10080',
-                changeOrigin: true
-            }
-        }
+        proxy
+    },
+    preview: {
+        host: '127.0.0.1',
+        port: 4173,
+        proxy
     },
     resolve: {
         alias: {
