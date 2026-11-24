@@ -263,6 +263,20 @@ netsh interface ipv4 show excludedportrange protocol=tcp
 powershell -ExecutionPolicy Bypass -File scripts\doctor.ps1
 ```
 
+## 视觉参考
+
+前端版式不是凭感觉定的，参考了两个真实个人博客，并用 Playwright 读取其 computed style：
+
+| 项目 | overreacted.io | maggieappleton.com |
+|---|---|---|
+| 背景 | `#ffffff` | `#f6f5f1` |
+| 正文 | `#222222` / Merriweather 15–16px | `#353534` / Times New Roman |
+| 标题 | Montserrat 900 | Canela Deck 400 |
+| 正文栏宽 | 632px | 全宽 |
+| 链接色 | 同正文 | `#5f023e` |
+
+当前采用：纸色 `#f6f5f1`、墨色 `#222222`、强调色 `#5f023e`，正文衬线 16px / 1.75，做题阅读栏 760px，小标签用等宽字体。
+
 ## 接口一览
 
 | 方法 | 路径 | 说明 | 需要 token |

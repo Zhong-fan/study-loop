@@ -138,7 +138,7 @@ const groups = computed(() => {
 }
 .row:hover {
     padding-left: 12px;
-    background: rgba(178, 58, 31, 0.035);
+    background: rgba(95, 2, 62, 0.035);
 }
 
 .no {

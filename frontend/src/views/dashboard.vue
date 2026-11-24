@@ -149,8 +149,8 @@ const trendOption = computed(() => ({
             smooth: true,
             symbol: 'circle',
             symbolSize: 5,
-            lineStyle: { width: 1.5, color: '#b23a1f' },
-            itemStyle: { color: '#b23a1f' },
+            lineStyle: { width: 1.5, color: '#5f023e' },
+            itemStyle: { color: '#5f023e' },
             data: trend.value.map((t: any) => t.accuracy ?? 0)
         }
     ]

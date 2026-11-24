@@ -381,7 +381,7 @@ onMounted(load);
 
 <style scoped>
 .practice {
-    max-width: 820px;
+    max-width: 760px;
     margin: 0 auto;
     padding-top: 48px;
 }
@@ -468,7 +468,7 @@ onMounted(load);
 }
 .choice:hover:not(:disabled) {
     padding-left: 10px;
-    background: rgba(178, 58, 31, 0.04);
+    background: rgba(95, 2, 62, 0.04);
 }
 .choice:disabled {
     cursor: default;
