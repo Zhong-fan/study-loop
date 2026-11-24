@@ -44,7 +44,7 @@
                         <base-chart :option="coverageOption" height="220px" />
                         <div class="coverage-legend">
                             <div class="legend-row">
-                                <span class="dot" style="background: #b23a1f"></span>
+                                <span class="dot" style="background: #5f023e"></span>
                                 <span>已掌握</span><b>{{ coverage.mastered }}</b>
                             </div>
                             <div class="legend-row">
@@ -146,7 +146,7 @@ const statCards = computed(() => [
         label: '题库里的题目',
         value: overview.value.totalQuestions,
         unit: ' 道',
-        color: '#b23a1f',
+        color: '#5f023e',
         icon: 'Document'
     },
     {
@@ -184,18 +184,18 @@ const coverageOption = computed(() => {
                 type: 'pie',
                 radius: ['62%', '82%'],
                 avoidLabelOverlap: false,
-                itemStyle: { borderRadius: 6, borderColor: '#f6f2e9', borderWidth: 2 },
+                itemStyle: { borderRadius: 6, borderColor: '#f6f5f1', borderWidth: 2 },
                 label: {
                     show: true,
                     position: 'center',
                     formatter: total === 0 ? '暂无数据' : `${Math.round((mastered / total) * 100)}%`,
                     fontSize: 22,
                     fontWeight: 700,
-                    color: '#161310'
+                    color: '#222222'
                 },
                 emphasis: { label: { show: true } },
                 data: [
-                    { value: mastered, name: '已掌握', itemStyle: { color: '#b23a1f' } },
+                    { value: mastered, name: '已掌握', itemStyle: { color: '#5f023e' } },
                     { value: rest, name: '未掌握', itemStyle: { color: '#ddd3c1' } }
                 ]
             }
@@ -246,8 +246,8 @@ const trendOption = computed(() => ({
             smooth: true,
             symbol: 'circle',
             symbolSize: 6,
-            lineStyle: { width: 2, color: '#b23a1f' },
-            itemStyle: { color: '#b23a1f' },
+            lineStyle: { width: 2, color: '#5f023e' },
+            itemStyle: { color: '#5f023e' },
             data: trend.value.map((t) => t.accuracy ?? 0)
         }
     ]

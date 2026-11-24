@@ -21,8 +21,14 @@ h2,
 h3,
 h4 {
     font-family: var(--sl-font-display);
-    font-weight: 500;
+    font-weight: 400;
     letter-spacing: -0.015em;
+}
+
+body,
+p,
+li {
+    font-family: var(--sl-font-body);
 }
 
 a {
@@ -57,7 +63,7 @@ a {
 /* ---------- Element Plus 重绘 ---------- */
 .el-button {
     border-radius: 2px;
-    font-family: var(--sl-font-body);
+    font-family: var(--sl-font-ui);
     font-weight: 500;
     letter-spacing: 0.01em;
     transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
@@ -119,7 +125,7 @@ a {
 .el-input__inner,
 .el-textarea__inner {
     color: var(--sl-text);
-    font-family: var(--sl-font-body);
+    font-family: var(--sl-font-ui);
 }
 
 .el-input__inner::placeholder,
@@ -170,6 +176,7 @@ a {
     --el-table-border-color: var(--sl-border);
     --el-table-row-hover-bg-color: rgba(178, 58, 31, 0.045);
     background: transparent;
+    font-family: var(--sl-font-ui);
     font-size: 13px;
 }
 

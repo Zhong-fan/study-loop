@@ -11,7 +11,12 @@
         </main>
 
         <footer class="app-footer">
-            <span>CMMR · 课程资料管理与错题复习</span>
+            <span>
+                版式参考
+                <a href="https://overreacted.io" target="_blank" rel="noreferrer">overreacted.io</a>
+                ·
+                <a href="https://maggieappleton.com" target="_blank" rel="noreferrer">maggieappleton.com</a>
+            </span>
             <span class="mono">{{ year }} · 学习手记</span>
         </footer>
     </div>
@@ -55,6 +60,15 @@ watch(
     max-width: var(--sl-content-w);
     margin: 0 auto;
     padding: 0 40px 80px;
+}
+
+.app-footer a {
+    color: var(--sl-text-secondary);
+    border-bottom: 1px solid var(--sl-border);
+}
+.app-footer a:hover {
+    color: var(--sl-primary);
+    border-color: var(--sl-primary);
 }
 
 .app-footer {

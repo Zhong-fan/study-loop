@@ -121,8 +121,13 @@
         </main>
 
         <footer class="auth-foot">
-            <span>CMMR · 课程资料管理与错题复习</span>
-            <span class="mono">Built for review, not for busywork</span>
+            <span>
+                版式参考
+                <a href="https://overreacted.io" target="_blank" rel="noreferrer">overreacted.io</a>
+                ·
+                <a href="https://maggieappleton.com" target="_blank" rel="noreferrer">maggieappleton.com</a>
+            </span>
+            <span class="mono">{{ year }} · 学习手记</span>
         </footer>
     </div>
 </template>
@@ -474,6 +479,15 @@ const fillDemo = () => {
     transition: border-color 0.18s ease;
 }
 .switch-link:hover {
+    border-color: var(--sl-primary);
+}
+
+.auth-foot a {
+    color: var(--sl-text-secondary);
+    border-bottom: 1px solid var(--sl-border);
+}
+.auth-foot a:hover {
+    color: var(--sl-primary);
     border-color: var(--sl-primary);
 }
 
