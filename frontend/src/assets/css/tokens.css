@@ -1,4 +1,4 @@
-/* 设计令牌：字号、间距、圆角、阴影统一在这里，页面里不再写魔法数字 */
+/* 设计令牌：暖纸、墨色、衬线标题。页面里只引用变量，不写具体色值 */
 :root {
     /* 间距阶梯 */
     --sl-s1: 4px;
@@ -11,32 +11,41 @@
     /* 字号阶梯 */
     --sl-fs-xs: 12px;
     --sl-fs-sm: 13px;
-    --sl-fs-base: 14px;
-    --sl-fs-lg: 16px;
-    --sl-fs-xl: 20px;
-    --sl-fs-2xl: 28px;
+    --sl-fs-base: 15px;
+    --sl-fs-lg: 17px;
+    --sl-fs-xl: 22px;
+    --sl-fs-2xl: 32px;
 
-    /* 颜色 */
-    --sl-bg: #f5f7fa;
-    --sl-surface: #ffffff;
-    --sl-border: #e5e7eb;
-    --sl-text: #1f2937;
-    --sl-text-secondary: #4b5563;
-    --sl-muted: #9ca3af;
-    --sl-primary: #2563eb;
-    --sl-success: #10b981;
-    --sl-warning: #f59e0b;
-    --sl-danger: #ef4444;
+    /* 纸与墨 */
+    --sl-bg: #f6f2e9;
+    --sl-surface: #fbf8f0;
+    --sl-surface-strong: #fdfbf6;
+    --sl-border: #ddd3c1;
+    --sl-line-strong: #b9ad97;
+    --sl-text: #161310;
+    --sl-text-secondary: #4b4337;
+    --sl-muted: #8b8172;
+    --sl-primary: #b23a1f;
+    --sl-primary-soft: #f3e3dc;
+    --sl-success: #2f6b4f;
+    --sl-warning: #a9761d;
+    --sl-danger: #a33022;
 
-    /* 形状 */
-    --sl-radius: 12px;
-    --sl-radius-sm: 8px;
-    --sl-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.08);
+    /* 字体 */
+    --sl-font-display: Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif CJK SC', serif;
+    --sl-font-body: Inter, 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+    --sl-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+
+    /* 形状：几乎没有圆角和阴影 */
+    --sl-radius: 2px;
+    --sl-radius-sm: 2px;
+    --sl-shadow: none;
 
     /* 布局 */
-    --sl-header-h: 64px;
-    --sl-sidebar-w: 240px;
-    --sl-sidebar-collapsed: 64px;
+    --sl-header-h: 76px;
+    --sl-content-w: 1080px;
+    --sl-sidebar-w: 0;
+    --sl-sidebar-collapsed: 0;
 }
 
 body {
@@ -44,46 +53,17 @@ body {
     font-size: var(--sl-fs-base);
     background: var(--sl-bg);
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
 }
 
-/* 页面统一内边距，页面里不再重复写 */
 .page {
     padding: var(--sl-s5);
 }
 
-/* 卡片：去掉硬边框，用轻阴影分层 */
-.el-card {
-    border: 1px solid var(--sl-border);
-    border-radius: var(--sl-radius);
-    box-shadow: var(--sl-shadow);
-}
-
-.el-card__header {
-    padding: var(--sl-s4) var(--sl-s5);
-    font-weight: 600;
-    font-size: var(--sl-fs-lg);
-    border-bottom: 1px solid var(--sl-border);
-}
-
-.el-card__body {
-    padding: var(--sl-s5);
-}
-
-/* 表头弱化，正文更突出 */
-.el-table th.el-table__cell {
-    background: #f8fafc !important;
-    color: var(--sl-text-secondary);
-    font-weight: 600;
-}
-
-.el-table {
-    --el-table-border-color: var(--sl-border);
-}
-
-/* 数字卡片里的数字 */
 .num {
+    font-family: var(--sl-font-display);
     font-size: var(--sl-fs-2xl);
-    font-weight: 700;
+    font-weight: 400;
     line-height: 1.2;
     color: var(--sl-text);
     font-variant-numeric: tabular-nums;

@@ -7,7 +7,7 @@ import 'element-plus/dist/index.css';
 import './assets/css/tokens.css';
 import './assets/css/grid.css';
 import './assets/css/motion.css';
-import './assets/css/icon.css';
+import './assets/css/editorial.css';
 
 const app = createApp(App);
 app.use(createPinia());

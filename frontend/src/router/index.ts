@@ -1,5 +1,9 @@
 import { createRouter, createWebHashHistory, RouteRecordRaw } from 'vue-router';
 import Home from '../views/home.vue';
+// 关掉浏览器的滚动恢复，避免登录后沿用上一页的滚动位置
+if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+}
 import NProgress from 'nprogress';
 import 'nprogress/nprogress.css';
 
@@ -102,7 +106,9 @@ const routes: RouteRecordRaw[] = [
 
 const router = createRouter({
     history: createWebHashHistory(),
-    routes
+    routes,
+    // 切换页面回到顶部，避免长页面残留滚动位置
+    scrollBehavior: () => ({ left: 0, top: 0 })
 });
 
 router.beforeEach((to, _from, next) => {
@@ -120,6 +126,8 @@ router.beforeEach((to, _from, next) => {
 
 router.afterEach(() => {
     NProgress.done();
+    // hash 路由下 scrollBehavior 偶发不生效，这里再兜底一次
+    requestAnimationFrame(() => window.scrollTo(0, 0));
 });
 
 export default router;

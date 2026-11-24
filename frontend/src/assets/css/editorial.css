@@ -1,0 +1,333 @@
+/* 编辑部风格：纸面、细线、衬线标题、克制的动效 */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+/* 顶部提示不要盖住报头 */
+.el-message {
+    top: 88px !important;
+}
+
+::selection {
+    background: var(--sl-primary);
+    color: #fff;
+}
+
+h1,
+h2,
+h3,
+h4 {
+    font-family: var(--sl-font-display);
+    font-weight: 500;
+    letter-spacing: -0.015em;
+}
+
+a {
+    color: inherit;
+}
+
+.mono {
+    font-family: var(--sl-font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.serif {
+    font-family: var(--sl-font-display);
+}
+
+.eyebrow {
+    font-family: var(--sl-font-mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--sl-muted);
+}
+
+.rule {
+    height: 1px;
+    background: var(--sl-border);
+    border: 0;
+}
+
+/* ---------- Element Plus 重绘 ---------- */
+.el-button {
+    border-radius: 2px;
+    font-family: var(--sl-font-body);
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
+.el-button--primary {
+    --el-button-bg-color: var(--sl-text);
+    --el-button-border-color: var(--sl-text);
+    --el-button-text-color: var(--sl-surface);
+    --el-button-hover-bg-color: var(--sl-primary);
+    --el-button-hover-border-color: var(--sl-primary);
+    --el-button-hover-text-color: #fff;
+    --el-button-active-bg-color: var(--sl-primary);
+    --el-button-active-border-color: var(--sl-primary);
+}
+
+.el-button--primary.is-disabled,
+.el-button--primary.is-disabled:hover {
+    --el-button-disabled-bg-color: #cfc6b6;
+    --el-button-disabled-border-color: #cfc6b6;
+    --el-button-disabled-text-color: #fff;
+}
+
+.el-button--default {
+    --el-button-bg-color: transparent;
+    --el-button-border-color: var(--sl-border);
+    --el-button-text-color: var(--sl-text);
+    --el-button-hover-bg-color: transparent;
+    --el-button-hover-border-color: var(--sl-text);
+    --el-button-hover-text-color: var(--sl-text);
+}
+
+.el-button.is-text,
+.el-button.is-link {
+    --el-button-hover-bg-color: transparent;
+    --el-button-hover-text-color: var(--sl-primary);
+}
+
+.el-input__wrapper,
+.el-input__inner,
+.el-textarea__inner,
+.el-select__wrapper {
+    --el-input-bg-color: var(--sl-surface-strong);
+    background-color: var(--sl-surface-strong) !important;
+    border-radius: 2px;
+    box-shadow: 0 0 0 1px var(--sl-border) inset;
+}
+
+.el-input__wrapper:hover,
+.el-textarea__inner:hover {
+    box-shadow: 0 0 0 1px var(--sl-line-strong) inset;
+}
+
+.el-input__wrapper.is-focus,
+.el-textarea__inner:focus {
+    box-shadow: 0 0 0 1px var(--sl-primary) inset;
+}
+
+.el-input__inner,
+.el-textarea__inner {
+    color: var(--sl-text);
+    font-family: var(--sl-font-body);
+}
+
+.el-input__inner::placeholder,
+.el-textarea__inner::placeholder {
+    color: var(--sl-muted);
+}
+
+.el-form-item__label {
+    font-family: var(--sl-font-mono);
+    font-size: 11px !important;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sl-muted) !important;
+}
+
+.el-card {
+    --el-card-bg-color: transparent;
+    background: transparent !important;
+    border: 1px solid var(--sl-border);
+    border-radius: 2px;
+    box-shadow: none !important;
+}
+
+.el-card__body,
+.el-card__header {
+    background: transparent !important;
+}
+
+.el-card__header {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--sl-border);
+    font-family: var(--sl-font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sl-muted);
+}
+
+.el-card__body {
+    padding: 22px 0;
+}
+
+.el-table {
+    --el-table-bg-color: transparent;
+    --el-table-tr-bg-color: transparent;
+    --el-table-header-bg-color: transparent;
+    --el-table-border-color: var(--sl-border);
+    --el-table-row-hover-bg-color: rgba(178, 58, 31, 0.045);
+    background: transparent;
+    font-size: 13px;
+}
+
+.el-table,
+.el-table__inner-wrapper,
+.el-table tr,
+.el-table td.el-table__cell,
+.el-table th.el-table__cell {
+    background-color: transparent !important;
+}
+
+.el-table th.el-table__cell {
+    background: transparent !important;
+    border-bottom: 1px solid var(--sl-line-strong);
+    font-family: var(--sl-font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sl-muted);
+}
+
+.el-table td.el-table__cell {
+    border-bottom: 1px solid var(--sl-border);
+    padding: 12px 0;
+}
+
+.el-table__inner-wrapper::before {
+    display: none;
+}
+
+.el-tag {
+    border-radius: 2px;
+    font-family: var(--sl-font-mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+}
+
+.el-dialog {
+    border-radius: 2px;
+    background: var(--sl-surface-strong);
+    box-shadow: 0 30px 80px -40px rgba(22, 19, 16, 0.45);
+}
+
+.el-dialog__title {
+    font-family: var(--sl-font-display);
+    font-size: 22px;
+}
+
+.el-alert {
+    border-radius: 2px;
+}
+
+.el-pagination {
+    font-family: var(--sl-font-mono);
+    font-size: 11px;
+}
+
+.el-select__wrapper {
+    border-radius: 2px;
+    background: transparent;
+    box-shadow: 0 0 0 1px var(--sl-border) inset;
+}
+
+.el-progress-bar__outer {
+    background: var(--sl-border);
+}
+
+.el-progress-bar__inner {
+    background: var(--sl-primary);
+}
+
+.el-empty__description p {
+    font-family: var(--sl-font-display);
+    font-size: 17px;
+    color: var(--sl-muted);
+}
+
+/* ---------- 页面转场 ---------- */
+.page-enter-active {
+    animation: page-in 420ms cubic-bezier(0.16, 0.84, 0.3, 1) both;
+}
+
+.page-leave-active {
+    transition: opacity 120ms ease;
+}
+
+.page-leave-to {
+    opacity: 0;
+}
+
+@keyframes page-in {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 列表错峰入场 */
+.reveal > * {
+    animation: rise-in 520ms cubic-bezier(0.16, 0.84, 0.3, 1) both;
+}
+.reveal > *:nth-child(2) {
+    animation-delay: 60ms;
+}
+.reveal > *:nth-child(3) {
+    animation-delay: 120ms;
+}
+.reveal > *:nth-child(4) {
+    animation-delay: 180ms;
+}
+.reveal > *:nth-child(5) {
+    animation-delay: 240ms;
+}
+
+@keyframes rise-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 下划线滑入 */
+.link-underline {
+    position: relative;
+}
+.link-underline::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -3px;
+    width: 100%;
+    height: 1px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 260ms cubic-bezier(0.16, 0.84, 0.3, 1);
+}
+.link-underline:hover::after,
+.link-underline.active::after {
+    transform: scaleX(1);
+    transform-origin: left;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
