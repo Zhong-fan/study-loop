@@ -1,32 +1,35 @@
 <template>
-    <div class="tools">
-        <header class="head">
-            <h1>工具与资料</h1>
+    <div class="tools mx-auto max-w-4xl">
+        <header class="mb-5">
+            <h1 class="text-2xl font-semibold tracking-tight text-ink-strong">工具与资料</h1>
         </header>
 
-        <section v-for="group in groups" :key="group.title" class="group">
-            <div class="group-head">
-                <span class="mono">{{ group.title }}</span>
-                <span class="mono">{{ group.items.length }}</span>
+        <section v-for="group in groups" :key="group.title" class="mb-6">
+            <div class="mb-2 flex items-center justify-between text-xs text-ink-muted">
+                <span>{{ group.title }}</span>
+                <span>{{ group.items.length }}</span>
             </div>
 
-            <button
-                v-for="item in group.items"
-                :key="item.path"
-                type="button"
-                class="row"
-                @click="router.push(item.path)"
-            >
-                <span class="no">{{ item.no }}</span>
-                <span class="body">
-                    <b>{{ item.title }}</b>
-                    <em>{{ item.desc }}</em>
-                </span>
-                <span class="arrow" aria-hidden="true">→</span>
-            </button>
+            <div class="grid gap-2 sm:grid-cols-2">
+                <button
+                    v-for="item in group.items"
+                    :key="item.path"
+                    type="button"
+                    class="row flex items-center gap-3 rounded-lg border border-line bg-surface p-4 text-left transition-colors hover:border-brand hover:bg-surface-2"
+                    @click="router.push(item.path)"
+                >
+                    <span class="text-xs text-ink-subtle">{{ item.no }}</span>
+                    <span class="min-w-0 flex-1">
+                        <b class="block text-sm font-medium text-ink">{{ item.title }}</b>
+                        <em class="mt-0.5 block truncate text-xs not-italic text-ink-muted">{{ item.desc }}</em>
+                    </span>
+                    <span class="text-ink-muted" aria-hidden="true">→</span>
+                </button>
+            </div>
         </section>
     </div>
 </template>
+
 
 <script setup lang="ts">
 import { computed } from 'vue';
@@ -78,111 +81,3 @@ const groups = computed(() => {
     }));
 });
 </script>
-
-<style scoped>
-.tools {
-    max-width: 860px;
-    margin: 0 auto;
-    padding-top: 56px;
-}
-
-.head .eyebrow {
-    padding-bottom: 14px;
-    border-bottom: 1px solid var(--sl-line-strong);
-}
-
-.head h1 {
-    margin: 32px 0 0;
-    font-size: clamp(36px, 4.6vw, 52px);
-    line-height: 1.15;
-    font-weight: 400;
-    letter-spacing: -0.02em;
-}
-
-.dek {
-    max-width: 520px;
-    margin: 16px 0 0;
-    font-size: 15px;
-    line-height: 1.9;
-    color: var(--sl-text-secondary);
-}
-
-.group {
-    margin-top: 46px;
-}
-.group-head {
-    display: flex;
-    justify-content: space-between;
-    padding-bottom: 10px;
-    color: var(--sl-muted);
-    border-bottom: 1px solid var(--sl-text);
-}
-
-.row {
-    display: grid;
-    grid-template-columns: 56px 1fr 32px;
-    align-items: baseline;
-    gap: 8px;
-    width: 100%;
-    padding: 22px 4px;
-    text-align: left;
-    background: none;
-    border: 0;
-    border-bottom: 1px solid var(--sl-border);
-    cursor: pointer;
-    transition: background 0.2s ease, padding-left 0.2s ease;
-}
-.row:hover {
-    padding-left: 12px;
-    background: rgba(95, 2, 62, 0.035);
-}
-
-.no {
-    font-family: var(--sl-font-mono);
-    font-size: 10px;
-    letter-spacing: 0.08em;
-    color: var(--sl-muted);
-}
-
-.body {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    min-width: 0;
-}
-.body b {
-    font-family: var(--sl-font-display);
-    font-size: 22px;
-    font-weight: 400;
-    color: var(--sl-text);
-}
-.body em {
-    font-style: normal;
-    font-size: 13px;
-    line-height: 1.6;
-    color: var(--sl-muted);
-}
-
-.arrow {
-    font-size: 17px;
-    color: var(--sl-muted);
-    transition: transform 0.22s ease, color 0.22s ease;
-}
-.row:hover .arrow {
-    color: var(--sl-primary);
-    transform: translateX(4px);
-}
-
-@media (max-width: 640px) {
-    .tools {
-        padding-top: 32px;
-    }
-    .row {
-        grid-template-columns: 40px 1fr 24px;
-        padding: 18px 2px;
-    }
-    .body b {
-        font-size: 19px;
-    }
-}
-</style>
