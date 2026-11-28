@@ -1,70 +1,75 @@
 <template>
-    <div class="page sl-page">
-        <el-card shadow="never">
-            <template #header>
-                <div class="card-header">
-                    <span>预测卷</span>
-                    <span class="hint">根据课件里的「重点」标注、例题和反复出现的内容，挑更可能考的题</span>
-                </div>
-            </template>
+    <div class="mx-auto max-w-3xl space-y-4">
+        <div>
+            <h1 class="text-2xl font-semibold tracking-tight text-ink-strong">预测卷</h1>
+            <p class="mt-1 text-sm text-ink-muted">按重点标注、例题、重复出现和原文依据排序。</p>
+        </div>
 
-            <div class="row">
+        <section class="rounded-xl border border-line bg-surface p-4">
+            <div class="flex flex-wrap items-center gap-3">
                 <el-select v-model="courseId" placeholder="选择课程" style="width: 220px" @change="load">
                     <el-option v-for="c in courses" :key="c.id" :label="c.name" :value="c.id" />
                 </el-select>
                 <el-input-number v-model="size" :min="1" :max="30" />
-                <span class="hint">题</span>
-                <el-button type="primary" :loading="loading" :disabled="!courseId" @click="build">
-                    生成预测卷
-                </el-button>
+                <span class="text-sm text-ink-muted">题</span>
+                <button
+                    type="button"
+                    class="rounded-md bg-brand px-4 py-2 text-sm text-white disabled:opacity-40"
+                    :disabled="!courseId || loading"
+                    @click="build"
+                >
+                    {{ loading ? '生成中…' : '生成预测卷' }}
+                </button>
             </div>
 
-            <div v-if="lowConfidence" class="hint warn">
-                有些题在课件里找不到出处，参考价值不高，建议以有依据的题为主。
+            <p v-if="lowConfidence" class="mt-3 rounded-md bg-warn-soft px-3 py-2 text-xs text-warn">
+                有些题找不到原文出处，参考价值有限。
+            </p>
+        </section>
+
+        <section class="overflow-hidden rounded-xl border border-line bg-surface">
+            <div class="flex items-center justify-between border-b border-line-soft px-4 py-3">
+                <span class="text-sm font-medium text-ink">题目（{{ items.length }}）</span>
+                <span v-if="items.length" class="text-xs text-ink-muted">按可能性从高到低</span>
             </div>
 
-            <div class="hint note">
-                怎么排的：老师标「重点」、出现例题、反复讲到、能找到原文出处，这四类线索越强，排得越靠前。
-                找不到出处的知识点会排在最后，只少量出现。
+            <div v-if="loading" class="space-y-3 p-4">
+                <div v-for="i in 4" :key="i" class="h-16 animate-pulse rounded-lg bg-surface-2"></div>
             </div>
-        </el-card>
 
-        <el-card class="block" shadow="never">
-            <template #header>
-                <div class="card-header">
-                    <span>题目（{{ items.length }}）</span>
-                    <el-tag v-if="items.length" type="success" size="small">按可能性从高到低</el-tag>
-                </div>
-            </template>
+            <div v-else-if="items.length === 0" class="px-4 py-12 text-center text-sm text-ink-muted">
+                先选课程，再生成预测卷。
+            </div>
 
-            <el-skeleton v-if="loading" :rows="5" animated />
-            <el-empty v-else-if="items.length === 0" description="先选课程，再点生成预测卷" :image-size="90" />
+            <div v-else class="divide-y divide-line-soft">
+                <article v-for="(item, index) in items" :key="item.questionId" class="p-4">
+                    <div class="flex items-start gap-3">
+                        <span class="mt-0.5 text-xs text-ink-subtle">{{ index + 1 }}</span>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="rounded-full bg-brand-soft px-2 py-0.5 text-xs text-ink-blue">{{ typeText(item.type) }}</span>
+                                <span class="rounded-full bg-warn-soft px-2 py-0.5 text-xs text-warn">
+                                    可能性 {{ Math.round(item.weight * 100) }}%
+                                </span>
+                            </div>
+                            <p class="mt-2 text-sm leading-relaxed text-ink">{{ item.stem }}</p>
+                            <p class="mt-1 text-xs text-ink-muted">{{ item.reason }}</p>
 
-            <div v-else class="paper sl-stagger">
-                <div v-for="(item, index) in items" :key="item.questionId" class="question" :style="{ '--i': index }">
-                    <div class="stem">
-                        <b>{{ index + 1 }}.</b>
-                        <span>{{ item.stem }}</span>
-                        <el-tag size="small" effect="plain">{{ typeText(item.type) }}</el-tag>
+                            <details v-if="item.evidenceQuote" class="mt-2 text-xs text-ink-muted">
+                                <summary class="cursor-pointer text-brand">看依据</summary>
+                                <div class="mt-2 rounded-md bg-reader p-3">
+                                    <p class="mb-1">第 {{ item.evidencePage }} 页</p>
+                                    <p class="leading-relaxed">{{ item.evidenceQuote }}</p>
+                                </div>
+                            </details>
+                        </div>
                     </div>
-                    <div class="reason">
-                        <el-tag type="warning" size="small" effect="plain">
-                            考到可能性 {{ Math.round(item.weight * 100) }}%
-                        </el-tag>
-                        <span class="hint">{{ item.reason }}</span>
-                        <el-popover v-if="item.evidenceQuote" placement="bottom" :width="420" trigger="click">
-                            <template #reference>
-                                <el-link type="primary" :underline="false">看看依据</el-link>
-                            </template>
-                            <div class="quote-page">第 {{ item.evidencePage }} 页</div>
-                            <div class="quote-text">{{ item.evidenceQuote }}</div>
-                        </el-popover>
-                    </div>
-                </div>
+                </article>
             </div>
-        </el-card>
+        </section>
     </div>
 </template>
+
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
@@ -111,58 +116,3 @@ onMounted(async () => {
     }
 });
 </script>
-
-<style scoped>
-.card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.row {
-    display: flex;
-    align-items: center;
-    gap: var(--sl-s3);
-}
-.block {
-    margin-top: var(--sl-s4);
-}
-.note {
-    margin-top: var(--sl-s3);
-}
-.paper {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sl-s4);
-}
-.question {
-    padding: var(--sl-s4);
-    border: 1px solid var(--sl-border);
-    border-radius: var(--sl-radius-sm);
-}
-.stem {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--sl-s2);
-    line-height: 1.7;
-}
-.reason {
-    display: flex;
-    align-items: center;
-    gap: var(--sl-s2);
-    margin-top: var(--sl-s2);
-}
-.quote-page {
-    font-size: 12px;
-    color: var(--sl-muted);
-    margin-bottom: 6px;
-}
-.quote-text {
-    font-size: 13px;
-    line-height: 1.7;
-    color: var(--sl-text);
-}
-.warn {
-    color: #b45309;
-    margin-top: var(--sl-s2);
-}
-</style>

@@ -1,120 +1,92 @@
 <template>
-    <div class="page sl-page">
-        <el-skeleton v-if="loading" :rows="8" animated />
+    <div class="mx-auto max-w-6xl">
+        <h1 class="mb-4 text-2xl font-semibold tracking-tight text-ink-strong">统计</h1>
+
+        <div v-if="loading" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div v-for="i in 4" :key="i" class="h-24 animate-pulse rounded-xl border border-line bg-surface"></div>
+        </div>
 
         <template v-else>
-            <!-- 顶部四个关键指标 -->
-            <div class="sl-grid sl-stagger">
-                <el-card
-                    v-for="(item, index) in statCards"
-                    :key="item.label"
-                    class="stat-card sl-col-3 sl-hover-lift"
-                    :style="{ '--i': index }"
-                    shadow="never"
-                >
-                    <div class="stat-top" :style="{ color: item.color }">
-                        <el-icon><component :is="item.icon" /></el-icon>
+            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div v-for="item in statCards" :key="item.label" class="rounded-xl border border-line bg-surface p-4">
+                    <div class="flex items-center gap-2 text-xs text-ink-muted">
+                        <span class="size-1.5 rounded-full" :style="{ background: item.color }"></span>
                         <span>{{ item.label }}</span>
                     </div>
-                    <div class="stat-value">
-                        {{ item.value }}<span class="unit">{{ item.unit }}</span>
+                    <div class="mt-3 text-2xl font-semibold text-ink-strong">
+                        {{ item.value }}<span class="ml-1 text-xs font-normal text-ink-muted">{{ item.unit }}</span>
                     </div>
-                </el-card>
+                </div>
             </div>
 
-            <div class="sl-grid chart-grid">
-                <!-- 覆盖率 -->
-                <el-card class="sl-col-5" shadow="never">
-                    <template #header>
-                        <div class="card-header">
-                            <span>知识点覆盖率</span>
-                            <el-select
-                                v-model="courseId"
-                                placeholder="选择课程"
-                                size="small"
-                                style="width: 180px"
-                                @change="loadCoverage"
-                            >
-                                <el-option v-for="c in courses" :key="c.id" :label="c.name" :value="c.id" />
-                            </el-select>
+            <div class="mt-4 grid gap-4 lg:grid-cols-12">
+                <section class="rounded-xl border border-line bg-surface p-4 lg:col-span-5">
+                    <div class="mb-3 flex items-center justify-between gap-2">
+                        <h2 class="text-sm font-medium text-ink">知识点覆盖率</h2>
+                        <el-select v-model="courseId" placeholder="选择课程" size="small" style="width: 170px" @change="loadCoverage">
+                            <el-option v-for="c in courses" :key="c.id" :label="c.name" :value="c.id" />
+                        </el-select>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div class="min-w-0 flex-1">
+                            <base-chart :option="coverageOption" height="200px" />
                         </div>
-                    </template>
-
-                    <div class="coverage">
-                        <base-chart :option="coverageOption" height="220px" />
-                        <div class="coverage-legend">
-                            <div class="legend-row">
-                                <span class="dot" style="background: #4c6ef5"></span>
-                                <span>已掌握</span><b>{{ coverage.mastered }}</b>
+                        <div class="w-36 shrink-0 space-y-2 text-xs">
+                            <div class="flex items-center gap-2">
+                                <span class="size-2 rounded-full bg-[#4c6ef5]"></span><span class="flex-1">已掌握</span><b>{{ coverage.mastered }}</b>
                             </div>
-                            <div class="legend-row">
-                                <span class="dot" style="background: #dbe4ff"></span>
-                                <span>未掌握</span>
+                            <div class="flex items-center gap-2">
+                                <span class="size-2 rounded-full bg-[#dbe4ff]"></span><span class="flex-1">未掌握</span>
                                 <b>{{ Math.max(coverage.totalKnowledge - coverage.mastered, 0) }}</b>
                             </div>
-                            <div class="legend-row">
-                                <span class="dot" style="background: #12b886"></span>
-                                <span>练过</span><b>{{ coverage.practiced }}</b>
+                            <div class="flex items-center gap-2">
+                                <span class="size-2 rounded-full bg-[#12b886]"></span><span class="flex-1">练过</span><b>{{ coverage.practiced }}</b>
                             </div>
-                            <div class="legend-row">
-                                <span class="dot" style="background: #f59f00"></span>
-                                <span>知识点总数</span><b>{{ coverage.totalKnowledge }}</b>
+                            <div class="flex items-center gap-2">
+                                <span class="size-2 rounded-full bg-[#f59f00]"></span><span class="flex-1">总数</span><b>{{ coverage.totalKnowledge }}</b>
                             </div>
                         </div>
                     </div>
+                    <p class="mt-3 text-xs text-ink-muted">练过至少 2 次、正确率 80% 以上才算掌握。</p>
+                </section>
 
-                    <div class="hint">练过至少 2 次、正确率 80% 以上，才算掌握；只做过一次全对不算。</div>
-                </el-card>
-
-                <!-- 复习趋势 -->
-                <el-card class="sl-col-7" shadow="never">
-                    <template #header>
-                        <div class="card-header"><span>最近 30 天趋势</span></div>
-                    </template>
-                    <base-chart :option="trendOption" height="260px" />
-                </el-card>
+                <section class="rounded-xl border border-line bg-surface p-4 lg:col-span-7">
+                    <h2 class="mb-3 text-sm font-medium text-ink">最近 30 天趋势</h2>
+                    <base-chart :option="trendOption" height="240px" />
+                </section>
             </div>
 
-            <!-- 还不熟的知识点 -->
-            <el-card class="block" shadow="never">
-                <template #header>
-                    <div class="card-header">
-                        <span>还不熟的知识点</span>
-                        <el-tag v-if="weakKnowledge.length" type="warning" size="small">
-                            {{ weakKnowledge.length }} 个知识点
-                        </el-tag>
-                    </div>
-                </template>
-
-                <el-empty v-if="weakKnowledge.length === 0" description="暂时没有不熟的知识点，继续保持" :image-size="80" />
+            <section class="mt-4 rounded-xl border border-line bg-surface p-4">
+                <div class="mb-3 flex items-center justify-between">
+                    <h2 class="text-sm font-medium text-ink">还不熟的知识点</h2>
+                    <span v-if="weakKnowledge.length" class="text-xs text-warn">{{ weakKnowledge.length }} 个</span>
+                </div>
+                <div v-if="weakKnowledge.length === 0" class="py-10 text-center text-sm text-ink-muted">
+                    暂时没有不熟的知识点。
+                </div>
                 <base-chart v-else :option="weakOption" :height="weakHeight" />
-            </el-card>
+            </section>
 
-            <!-- 记住了但不会用 -->
-            <el-card v-if="transferList.length" class="block" shadow="never">
-                <template #header>
-                    <div class="card-header">
-                        <span>记住了，但不会用</span>
-                        <el-tag type="warning" size="small">{{ transferList.length }} 个知识点</el-tag>
-                    </div>
-                </template>
-
-                <div class="transfer-list">
-                    <div v-for="item in transferList" :key="item.knowledgeId" class="transfer-item">
-                        <b>#{{ item.knowledgeId }}</b>
-                        <span class="hint">
+            <section v-if="transferList.length" class="mt-4 rounded-xl border border-line bg-surface p-4">
+                <div class="mb-3 flex items-center justify-between">
+                    <h2 class="text-sm font-medium text-ink">记住了，但不会用</h2>
+                    <span class="text-xs text-warn">{{ transferList.length }} 个</span>
+                </div>
+                <div class="space-y-2">
+                    <div v-for="item in transferList" :key="item.knowledgeId" class="flex flex-wrap items-center gap-3 text-sm">
+                        <b class="text-ink">#{{ item.knowledgeId }}</b>
+                        <span class="text-xs text-ink-muted">
                             单点 {{ percent(item.surfaceAccuracy) }} · 综合 {{ percent(item.deepAccuracy) }}
                         </span>
-                        <el-tag type="warning" size="small" effect="plain">换个问法就不会</el-tag>
+                        <span class="rounded-full bg-warn-soft px-2 py-0.5 text-xs text-warn">换个问法就不会</span>
                     </div>
                 </div>
-                <div class="hint">
-                    单个知识点能答对，放进综合题就答不出来。这类知识点不会拉长复习间隔，下次会优先给综合题。
-                </div>
-            </el-card>
+                <p class="mt-3 text-xs text-ink-muted">这类知识点不会拉长复习间隔，下次优先给综合题。</p>
+            </section>
         </template>
     </div>
 </template>
+
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
@@ -336,117 +308,3 @@ onMounted(async () => {
     }
 });
 </script>
-
-<style scoped>
-.stat-card {
-    position: relative;
-    overflow: hidden;
-}
-.stat-card :deep(.el-card__body) {
-    padding: var(--sl-s5);
-}
-.stat-top {
-    display: flex;
-    align-items: center;
-    gap: var(--sl-s2);
-    font-size: var(--sl-fs-sm);
-    font-weight: 500;
-}
-.stat-value {
-    margin-top: var(--sl-s3);
-    font-family: var(--sl-font-display);
-    font-size: 40px;
-    font-weight: 400;
-    color: var(--sl-text);
-    font-variant-numeric: tabular-nums;
-    line-height: 1.1;
-}
-.unit {
-    margin-left: 4px;
-    font-size: var(--sl-fs-sm);
-    font-weight: 400;
-    color: var(--sl-muted);
-}
-
-/* 旧结构保留，避免其他页面引用时样式丢失 */
-.stat-accent {
-    width: 4px;
-    height: 44px;
-    border-radius: 4px;
-}
-.stat-accent {
-    width: 4px;
-    height: 44px;
-    border-radius: 4px;
-}
-.chart-grid {
-    margin-top: var(--sl-s4);
-}
-.card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.coverage {
-    display: flex;
-    align-items: center;
-    gap: var(--sl-s4);
-}
-.coverage > :first-child {
-    flex: 1;
-    min-width: 0;
-}
-.coverage-legend {
-    width: 140px;
-    display: flex;
-    flex-direction: column;
-    gap: var(--sl-s2);
-}
-.legend-row {
-    display: flex;
-    align-items: center;
-    gap: var(--sl-s2);
-    font-size: var(--sl-fs-sm);
-    color: var(--sl-text-secondary);
-}
-.legend-row b {
-    margin-left: auto;
-    color: var(--sl-text);
-    font-variant-numeric: tabular-nums;
-}
-.dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-}
-.block {
-    margin-top: var(--sl-s4);
-}
-.transfer-list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sl-s3);
-    margin-bottom: var(--sl-s3);
-}
-.transfer-item {
-    display: flex;
-    align-items: center;
-    gap: var(--sl-s3);
-    padding: 10px 12px;
-    border: 1px solid var(--sl-border);
-    border-radius: var(--sl-radius-sm);
-    background: rgba(169, 118, 29, 0.07);
-}
-.transfer-item b {
-    color: var(--sl-text);
-}
-.hint {
-    margin-top: var(--sl-s3);
-}
-
-@media (max-width: 1100px) {
-        .chart-grid {
-    margin-top: var(--sl-s4);
-}
-}
-</style>

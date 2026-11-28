@@ -1,39 +1,54 @@
 <template>
-    <div class="page sl-page">
-        <el-card shadow="never" class="block">
-            <template #header>
-                <div class="card-header">
-                    <div>
-                        <span>真题</span>
-                        <span class="hint">把往年卷子录进来，预测时会更偏向真题考过的知识点</span>
-                    </div>
-                    <div class="actions">
-                        <el-select v-model="courseId" placeholder="选择课程" style="width: 180px" @change="load">
-                            <el-option v-for="c in courses" :key="c.id" :label="c.name" :value="c.id" />
-                        </el-select>
-                        <el-button type="primary" :disabled="!courseId" @click="openCreate">新建试卷</el-button>
-                    </div>
-                </div>
-            </template>
+    <div class="mx-auto max-w-5xl">
+        <div class="mb-4 flex flex-wrap items-center gap-2">
+            <h1 class="mr-auto text-base font-semibold text-ink-strong">真题</h1>
+            <el-select v-model="courseId" placeholder="选择课程" style="width: 180px" @change="load">
+                <el-option v-for="c in courses" :key="c.id" :label="c.name" :value="c.id" />
+            </el-select>
+            <button
+                type="button"
+                class="rounded-md bg-brand px-3 py-2 text-sm text-white disabled:opacity-40"
+                :disabled="!courseId"
+                @click="openCreate"
+            >
+                新建试卷
+            </button>
+        </div>
 
-            <el-table :data="exams" v-loading="loading" empty-text="还没有真题，先新建一份试卷">
-                <el-table-column prop="title" label="试卷" min-width="220" />
-                <el-table-column prop="examYear" label="年份" width="90">
-                    <template #default="{ row }">{{ row.examYear || '—' }}</template>
-                </el-table-column>
-                <el-table-column prop="school" label="学校" width="160">
-                    <template #default="{ row }">{{ row.school || '—' }}</template>
-                </el-table-column>
-                <el-table-column prop="itemCount" label="题目数" width="100" />
-                <el-table-column label="操作" width="260">
-                    <template #default="{ row }">
-                        <el-button link type="primary" @click="openImport(row)">导入题目</el-button>
-                        <el-button link type="primary" @click="openDistribution(row)">看分布</el-button>
-                        <el-button link type="danger" @click="remove(row)">删除</el-button>
-                    </template>
-                </el-table-column>
-            </el-table>
-        </el-card>
+        <div class="overflow-hidden rounded-xl border border-line bg-surface">
+            <div class="overflow-x-auto">
+                <table class="w-full min-w-[640px] text-sm">
+                    <thead class="bg-surface-2 text-xs text-ink-muted">
+                        <tr>
+                            <th class="px-4 py-2.5 text-left font-medium">试卷</th>
+                            <th class="w-20 px-3 py-2.5 text-left font-medium">年份</th>
+                            <th class="w-40 px-3 py-2.5 text-left font-medium">学校</th>
+                            <th class="w-20 px-3 py-2.5 text-left font-medium">题目数</th>
+                            <th class="w-52 px-3 py-2.5 text-right font-medium">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="row in exams" :key="row.id" class="border-t border-line-soft">
+                            <td class="px-4 py-3 font-medium text-ink">{{ row.title }}</td>
+                            <td class="px-3 py-3 text-xs text-ink-muted">{{ row.examYear || '—' }}</td>
+                            <td class="px-3 py-3 text-xs text-ink-muted">{{ row.school || '—' }}</td>
+                            <td class="px-3 py-3 text-xs text-ink-muted">{{ row.itemCount }}</td>
+                            <td class="px-3 py-3 text-right">
+                                <button type="button" class="mr-2 text-xs text-brand hover:underline" @click="openImport(row)">导入题目</button>
+                                <button type="button" class="mr-2 text-xs text-ink-muted hover:underline" @click="openDistribution(row)">看分布</button>
+                                <button type="button" class="text-xs text-danger hover:underline" @click="remove(row)">删除</button>
+                            </td>
+                        </tr>
+                        <tr v-if="!exams.length">
+                            <td colspan="5" class="px-4 py-12 text-center text-sm text-ink-muted">
+                                还没有真题，先新建一份试卷
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
 
         <!-- 新建 -->
         <el-dialog v-model="createVisible" title="新建试卷" width="460">
