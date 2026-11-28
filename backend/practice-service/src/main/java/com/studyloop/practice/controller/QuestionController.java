@@ -111,6 +111,12 @@ public class QuestionController {
         return Result.ok(questionService.page(page, size, courseId, type, status));
     }
 
+    @Operation(summary = "错题本（最后一次作答未满分的题）")
+    @GetMapping("/wrong-book")
+    public Result<java.util.List<QuestionVO>> wrongBook() {
+        return Result.ok(questionService.wrongBook());
+    }
+
     @Operation(summary = "题目详情（含答案与解析）")
     @GetMapping("/{id}")
     public Result<QuestionVO> detail(@PathVariable Long id) {

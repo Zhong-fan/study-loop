@@ -139,6 +139,15 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
+    public List<QuestionVO> wrongBook() {
+        List<QuestionVO> result = new ArrayList<>();
+        for (Question question : questionMapper.selectWrongBook(UserContext.requireUserId())) {
+            result.add(toVO(question));
+        }
+        return result;
+    }
+
+    @Override
     public QuestionVO get(Long id) {
         return toVO(findOwnedQuestion(id));
     }

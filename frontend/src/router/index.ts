@@ -48,6 +48,12 @@ const routes: RouteRecordRaw[] = [
                 component: () => import('../views/courses.vue')
             },
             {
+                path: '/wrong-book',
+                name: 'wrong-book',
+                meta: { title: '错题本' },
+                component: () => import('../views/wrong-book.vue')
+            },
+            {
                 path: '/questions',
                 name: 'questions',
                 meta: { title: '题库' },
