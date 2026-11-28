@@ -14,7 +14,7 @@ import * as echarts from 'echarts';
  */
 const props = withDefaults(
     defineProps<{
-        option: echarts.EChartsOption;
+        option: Record<string, any>;
         height?: string;
     }>(),
     { height: '260px' }

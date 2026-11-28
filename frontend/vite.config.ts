@@ -1,4 +1,5 @@
 ﻿import { defineConfig } from 'vite';
+import tailwindcss from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 import VueSetupExtend from 'vite-plugin-vue-setup-extend';
 import AutoImport from 'unplugin-auto-import/vite';
@@ -16,6 +17,7 @@ const proxy = {
 export default defineConfig({
     base: '/',
     plugins: [
+        tailwindcss(),
         vue(),
         VueSetupExtend(),
         AutoImport({

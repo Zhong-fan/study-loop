@@ -1,38 +1,47 @@
 {
-	"name": "cmmr-frontend",
-	"version": "0.1.0",
-	"private": true,
-	"description": "CMMR 课程资料管理与错题复习系统 · 前端",
-	"scripts": {
-		"dev": "vite",
-		"build": "vue-tsc --noEmit && vite build",
-		"serve": "vite preview",
-		"test:e2e": "node e2e/smoke.mjs"
-	},
-	"dependencies": {
-		"@element-plus/icons-vue": "^2.3.1",
-		"axios": "^1.6.3",
-		"echarts": "^5.5.1",
-		"element-plus": "^2.6.3",
-		"nprogress": "^0.2.0",
-		"pinia": "^2.1.7",
-		"vue": "^3.4.5",
-		"vue-router": "^4.2.5"
-	},
-	"devDependencies": {
-		"@vitejs/plugin-vue": "^3.0.0",
-		"@vue/compiler-sfc": "^3.1.2",
-		"playwright": "^1.65.1",
-		"typescript": "^4.6.4",
-		"unplugin-auto-import": "^0.11.2",
-		"unplugin-vue-components": "^0.22.4",
-		"vite": "^3.2.11",
-		"vite-plugin-vue-setup-extend": "^0.4.0",
-		"vue-tsc": "^0.38.4"
-	},
-	"browserslist": [
-		"> 1%",
-		"last 2 versions",
-		"not dead"
-	]
+  "name": "cmmr-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CMMR 课程资料管理与错题复习系统 · 前端",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "serve": "vite preview",
+    "test:e2e": "node e2e/smoke.mjs"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "^2.3.1",
+    "axios": "^1.6.3",
+    "echarts": "^5.5.1",
+    "element-plus": "^2.6.3",
+    "nprogress": "^0.2.0",
+    "pinia": "^2.1.7",
+    "vue": "^3.4.5",
+    "vue-router": "^4.2.5",
+    "@lucide/vue": "^1.53.0",
+    "@vueuse/core": "^15.0.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "reka-ui": "^2.11.0",
+    "tailwind-merge": "^3.7.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.0",
+    "@vue/compiler-sfc": "^3.1.2",
+    "playwright": "^1.65.1",
+    "typescript": "~5.6.0",
+    "unplugin-auto-import": "^19.0.0",
+    "unplugin-vue-components": "^28.0.0",
+    "vite": "^6.4.3",
+    "vite-plugin-vue-setup-extend": "^0.4.0",
+    "vue-tsc": "^2.1.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "tailwindcss": "^4.3.3",
+    "tw-animate-css": "^1.4.0"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ]
 }

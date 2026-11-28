@@ -1,68 +1,93 @@
 <template>
-    <div class="page sl-page">
-        <el-card>
-            <template #header>
-                <div class="card-header">
-                    <span>题库</span>
-                    <div>
-                        <el-select v-model="filter.courseId" placeholder="全部课程" clearable style="width: 160px">
-                            <el-option v-for="c in courses" :key="c.id" :label="c.name" :value="c.id" />
-                        </el-select>
-                        <el-select v-model="filter.type" placeholder="全部题型" clearable style="width: 130px; margin-left: 8px">
-                            <el-option v-for="t in types" :key="t.value" :label="t.label" :value="t.value" />
-                        </el-select>
-                        <el-button style="margin-left: 8px" @click="load">查询</el-button>
-                        <el-button @click="openImport">导入</el-button>
-                        <el-button @click="exportAll">导出</el-button>
-                        <el-button type="primary" @click="openCreate">新建题目</el-button>
-                    </div>
+    <div class="mx-auto max-w-6xl">
+        <div class="mb-4 flex flex-wrap items-center gap-2">
+            <h1 class="mr-auto text-base font-semibold text-ink-strong">题库</h1>
+            <el-select v-model="filter.courseId" placeholder="全部课程" clearable style="width: 150px">
+                <el-option v-for="c in courses" :key="c.id" :label="c.name" :value="c.id" />
+            </el-select>
+            <el-select v-model="filter.type" placeholder="全部题型" clearable style="width: 120px">
+                <el-option v-for="t in types" :key="t.value" :label="t.label" :value="t.value" />
+            </el-select>
+            <el-button @click="load">查询</el-button>
+            <el-button @click="openImport">导入</el-button>
+            <el-button @click="exportAll">导出</el-button>
+            <el-button type="primary" @click="openCreate">新建题目</el-button>
+        </div>
+
+        <div class="overflow-hidden rounded-xl border border-line bg-surface">
+            <div class="overflow-x-auto">
+                <table class="w-full min-w-[680px] text-sm">
+                    <thead class="bg-surface-2 text-xs text-ink-muted">
+                        <tr>
+                            <th class="px-4 py-2.5 text-left font-medium">题干</th>
+                            <th class="w-20 px-3 py-2.5 text-left font-medium">题型</th>
+                            <th class="w-28 px-3 py-2.5 text-left font-medium">来源</th>
+                            <th class="w-16 px-3 py-2.5 text-left font-medium">难度</th>
+                            <th class="w-40 px-3 py-2.5 text-left font-medium">创建时间</th>
+                            <th class="w-40 px-3 py-2.5 text-right font-medium">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="row in rows" :key="row.id" class="border-t border-line-soft">
+                            <td class="max-w-[360px] truncate px-4 py-3 text-ink">{{ row.stem }}</td>
+                            <td class="px-3 py-3">
+                                <span class="rounded-full bg-brand-soft px-2 py-0.5 text-xs text-ink-blue">{{ typeText(row.type) }}</span>
+                            </td>
+                            <td class="px-3 py-3 text-xs text-ink-muted">
+                                <span v-if="row.materialId">第 {{ row.pageNo }} 页</span>
+                                <span v-else>—</span>
+                            </td>
+                            <td class="px-3 py-3 text-xs text-ink-muted">{{ row.difficulty }}</td>
+                            <td class="px-3 py-3 text-xs text-ink-muted">{{ row.createdAt }}</td>
+                            <td class="px-3 py-3 text-right">
+                                <button
+                                    v-if="row.type === 'SHORT' || row.type === 'COMPOSITE'"
+                                    type="button"
+                                    class="mr-2 text-xs text-warn hover:underline"
+                                    @click="openGrade(row)"
+                                >
+                                    AI 判分
+                                </button>
+                                <button type="button" class="mr-2 text-xs text-brand hover:underline" @click="openEdit(row)">编辑</button>
+                                <button type="button" class="text-xs text-danger hover:underline" @click="remove(row)">删除</button>
+                            </td>
+                        </tr>
+                        <tr v-if="!rows.length">
+                            <td colspan="6" class="px-4 py-12 text-center text-sm text-ink-muted">
+                                <p>题库还是空的</p>
+                                <div class="mt-3 flex justify-center gap-2">
+                                    <button type="button" class="rounded-md bg-brand px-3 py-1.5 text-xs text-white" @click="openCreate">新建题目</button>
+                                    <button type="button" class="rounded-md border border-line px-3 py-1.5 text-xs text-ink" @click="router.push('/ai')">用 AI 出题</button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="flex items-center justify-between border-t border-line px-4 py-3 text-xs text-ink-muted">
+                <span>共 {{ total }} 题</span>
+                <div class="flex items-center gap-2">
+                    <button
+                        type="button"
+                        class="rounded-md border border-line px-2.5 py-1 disabled:opacity-40"
+                        :disabled="page <= 1"
+                        @click="onPageChange(page - 1)"
+                    >
+                        上一页
+                    </button>
+                    <span>{{ page }}</span>
+                    <button
+                        type="button"
+                        class="rounded-md border border-line px-2.5 py-1 disabled:opacity-40"
+                        :disabled="page * size >= total"
+                        @click="onPageChange(page + 1)"
+                    >
+                        下一页
+                    </button>
                 </div>
-            </template>
+            </div>
+        </div>
 
-            <el-table :data="rows" v-loading="loading" border>
-                <el-table-column prop="stem" label="题干" show-overflow-tooltip />
-                <el-table-column label="题型" width="90">
-                    <template #default="{ row }">{{ typeText(row.type) }}</template>
-                </el-table-column>
-                <el-table-column label="来源" width="110">
-                    <template #default="{ row }">
-                        <span v-if="row.materialId">资料第 {{ row.pageNo }} 页</span>
-                        <span v-else class="hint">—</span>
-                    </template>
-                </el-table-column>
-                <el-table-column prop="difficulty" label="难度" width="70" />
-                <el-table-column prop="createdAt" label="创建时间" width="180" />
-                <el-table-column label="操作" width="210">
-                    <template #default="{ row }">
-                        <el-button
-                            v-if="row.type === 'SHORT' || row.type === 'COMPOSITE'"
-                            link
-                            type="warning"
-                            @click="openGrade(row)"
-                        >
-                            AI 判分
-                        </el-button>
-                        <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
-                        <el-button link type="danger" @click="remove(row)">删除</el-button>
-                    </template>
-                </el-table-column>
-                <template #empty>
-                    <el-empty description="题库还是空的" :image-size="80">
-                        <el-button type="primary" @click="openCreate">新建题目</el-button>
-                        <el-button @click="router.push('/ai')">用 AI 出题</el-button>
-                    </el-empty>
-                </template>
-            </el-table>
-
-            <el-pagination
-                class="pager"
-                layout="total, prev, pager, next"
-                :total="total"
-                :page-size="size"
-                :current-page="page"
-                @current-change="onPageChange"
-            />
-        </el-card>
 
         <el-dialog v-model="formVisible" :title="form.id ? '编辑题目' : '新建题目'" width="620px">
             <el-form :model="form" label-width="80px">
