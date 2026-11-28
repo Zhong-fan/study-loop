@@ -22,3 +22,85 @@
 .app-ui h3 {
   font-family: var(--font-sans);
 }
+
+/* ── 新外壳里的 Element Plus 页面：统一到 quizzy token ───────────────── */
+.app-ui {
+  /* 旧页面还在用 sl-* token，这里统一映射到新色板 */
+  --sl-paper: var(--color-canvas);
+  --sl-surface: var(--color-surface);
+  --sl-surface-strong: var(--color-reader);
+  --sl-text: var(--color-ink);
+  --sl-text-secondary: var(--color-ink-muted);
+  --sl-muted: var(--color-ink-subtle);
+  --sl-primary: var(--color-brand);
+  --sl-border: var(--color-line);
+  --sl-line-strong: var(--color-line);
+  --sl-font-body: var(--font-sans);
+  --sl-font-ui: var(--font-sans);
+  --sl-font-display: var(--font-sans);
+  --sl-font-mono: var(--font-mono);
+  --el-color-primary: var(--color-brand);
+  --el-border-color: var(--color-line);
+  --el-border-color-light: var(--color-line-soft);
+  --el-text-color-primary: var(--color-ink);
+  --el-text-color-regular: var(--color-ink-muted);
+  --el-bg-color: var(--color-surface);
+  --el-fill-color-blank: var(--color-surface);
+}
+.app-ui .el-card {
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: none;
+}
+.app-ui .el-card__header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-line-soft);
+  font-weight: 600;
+}
+.app-ui .el-card__body { padding: 16px; }
+.app-ui .el-button {
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-weight: 500;
+}
+.app-ui .el-button--primary {
+  --el-button-bg-color: var(--color-brand);
+  --el-button-border-color: var(--color-brand);
+  --el-button-hover-bg-color: color-mix(in oklab, var(--color-brand) 88%, black);
+  --el-button-hover-border-color: color-mix(in oklab, var(--color-brand) 88%, black);
+}
+.app-ui .el-input__wrapper,
+.app-ui .el-textarea__inner,
+.app-ui .el-select__wrapper {
+  border-radius: var(--radius-md);
+  background: var(--color-reader);
+  box-shadow: 0 0 0 1px var(--color-line) inset;
+}
+.app-ui .el-input__wrapper.is-focus,
+.app-ui .el-textarea__inner:focus,
+.app-ui .el-select__wrapper.is-focused {
+  box-shadow: 0 0 0 1px var(--color-brand) inset;
+}
+.app-ui .el-table {
+  --el-table-border-color: var(--color-line-soft);
+  --el-table-header-bg-color: var(--color-surface-2);
+  --el-table-row-hover-bg-color: var(--color-surface-2);
+  font-family: var(--font-sans);
+}
+.app-ui .el-table th.el-table__cell { font-weight: 500; color: var(--color-ink-muted); }
+.app-ui .el-dialog {
+  border-radius: var(--radius-lg);
+  padding: 0;
+  overflow: hidden;
+}
+.app-ui .el-dialog__header {
+  margin: 0;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-line-soft);
+}
+.app-ui .el-dialog__body { padding: 20px; }
+.app-ui .el-dialog__footer { padding: 0 20px 16px; }
+.app-ui .el-tag { border-radius: 999px; }
+.app-ui .el-alert { border-radius: var(--radius-md); }
+.app-ui .el-pagination { justify-content: flex-end; }

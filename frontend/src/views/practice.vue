@@ -1,148 +1,208 @@
 <template>
-    <div class="practice">
-        <header class="run-head">
-            <button type="button" class="back" @click="exit">← 概览</button>
-            <div class="run-meta">
-                <span v-if="questions.length && !finished" class="mono">第 {{ index + 1 }} / {{ questions.length }} 题</span>
-                <span v-if="questions.length && !finished" class="mono">答对 {{ correct }} / {{ answered }}</span>
+    <div class="practice mx-auto max-w-3xl">
+        <header class="mb-4 flex items-center justify-between gap-3">
+            <button
+                type="button"
+                class="text-sm text-ink-muted outline-none hover:text-ink"
+                @click="exit"
+            >
+                ← 概览
+            </button>
+            <div v-if="questions.length && !finished" class="text-xs text-ink-muted">
+                第 {{ index + 1 }} / {{ questions.length }} 题 · 答对 {{ correct }} / {{ answered }}
             </div>
         </header>
 
-        <div v-if="questions.length && !finished" class="progress">
-            <span :style="{ width: `${Math.round((index / questions.length) * 100)}%` }"></span>
+        <div v-if="questions.length && !finished" class="mb-4 h-1 overflow-hidden rounded-full bg-surface-2">
+            <span
+                class="block h-full rounded-full bg-brand transition-all"
+                :style="{ width: `${Math.round((index / questions.length) * 100)}%` }"
+            ></span>
         </div>
 
-        <el-skeleton v-if="loading" :rows="7" animated class="loading" />
+        <div v-if="loading" class="space-y-3 rounded-xl border border-line bg-surface p-6">
+            <div class="h-4 w-24 animate-pulse rounded bg-surface-2"></div>
+            <div class="h-6 w-3/4 animate-pulse rounded bg-surface-2"></div>
+            <div class="h-12 animate-pulse rounded bg-surface-2"></div>
+            <div class="h-12 animate-pulse rounded bg-surface-2"></div>
+        </div>
 
-        <section v-else-if="!questions.length" class="empty">
-            <h1>没有到期题目</h1>
-            <p class="empty-dek">可以去补题，或做一组自测。</p>
-            <div class="empty-actions">
-                <button type="button" class="cta" @click="router.push('/ai')">去 AI 出题 <span>→</span></button>
-                <button type="button" class="ghost" @click="router.push('/dashboard')">返回概览</button>
+        <section v-else-if="!questions.length" class="rounded-xl border border-line bg-surface p-8 text-center">
+            <h1 class="text-xl font-semibold text-ink-strong">没有到期题目</h1>
+            <p class="mt-2 text-sm text-ink-muted">可以去补题，或做一组自测。</p>
+            <div class="mt-6 flex justify-center gap-3">
+                <button
+                    type="button"
+                    class="rounded-md bg-brand px-4 py-2 text-sm text-white hover:opacity-90"
+                    @click="router.push('/ai')"
+                >
+                    去 AI 出题
+                </button>
+                <button
+                    type="button"
+                    class="rounded-md border border-line px-4 py-2 text-sm text-ink hover:bg-surface-2"
+                    @click="router.push('/dashboard')"
+                >
+                    返回概览
+                </button>
             </div>
         </section>
 
-        <section v-else-if="finished" class="done">
-            <h1>这一组完成</h1>
-            <p class="done-line">
-                共作答 <b>{{ answered }}</b> 题，答对 <b>{{ correct }}</b> 题。
+        <section v-else-if="finished" class="rounded-xl border border-line bg-surface p-8 text-center">
+            <h1 class="text-xl font-semibold text-ink-strong">这一组完成</h1>
+            <p class="mt-2 text-sm text-ink-muted">
+                共作答 <b class="text-ink">{{ answered }}</b> 题，答对
+                <b class="text-ink">{{ correct }}</b> 题。
             </p>
-            <div class="empty-actions">
-                <button type="button" class="cta" @click="restart">再来一组 <span>→</span></button>
-                <button type="button" class="ghost" @click="router.push('/dashboard')">返回概览</button>
+            <div class="mt-6 flex justify-center gap-3">
+                <button
+                    type="button"
+                    class="rounded-md bg-brand px-4 py-2 text-sm text-white hover:opacity-90"
+                    @click="restart"
+                >
+                    再来一组
+                </button>
+                <button
+                    type="button"
+                    class="rounded-md border border-line px-4 py-2 text-sm text-ink hover:bg-surface-2"
+                    @click="router.push('/dashboard')"
+                >
+                    返回概览
+                </button>
             </div>
         </section>
 
-        <section v-else class="sheet">
-            <div class="sheet-meta">
-                <span class="mono">{{ typeText(current.type) }}</span>
-                <span class="mono">KP #{{ current.knowledgeId }}</span>
+        <section v-else class="rounded-xl border border-line bg-surface p-6 sm:p-8">
+            <div class="mb-3 flex items-center gap-3 text-xs text-ink-muted">
+                <span class="rounded-full bg-brand-soft px-2 py-0.5 text-ink-blue">{{ typeText(current.type) }}</span>
+                <span v-if="current.knowledgeId">知识点 #{{ current.knowledgeId }}</span>
             </div>
 
-            <h1 class="stem">{{ current.stem }}</h1>
+            <h1 class="text-lg font-medium leading-relaxed text-ink-strong sm:text-xl">{{ current.stem }}</h1>
 
-            <div v-if="isChoice" class="choices">
+            <div v-if="isChoice" class="mt-6 space-y-2.5">
                 <button
                     v-for="option in displayOptions"
                     :key="option.value"
                     type="button"
-                    class="choice"
-                    :class="choiceClass(option.value)"
+                    class="flex w-full items-start gap-3 rounded-lg border px-4 py-3 text-left text-sm transition-colors disabled:cursor-default"
+                    :class="optionTone(option.value)"
                     :disabled="!!result"
                     @click="select(option.value)"
                 >
-                    <span class="badge">{{ option.badge }}</span>
-                    <span class="text">{{ option.text }}</span>
+                    <span class="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border border-current text-[11px]">
+                        {{ option.badge }}
+                    </span>
+                    <span class="text-ink">{{ option.text }}</span>
                 </button>
             </div>
 
-            <el-input
+            <input
                 v-else-if="current.type === 'BLANK'"
                 v-model="blank"
-                size="large"
-                class="blank"
+                class="mt-6 w-full rounded-md border border-line bg-reader px-3 py-2.5 text-sm outline-none focus:border-brand"
                 placeholder="输入答案后提交"
                 :disabled="!!result"
                 @keyup.enter="submit"
             />
 
-            <div v-else class="subjective">
-                <el-input
+            <div v-else class="mt-6">
+                <textarea
                     v-model="subjectiveAnswer"
-                    type="textarea"
-                    :rows="4"
+                    rows="5"
+                    class="w-full resize-y rounded-md border border-line bg-reader px-3 py-2.5 text-sm outline-none focus:border-brand"
                     placeholder="输入答案"
                     :disabled="!!result"
-                />
+                ></textarea>
 
-                <div class="subjective-actions">
+                <div class="mt-3 flex flex-wrap items-center gap-3">
                     <button
                         type="button"
-                        class="mini-cta"
+                        class="rounded-md bg-brand px-3 py-1.5 text-xs text-white disabled:opacity-40"
                         :disabled="!subjectiveAnswer.trim() || !!result || grading"
                         @click="gradeSubjective"
                     >
                         {{ grading ? '判分中…' : 'AI 判分' }}
                     </button>
-                    <button v-if="!revealed" type="button" class="ghost" @click="revealAnswer">显示参考答案</button>
+                    <button
+                        v-if="!revealed"
+                        type="button"
+                        class="text-xs text-ink-muted underline-offset-2 hover:underline"
+                        @click="revealAnswer"
+                    >
+                        显示参考答案
+                    </button>
                 </div>
 
-                <div v-if="gradeResult" class="grade-box">
-                    <div class="grade-head">
-                        <b>{{ Math.round((gradeResult.score || 0) * 100) }} 分</b>
-                        <span>{{ gradeResult.comment }}</span>
+                <div v-if="gradeResult" class="mt-4 rounded-lg border border-line bg-surface-2 p-4">
+                    <div class="flex items-baseline gap-3">
+                        <b class="text-lg text-ink-strong">{{ Math.round((gradeResult.score || 0) * 100) }} 分</b>
+                        <span class="text-xs text-ink-muted">{{ gradeResult.comment }}</span>
                     </div>
-                    <div v-for="(point, i) in gradeResult.points || []" :key="i" class="grade-point">
-                        <span class="point-hit" :class="point.hit ? 'ok' : 'bad'">{{ point.hit ? '✓' : '✕' }}</span>
-                        <span class="point-text">{{ point.point }}</span>
-                        <span v-if="point.comment" class="point-comment">{{ point.comment }}</span>
+                    <div v-for="(point, i) in gradeResult.points || []" :key="i" class="mt-2 flex gap-2 text-xs">
+                        <span :class="point.hit ? 'text-ok' : 'text-danger'">{{ point.hit ? '✓' : '✕' }}</span>
+                        <span class="text-ink">{{ point.point }}</span>
+                        <span v-if="point.comment" class="text-ink-muted">{{ point.comment }}</span>
                     </div>
                 </div>
 
-                <div v-if="revealed" class="answer-box">
-                    <div><span class="mono">答案</span> {{ revealedAnswer || '—' }}</div>
-                    <div v-if="revealedAnalysis" class="muted"><span class="mono">解析</span> {{ revealedAnalysis }}</div>
+                <div v-if="revealed" class="mt-4 rounded-lg border border-line bg-reader p-4 text-sm">
+                    <div><span class="text-xs text-ink-muted">答案</span> {{ revealedAnswer || '—' }}</div>
+                    <div v-if="revealedAnalysis" class="mt-2 text-ink-muted">
+                        <span class="text-xs">解析</span> {{ revealedAnalysis }}
+                    </div>
                 </div>
             </div>
 
-            <div class="actions">
+            <div class="mt-6 flex flex-wrap items-center gap-3">
                 <template v-if="!result">
                     <button
                         v-if="isObjective"
                         type="button"
-                        class="cta"
+                        class="rounded-md bg-brand px-4 py-2 text-sm text-white disabled:opacity-40"
                         :disabled="!canSubmit || submitting"
                         @click="submit"
                     >
-                        {{ submitting ? '提交中…' : '提交作答' }} <span>→</span>
+                        {{ submitting ? '提交中…' : '提交作答' }}
                     </button>
                     <template v-else>
                         <template v-if="revealed || gradeResult">
-                            <button type="button" class="mini-cta" :disabled="submitting" @click="rate(0)">忘记</button>
-                            <button type="button" class="mini-cta" :disabled="submitting" @click="rate(1)">模糊</button>
-                            <button type="button" class="mini-cta" :disabled="submitting" @click="rate(2)">记住</button>
+                            <button type="button" class="rounded-md border border-line px-3 py-1.5 text-xs" :disabled="submitting" @click="rate(0)">忘记</button>
+                            <button type="button" class="rounded-md border border-line px-3 py-1.5 text-xs" :disabled="submitting" @click="rate(1)">模糊</button>
+                            <button type="button" class="rounded-md border border-line px-3 py-1.5 text-xs" :disabled="submitting" @click="rate(2)">记住</button>
                         </template>
                     </template>
-                    <button type="button" class="ghost skip" @click="skip">跳过这题</button>
+                    <button type="button" class="text-xs text-ink-muted hover:text-ink" @click="skip">跳过这题</button>
                 </template>
-                <button v-else type="button" class="cta" @click="next">
-                    {{ index + 1 === questions.length ? '查看结果' : '下一题' }} <span>→</span>
+                <button
+                    v-else
+                    type="button"
+                    class="rounded-md bg-brand px-4 py-2 text-sm text-white"
+                    @click="next"
+                >
+                    {{ index + 1 === questions.length ? '查看结果' : '下一题' }}
                 </button>
             </div>
 
-            <div v-if="result" class="result" :class="resultClass">
-                <div class="result-head">
-                    <b>{{ result.score >= 1 ? '回答正确' : result.score > 0 ? '部分正确' : '回答错误' }}</b>
-                    <span v-if="result.nextDueDate" class="mono">下次 {{ result.nextDueDate }}</span>
+            <div
+                v-if="result"
+                class="mt-5 rounded-lg border p-4"
+                :class="result.score >= 1 ? 'border-ok bg-ok-soft' : result.score > 0 ? 'border-warn bg-warn-soft' : 'border-danger bg-danger-soft'"
+            >
+                <div class="flex items-baseline justify-between gap-3">
+                    <b class="text-sm">{{ result.score >= 1 ? '回答正确' : result.score > 0 ? '部分正确' : '回答错误' }}</b>
+                    <span v-if="result.nextDueDate" class="text-xs text-ink-muted">下次 {{ result.nextDueDate }}</span>
                 </div>
-                <div class="answer-line">正确答案：{{ (result.correctAnswer || []).join('、') || '—' }}</div>
-                <div v-if="result.analysis" class="analysis">解析：{{ result.analysis }}</div>
-                <div v-if="result.masterySynced === false" class="sync">成绩已保存，掌握度统计会在一分钟内补上</div>
+                <div class="mt-2 text-sm">正确答案：{{ (result.correctAnswer || []).join('、') || '—' }}</div>
+                <div v-if="result.analysis" class="mt-1 text-sm text-ink-muted">解析：{{ result.analysis }}</div>
+                <div v-if="result.masterySynced === false" class="mt-2 text-xs text-ink-muted">
+                    成绩已保存，掌握度统计会在一分钟内补上
+                </div>
             </div>
         </section>
     </div>
 </template>
+
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
@@ -195,6 +255,21 @@ const displayOptions = computed(() => {
         text
     }));
 });
+
+const optionTone = (value: string) => {
+    if (!result.value) {
+        return selectedValues.value.includes(value)
+            ? 'border-brand bg-brand-soft'
+            : 'border-line hover:bg-surface-2';
+    }
+    const correct = result.value.correctAnswer || [];
+    if (correct.includes(value)) {
+        return 'border-ok bg-ok-soft';
+    }
+    return selectedValues.value.includes(value)
+        ? 'border-danger bg-danger-soft'
+        : 'border-line opacity-60';
+};
 
 const selectedValues = computed(() => {
     if (current.value?.type === 'MULTIPLE') {
@@ -376,368 +451,3 @@ const exit = () => {
 
 onMounted(load);
 </script>
-
-<style scoped>
-.practice {
-    max-width: 760px;
-    margin: 0 auto;
-    padding-top: 48px;
-}
-
-.run-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--sl-line-strong);
-}
-.back {
-    padding: 0;
-    font-family: var(--sl-font-mono);
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    color: var(--sl-muted);
-    background: none;
-    border: 0;
-    cursor: pointer;
-    transition: color 0.18s ease;
-}
-.back:hover {
-    color: var(--sl-primary);
-}
-.run-meta {
-    display: flex;
-    gap: 24px;
-    color: var(--sl-muted);
-}
-
-.progress {
-    height: 1px;
-    margin-top: 14px;
-    background: var(--sl-border);
-}
-.progress span {
-    display: block;
-    height: 1px;
-    background: var(--sl-primary);
-    transition: width 0.4s cubic-bezier(0.16, 0.84, 0.3, 1);
-}
-
-.loading {
-    margin-top: 48px;
-}
-
-.sheet {
-    padding-top: 44px;
-}
-.sheet-meta {
-    display: flex;
-    gap: 18px;
-    color: var(--sl-muted);
-}
-
-.stem {
-    margin: 18px 0 34px;
-    font-family: var(--sl-font-display);
-    font-size: clamp(24px, 2.6vw, 32px);
-    line-height: 1.55;
-    font-weight: 400;
-    letter-spacing: -0.01em;
-    color: var(--sl-text);
-}
-
-.choices {
-    display: flex;
-    flex-direction: column;
-    border-top: 1px solid var(--sl-border);
-}
-.choice {
-    display: flex;
-    align-items: flex-start;
-    gap: 16px;
-    width: 100%;
-    padding: 16px 4px;
-    text-align: left;
-    background: none;
-    border: 0;
-    border-bottom: 1px solid var(--sl-border);
-    cursor: pointer;
-    transition: background 0.18s ease, padding-left 0.18s ease;
-}
-.choice:hover:not(:disabled) {
-    padding-left: 10px;
-    background: rgba(95, 2, 62, 0.04);
-}
-.choice:disabled {
-    cursor: default;
-}
-.badge {
-    flex: none;
-    width: 22px;
-    font-family: var(--sl-font-mono);
-    font-size: 11px;
-    line-height: 1.7;
-    color: var(--sl-muted);
-}
-.text {
-    font-size: 15px;
-    line-height: 1.7;
-    color: var(--sl-text-secondary);
-}
-.choice.selected .badge,
-.choice.selected .text {
-    color: var(--sl-primary);
-}
-.choice.correct .badge,
-.choice.correct .text {
-    color: var(--sl-success);
-}
-.choice.correct {
-    background: rgba(47, 107, 79, 0.05);
-}
-.choice.wrong .badge,
-.choice.wrong .text {
-    color: var(--sl-danger);
-}
-.choice.wrong {
-    background: rgba(163, 48, 34, 0.05);
-}
-.choice.muted .text {
-    color: var(--sl-muted);
-}
-
-.blank {
-    max-width: 420px;
-}
-
-.subjective {
-    margin-top: 6px;
-}
-.subjective-actions {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    margin: 16px 0 6px;
-}
-
-.grade-box {
-    margin-top: 20px;
-    padding: 18px 20px;
-    border: 1px solid var(--sl-border);
-    background: var(--sl-surface-strong);
-}
-.grade-head {
-    display: flex;
-    align-items: baseline;
-    gap: 14px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--sl-border);
-}
-.grade-head b {
-    font-family: var(--sl-font-display);
-    font-size: 26px;
-    font-weight: 400;
-    color: var(--sl-primary);
-}
-.grade-head span {
-    font-size: 12px;
-    color: var(--sl-muted);
-}
-.grade-point {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 7px 0;
-    font-size: 12px;
-    line-height: 1.7;
-    color: var(--sl-text-secondary);
-    border-bottom: 1px dotted var(--sl-border);
-}
-.point-hit.ok {
-    color: var(--sl-success);
-}
-.point-hit.bad {
-    color: var(--sl-danger);
-}
-.point-text {
-    flex: 1;
-}
-.point-comment {
-    color: var(--sl-muted);
-}
-
-.answer-box {
-    margin-top: 16px;
-    padding: 16px 0;
-    font-family: var(--sl-font-display);
-    font-size: 16px;
-    line-height: 1.9;
-    color: var(--sl-text-secondary);
-    border-top: 1px solid var(--sl-border);
-}
-.answer-box .mono {
-    margin-right: 8px;
-    color: var(--sl-muted);
-}
-
-.actions {
-    display: flex;
-    align-items: center;
-    gap: 18px;
-    margin-top: 34px;
-}
-.cta {
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    padding: 13px 20px;
-    font-family: var(--sl-font-body);
-    font-size: 14px;
-    color: var(--sl-surface);
-    background: var(--sl-text);
-    border: 1px solid var(--sl-text);
-    cursor: pointer;
-    transition: background 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
-}
-.cta span {
-    transition: transform 0.24s ease;
-}
-.cta:hover:not(:disabled) {
-    background: var(--sl-primary);
-    border-color: var(--sl-primary);
-}
-.cta:hover:not(:disabled) span {
-    transform: translateX(4px);
-}
-.cta:disabled {
-    opacity: 0.35;
-    cursor: default;
-}
-.mini-cta {
-    padding: 9px 16px;
-    font-family: var(--sl-font-body);
-    font-size: 13px;
-    color: var(--sl-text);
-    background: none;
-    border: 1px solid var(--sl-line-strong);
-    cursor: pointer;
-    transition: border-color 0.18s ease, color 0.18s ease;
-}
-.mini-cta:hover:not(:disabled) {
-    color: var(--sl-primary);
-    border-color: var(--sl-primary);
-}
-.mini-cta:disabled {
-    opacity: 0.4;
-    cursor: default;
-}
-.ghost {
-    padding: 0 0 3px;
-    font-family: var(--sl-font-body);
-    font-size: 13px;
-    color: var(--sl-text-secondary);
-    background: none;
-    border: 0;
-    border-bottom: 1px solid var(--sl-line-strong);
-    cursor: pointer;
-}
-.ghost:hover {
-    color: var(--sl-primary);
-    border-color: var(--sl-primary);
-}
-.skip {
-    margin-left: auto;
-    color: var(--sl-muted);
-}
-
-.result {
-    margin-top: 32px;
-    padding: 18px 20px;
-    border-left: 2px solid var(--sl-line-strong);
-    background: var(--sl-surface-strong);
-}
-.result.ok {
-    border-left-color: var(--sl-success);
-}
-.result.part {
-    border-left-color: var(--sl-warning);
-}
-.result.bad {
-    border-left-color: var(--sl-danger);
-}
-.result-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    font-family: var(--sl-font-display);
-    font-size: 20px;
-}
-.result-head b {
-    font-weight: 500;
-}
-.answer-line,
-.analysis {
-    margin-top: 8px;
-    font-size: 13px;
-    line-height: 1.8;
-    color: var(--sl-text-secondary);
-}
-.sync {
-    margin-top: 8px;
-    font-size: 12px;
-    color: var(--sl-muted);
-}
-
-.empty,
-.done {
-    padding-top: 96px;
-}
-.empty-mark {
-    color: var(--sl-muted);
-}
-.empty h1,
-.done h1 {
-    margin: 16px 0 0;
-    font-size: clamp(34px, 4.4vw, 48px);
-    line-height: 1.2;
-    font-weight: 400;
-    letter-spacing: -0.02em;
-}
-.empty-dek {
-    margin: 16px 0 0;
-    font-size: 15px;
-    color: var(--sl-text-secondary);
-}
-.done-line {
-    margin: 16px 0 0;
-    font-family: var(--sl-font-display);
-    font-size: 18px;
-    color: var(--sl-text-secondary);
-}
-.done-line b {
-    font-weight: 500;
-    color: var(--sl-primary);
-}
-.empty-actions {
-    display: flex;
-    align-items: center;
-    gap: 22px;
-    margin-top: 30px;
-}
-
-@media (max-width: 640px) {
-    .practice {
-        padding-top: 28px;
-    }
-    .stem {
-        margin-bottom: 24px;
-    }
-    .run-meta {
-        gap: 12px;
-    }
-    .empty,
-    .done {
-        padding-top: 56px;
-    }
-}
-</style>
