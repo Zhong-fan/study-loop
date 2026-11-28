@@ -1,16 +1,17 @@
 <template>
-    <div class="page sl-page">
-        <el-card shadow="never">
-            <template #header>
-                <div class="card-header">
-                    <span>AI 出题</span>
-                    <el-tag :type="aiReady ? 'success' : 'info'" size="small">
-                        {{ aiReady ? '已连接 · ' + aiModel : '未配置，去 .env 填 AI_API_KEY' }}
-                    </el-tag>
-                </div>
-            </template>
+    <div class="mx-auto max-w-6xl space-y-4">
+        <div class="flex items-center justify-between gap-3">
+            <h1 class="text-2xl font-semibold tracking-tight text-ink-strong">AI 出题</h1>
+            <span
+                class="rounded-full px-2.5 py-1 text-xs"
+                :class="aiReady ? 'bg-ok-soft text-ok' : 'bg-surface-2 text-ink-muted'"
+            >
+                {{ aiReady ? '已连接 · ' + aiModel : '未配置' }}
+            </span>
+        </div>
 
-            <el-form :inline="true" :model="form" label-width="80px">
+        <section class="rounded-xl border border-line bg-surface p-4">
+            <el-form :inline="true" :model="form" label-width="72px">
                 <el-form-item label="课程">
                     <el-select v-model="form.courseId" placeholder="选择课程" style="width: 180px" @change="onCourseChange">
                         <el-option v-for="c in courses" :key="c.id" :label="c.name" :value="c.id" />
@@ -51,15 +52,17 @@
                 </el-form-item>
             </el-form>
 
-            <div class="hint">
-                单选/判断挂 1 个知识点，多选 2~3 个，综合题 5~8 个。出题会带上知识点的原文证据，
-                没有证据的题目会被服务端拒绝，避免模型编造。
-            </div>
-        </el-card>
+            <p class="mt-1 text-xs text-ink-muted">
+                生成会带上知识点的原文证据；没有证据的题目不入库。
+            </p>
+        </section>
 
-        <el-card class="block" shadow="never">
-            <template #header>草稿（{{ drafts.length }}）</template>
-            <el-table :data="drafts" border size="small" @selection-change="onSelectionChange">
+        <section class="overflow-hidden rounded-xl border border-line bg-surface">
+            <div class="flex items-center justify-between border-b border-line-soft px-4 py-3">
+                <span class="text-sm font-medium text-ink">草稿（{{ drafts.length }}）</span>
+                <span v-if="drafts.length" class="text-xs text-ink-muted">勾选后可存入题库</span>
+            </div>
+            <el-table :data="drafts" size="small" @selection-change="onSelectionChange">
                 <el-table-column type="selection" width="44" />
                 <el-table-column prop="stem" label="题干" show-overflow-tooltip />
                 <el-table-column label="题型" width="90">
@@ -71,30 +74,38 @@
                 <el-table-column label="总分" width="70">
                     <template #default="{ row }">{{ row.total_score ?? row.totalScore ?? '—' }}</template>
                 </el-table-column>
-                <el-table-column label="依据" width="140">
+                <el-table-column label="依据" width="160">
                     <template #default="{ row }">
-                        <span class="hint">
-                            {{ evidenceText(row.evidence) }}
-                        </span>
+                        <span class="text-xs text-ink-muted">{{ evidenceText(row.evidence) }}</span>
                     </template>
                 </el-table-column>
                 <template #empty>
-                    <el-empty
-                        description="还没有草稿：先选课程和知识点，再点「生成题目」"
-                        :image-size="80"
-                    />
+                    <div class="py-10 text-center text-sm text-ink-muted">还没有草稿：先选课程和知识点，再生成。</div>
                 </template>
             </el-table>
 
-            <div class="actions">
-                <el-button type="primary" :disabled="drafts.length === 0" :loading="saving" @click="saveToBank">
-                    存入题库
-                </el-button>
-                <el-button :disabled="drafts.length === 0" @click="drafts = []">清空</el-button>
+            <div class="flex items-center gap-2 border-t border-line px-4 py-3">
+                <button
+                    type="button"
+                    class="rounded-md bg-brand px-3 py-1.5 text-xs text-white disabled:opacity-40"
+                    :disabled="drafts.length === 0 || saving"
+                    @click="saveToBank"
+                >
+                    {{ saving ? '保存中…' : '存入题库' }}
+                </button>
+                <button
+                    type="button"
+                    class="rounded-md border border-line px-3 py-1.5 text-xs text-ink disabled:opacity-40"
+                    :disabled="drafts.length === 0"
+                    @click="drafts = []"
+                >
+                    清空
+                </button>
             </div>
-        </el-card>
+        </section>
     </div>
 </template>
+
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
@@ -220,20 +231,3 @@ onMounted(async () => {
     courses.value = data.records;
 });
 </script>
-
-<style scoped>
-.card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.block {
-    margin-top: var(--sl-s4);
-}
-.actions {
-    margin-top: var(--sl-s4);
-}
-.hint {
-    margin-top: var(--sl-s3);
-}
-</style>

@@ -1,50 +1,81 @@
 <template>
-    <div class="page sl-page">
-        <el-card>
-            <template #header>
-                <div class="card-header">
-                    <span>我的课程</span>
-                    <div>
-                        <el-input
-                            v-model="keyword"
-                            placeholder="按名称搜索"
-                            style="width: 200px; margin-right: 8px"
-                            clearable
-                            @keyup.enter="load"
-                        />
-                        <el-button @click="load">查询</el-button>
-                        <el-button type="primary" @click="openCreate">新建课程</el-button>
-                    </div>
-                </div>
-            </template>
-
-            <el-table :data="courses" v-loading="loading" border>
-                <el-table-column prop="name" label="课程" width="200" />
-                <el-table-column prop="description" label="简介" show-overflow-tooltip />
-                <el-table-column prop="createdAt" label="创建时间" width="180" />
-                <el-table-column label="操作" width="240">
-                    <template #default="{ row }">
-                        <el-button link type="primary" @click="openDetail(row)">章节与资料</el-button>
-                        <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
-                        <el-button link type="danger" @click="remove(row)">删除</el-button>
-                    </template>
-                </el-table-column>
-                <template #empty>
-                    <el-empty description="还没有课程，先建一门再上传资料" :image-size="80">
-                        <el-button type="primary" @click="openCreate">新建课程</el-button>
-                    </el-empty>
-                </template>
-            </el-table>
-
-            <el-pagination
-                class="pager"
-                layout="total, prev, pager, next"
-                :total="total"
-                :page-size="size"
-                :current-page="page"
-                @current-change="onPageChange"
+    <div class="mx-auto max-w-5xl">
+        <div class="mb-4 flex flex-wrap items-center gap-2">
+            <h1 class="mr-auto text-base font-semibold text-ink-strong">课程与资料</h1>
+            <input
+                v-model="keyword"
+                placeholder="按名称搜索"
+                class="h-9 w-52 rounded-md border border-line bg-reader px-3 text-sm outline-none focus:border-brand"
+                @keyup.enter="load"
             />
-        </el-card>
+            <button type="button" class="rounded-md border border-line px-3 py-2 text-sm hover:bg-surface-2" @click="load">
+                查询
+            </button>
+            <button type="button" class="rounded-md bg-brand px-3 py-2 text-sm text-white hover:opacity-90" @click="openCreate">
+                新建课程
+            </button>
+        </div>
+
+        <div class="overflow-hidden rounded-xl border border-line bg-surface">
+            <div class="overflow-x-auto">
+                <table class="w-full min-w-[640px] text-sm">
+                    <thead class="bg-surface-2 text-xs text-ink-muted">
+                        <tr>
+                            <th class="w-52 px-4 py-2.5 text-left font-medium">课程</th>
+                            <th class="px-3 py-2.5 text-left font-medium">简介</th>
+                            <th class="w-40 px-3 py-2.5 text-left font-medium">创建时间</th>
+                            <th class="w-44 px-3 py-2.5 text-right font-medium">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="row in courses" :key="row.id" class="border-t border-line-soft">
+                            <td class="px-4 py-3 font-medium text-ink">{{ row.name }}</td>
+                            <td class="max-w-[320px] truncate px-3 py-3 text-ink-muted">{{ row.description || '—' }}</td>
+                            <td class="px-3 py-3 text-xs text-ink-muted">{{ row.createdAt }}</td>
+                            <td class="px-3 py-3 text-right">
+                                <button type="button" class="mr-2 text-xs text-brand hover:underline" @click="openDetail(row)">
+                                    章节与资料
+                                </button>
+                                <button type="button" class="mr-2 text-xs text-ink-muted hover:underline" @click="openEdit(row)">编辑</button>
+                                <button type="button" class="text-xs text-danger hover:underline" @click="remove(row)">删除</button>
+                            </td>
+                        </tr>
+                        <tr v-if="!courses.length">
+                            <td colspan="4" class="px-4 py-12 text-center text-sm text-ink-muted">
+                                <p>还没有课程</p>
+                                <p class="mt-1 text-xs">先建一门，再上传资料</p>
+                                <button type="button" class="mt-3 rounded-md bg-brand px-3 py-1.5 text-xs text-white" @click="openCreate">
+                                    新建课程
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="flex items-center justify-between border-t border-line px-4 py-3 text-xs text-ink-muted">
+                <span>共 {{ total }} 门</span>
+                <div class="flex items-center gap-2">
+                    <button
+                        type="button"
+                        class="rounded-md border border-line px-2.5 py-1 disabled:opacity-40"
+                        :disabled="page <= 1"
+                        @click="onPageChange(page - 1)"
+                    >
+                        上一页
+                    </button>
+                    <span>{{ page }}</span>
+                    <button
+                        type="button"
+                        class="rounded-md border border-line px-2.5 py-1 disabled:opacity-40"
+                        :disabled="page * size >= total"
+                        @click="onPageChange(page + 1)"
+                    >
+                        下一页
+                    </button>
+                </div>
+            </div>
+        </div>
+
 
         <!-- 新建 / 编辑课程 -->
         <el-dialog v-model="formVisible" :title="form.id ? '编辑课程' : '新建课程'" width="480px">
