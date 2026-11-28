@@ -1,11 +1,7 @@
 <template>
     <div class="tools">
         <header class="head">
-            <p class="eyebrow">Index / 资料与工具</p>
             <h1>工具与资料</h1>
-            <p class="dek">
-                上传资料、维护题库、出题与完整统计都在这里。日常复习只需要「概览」和「做题」。
-            </p>
         </header>
 
         <section v-for="group in groups" :key="group.title" class="group">
@@ -46,29 +42,29 @@ const groups = computed(() => {
         {
             title: '资料与题目',
             items: [
-                { path: '/courses', title: '课程与资料', desc: '上传 PDF / 图片，解析并抽取知识点' },
-                { path: '/questions', title: '题库', desc: '查看、编辑和删除题目' },
-                { path: '/exams', title: '真题', desc: '导入历年真题，统计考点分布' }
+                { path: '/courses', title: '课程与资料', desc: '资料上传与解析' },
+                { path: '/questions', title: '题库', desc: '题目维护' },
+                { path: '/exams', title: '真题', desc: '历年真题' }
             ]
         },
         {
             title: '练习与预测',
             items: [
-                { path: '/quiz', title: '自测', desc: '按课程生成一份试卷，限时作答' },
-                { path: '/ai', title: 'AI 出题', desc: '按知识点生成题目草稿并入库' },
-                { path: '/predict', title: '预测卷', desc: '按权重和真题频率生成预测卷' }
+                { path: '/quiz', title: '自测', desc: '生成自测卷' },
+                { path: '/ai', title: 'AI 出题', desc: '按知识点出题' },
+                { path: '/predict', title: '预测卷', desc: '生成预测卷' }
             ]
         },
         {
             title: '数据',
-            items: [{ path: '/stats', title: '统计', desc: '覆盖率、掌握度、薄弱知识点与趋势' }]
+            items: [{ path: '/stats', title: '统计', desc: '覆盖率与掌握度' }]
         }
     ];
 
     if (isAdmin) {
         raw.push({
             title: '系统',
-            items: [{ path: '/admin', title: '用户管理', desc: '账号状态与 AI 配置' }]
+            items: [{ path: '/admin', title: '用户管理', desc: '账号与 AI 配置' }]
         });
     }
 

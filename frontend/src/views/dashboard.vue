@@ -6,25 +6,14 @@
             <header class="lede">
                 <div class="lede-meta">
                     <span class="eyebrow">{{ today }}</span>
-                    <span class="mono">Study log / {{ year }}</span>
                 </div>
 
                 <h1 v-if="dueCount" class="headline">
-                    今天还有 <em>{{ dueCount }}</em> 道题<br />需要复习
+                    今天还有 <em>{{ dueCount }}</em> 道题
                 </h1>
-                <h1 v-else class="headline">今天已经复习完了</h1>
+                <h1 v-else class="headline">今天没有到期题目</h1>
 
-                <p class="dek">
-                    <template v-if="dueCount && pendingCount">
-                        涉及 {{ pendingCount }} 个到期知识点。按 1 / 3 / 7 / 14 天的间隔推进，答错会回到起点。
-                    </template>
-                    <template v-else-if="dueCount">
-                        按 1 / 3 / 7 / 14 天的间隔推进，答错会回到起点。
-                    </template>
-                    <template v-else>
-                        没有到期的题。可以再做一组自测，或者去补一些新题。
-                    </template>
-                </p>
+                <p v-if="pendingCount" class="dek">{{ pendingCount }} 个知识点到期。</p>
 
                 <div class="lede-actions">
                     <button v-if="dueCount" type="button" class="cta" @click="router.push('/practice')">
@@ -69,13 +58,6 @@
                 <p v-else class="empty-note">还没有复习记录。做完第一组题，这里会长出第一条曲线。</p>
             </section>
 
-            <aside class="rhythm">
-                <span class="mono">Rhythm</span>
-                <p>
-                    答对一次，下次出现在 <b>1</b> 天后，然后 <b>3</b>、<b>7</b>、<b>14</b> 天；
-                    答错就回到起点。间隔会随掌握度调整，不是固定日历。
-                </p>
-            </aside>
         </template>
     </div>
 </template>
@@ -102,7 +84,6 @@ const overview = ref<any>({
 
 const dueCount = computed(() => questions.value.length);
 const pendingCount = computed(() => pending.value.length);
-const year = new Date().getFullYear();
 
 const today = new Date().toLocaleDateString('zh-CN', {
     month: 'long',
@@ -318,26 +299,6 @@ onMounted(load);
     color: var(--sl-muted);
 }
 
-.rhythm {
-    display: grid;
-    grid-template-columns: 120px 1fr;
-    gap: 24px;
-    margin-top: 64px;
-    padding-top: 24px;
-    border-top: 1px solid var(--sl-border);
-}
-.rhythm p {
-    max-width: 620px;
-    margin: 0;
-    font-family: var(--sl-font-display);
-    font-size: 17px;
-    line-height: 1.9;
-    color: var(--sl-text-secondary);
-}
-.rhythm b {
-    font-weight: 500;
-    color: var(--sl-text);
-}
 
 @media (max-width: 780px) {
     .dash {
@@ -356,11 +317,6 @@ onMounted(load);
     }
     .stat b {
         font-size: 34px;
-    }
-    .rhythm {
-        grid-template-columns: 1fr;
-        gap: 12px;
-        margin-top: 40px;
     }
 }
 </style>
