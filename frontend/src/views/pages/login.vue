@@ -1,111 +1,120 @@
 <template>
-    <div class="auth">
-        <header class="auth-head">
-            <router-link to="/login" class="brand">CMMR</router-link>
-        </header>
-
-        <main class="auth-main">
-            <div class="tabs">
-                <router-link to="/login" class="tab" :class="{ active: !registerMode }">登录</router-link>
-                <span class="slash">/</span>
-                <router-link to="/register" class="tab" :class="{ active: registerMode }">注册</router-link>
+    <div class="login-page flex min-h-screen flex-col items-center justify-center gap-6 bg-canvas p-6 font-sans text-base text-ink">
+        <div class="grid w-full max-w-2xl overflow-hidden rounded-xl bg-tint-blue shadow-sm sm:grid-cols-[1fr_1.1fr]">
+            <div class="flex flex-col justify-center p-6 sm:p-8">
+                <h1 class="text-xl font-semibold tracking-tight text-brand">CMMR</h1>
+                <p class="mt-2 text-sm text-ink-muted">课程资料与错题复习</p>
             </div>
 
-            <h1>{{ registerMode ? '注册' : '登录' }}</h1>
+            <div class="bg-surface p-6 sm:p-8">
+                <div class="mb-5 flex items-center gap-2 text-xs text-ink-muted">
+                    <button
+                        type="button"
+                        class="rounded-sm outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-focus"
+                        :class="{ 'font-medium text-ink': !registerMode }"
+                        @click="switchMode(false)"
+                    >
+                        登录
+                    </button>
+                    <span class="text-line">/</span>
+                    <button
+                        type="button"
+                        class="rounded-sm outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-focus"
+                        :class="{ 'font-medium text-ink': registerMode }"
+                        @click="switchMode(true)"
+                    >
+                        注册
+                    </button>
+                </div>
 
-            <el-form
-                ref="loginRef"
-                :model="form"
-                :rules="rules"
-                label-position="top"
-                hide-required-asterisk
-                class="form"
-                @submit.prevent
-            >
-                <label class="field-label" for="username">用户名</label>
-                <el-form-item prop="username">
-                    <el-input
-                        id="username"
-                        v-model.trim="form.username"
-                        size="large"
-                        placeholder="用户名"
-                        autocomplete="username"
-                    />
-                </el-form-item>
-
-                <template v-if="registerMode">
-                    <label class="field-label" for="nickname">昵称</label>
-                    <el-form-item prop="nickname">
-                        <el-input id="nickname" v-model.trim="form.nickname" size="large" placeholder="昵称（可留空）" />
-                    </el-form-item>
-                </template>
-
-                <label class="field-label" for="password">密码</label>
-                <el-form-item prop="password">
-                    <el-input
-                        id="password"
-                        v-model="form.password"
-                        type="password"
-                        size="large"
-                        show-password
-                        :placeholder="registerMode ? '至少 6 位' : '密码'"
-                        :autocomplete="registerMode ? 'new-password' : 'current-password'"
-                        @keyup.enter="submit"
-                    />
-                </el-form-item>
-
-                <template v-if="registerMode">
-                    <label class="field-label" for="confirm">确认密码</label>
-                    <el-form-item prop="confirm">
-                        <el-input
-                            id="confirm"
-                            v-model="form.confirm"
-                            type="password"
-                            size="large"
-                            show-password
-                            placeholder="再输入一次"
-                            autocomplete="new-password"
+                <form class="flex flex-col gap-4" novalidate @submit.prevent="submit">
+                    <div class="flex flex-col gap-1.5">
+                        <Label for="username" class="text-xs text-ink-muted">用户名</Label>
+                        <Input
+                            id="username"
+                            v-model.trim="form.username"
+                            autocomplete="username"
+                            placeholder="输入用户名"
+                            class="bg-reader"
                             @keyup.enter="submit"
                         />
-                    </el-form-item>
-                </template>
+                    </div>
 
-                <button type="button" class="submit" :disabled="loading" @click="submit">
-                    {{ loading ? '处理中…' : registerMode ? '注册' : '登录' }}
-                </button>
-            </el-form>
+                    <div v-if="registerMode" class="flex flex-col gap-1.5">
+                        <Label for="nickname" class="text-xs text-ink-muted">昵称（可留空）</Label>
+                        <Input id="nickname" v-model.trim="form.nickname" placeholder="昵称" class="bg-reader" />
+                    </div>
 
-            <div v-if="!registerMode" class="demo">
-                <span>演示账号</span>
-                <code>admin / 123456</code>
-                <button type="button" class="fill" @click="fillDemo">填入</button>
+                    <div class="flex flex-col gap-1.5">
+                        <Label for="password" class="text-xs text-ink-muted">密码</Label>
+                        <Input
+                            id="password"
+                            v-model="form.password"
+                            :type="showPassword ? 'text' : 'password'"
+                            :autocomplete="registerMode ? 'new-password' : 'current-password'"
+                            :placeholder="registerMode ? '至少 6 位' : '输入密码'"
+                            class="bg-reader"
+                            @keyup.enter="submit"
+                        />
+                    </div>
+
+                    <div v-if="registerMode" class="flex flex-col gap-1.5">
+                        <Label for="confirm" class="text-xs text-ink-muted">确认密码</Label>
+                        <Input
+                            id="confirm"
+                            v-model="form.confirm"
+                            :type="showPassword ? 'text' : 'password'"
+                            autocomplete="new-password"
+                            placeholder="再输入一次"
+                            class="bg-reader"
+                            @keyup.enter="submit"
+                        />
+                    </div>
+
+                    <button
+                        type="button"
+                        class="-mt-1 self-start text-xs text-ink-muted outline-none hover:text-ink"
+                        @click="showPassword = !showPassword"
+                    >
+                        {{ showPassword ? '隐藏密码' : '显示密码' }}
+                    </button>
+
+                    <p v-if="errorMsg" class="rounded-md bg-danger-soft px-3 py-2 text-sm text-danger" role="alert">
+                        {{ errorMsg }}
+                    </p>
+
+                    <Button type="submit" class="w-full" :disabled="loading">
+                        {{ loading ? '处理中…' : registerMode ? '注册' : '登录' }}
+                    </Button>
+                </form>
+
+                <div v-if="!registerMode" class="mt-5 flex items-center gap-2 border-t border-line-soft pt-4 text-xs text-ink-muted">
+                    <span>演示账号</span>
+                    <code class="font-mono text-ink">admin / 123456</code>
+                    <button type="button" class="ml-auto text-brand outline-none hover:underline" @click="fillDemo">
+                        填入
+                    </button>
+                </div>
             </div>
+        </div>
 
-            <p class="switch">
-                <router-link :to="registerMode ? '/login' : '/register'" class="switch-link">
-                    {{ registerMode ? '返回登录' : '注册账号' }}
-                </router-link>
-            </p>
-        </main>
-
-        <footer class="auth-foot">
-            <span>CMMR</span>
-            <span class="mono">{{ year }}</span>
-        </footer>
+        <p class="text-xs text-ink-subtle">CMMR · {{ year }}</p>
     </div>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue';
+import { reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
-import type { FormInstance, FormRules } from 'element-plus';
 import { login, register } from '@/api';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const router = useRouter();
 const route = useRoute();
-const loginRef = ref<FormInstance>();
 const loading = ref(false);
+const showPassword = ref(false);
+const errorMsg = ref('');
 const registerMode = ref(route.path === '/register');
 const year = new Date().getFullYear();
 
@@ -116,45 +125,19 @@ const form = reactive({
     confirm: ''
 });
 
-const rules = computed<FormRules>(() => ({
-    username: [
-        { required: true, message: '请输入用户名', trigger: 'blur' },
-        ...(registerMode.value
-            ? [{ min: 3, max: 20, message: '用户名长度 3–20 位', trigger: 'blur' }]
-            : [])
-    ],
-    password: [
-        { required: true, message: '请输入密码', trigger: 'blur' },
-        ...(registerMode.value
-            ? [{ min: 6, max: 32, message: '密码至少 6 位', trigger: 'blur' }]
-            : [])
-    ],
-    confirm: registerMode.value
-        ? [
-              { required: true, message: '请再输入一次密码', trigger: 'blur' },
-              {
-                  validator: (_rule: unknown, value: string, callback: (error?: Error) => void) => {
-                      if (value !== form.password) {
-                          callback(new Error('两次输入的密码不一致'));
-                          return;
-                      }
-                      callback();
-                  },
-                  trigger: 'blur'
-              }
-          ]
-        : []
-}));
-
 watch(
     () => route.path,
     path => {
         registerMode.value = path === '/register';
+        errorMsg.value = '';
         form.password = '';
         form.confirm = '';
-        loginRef.value?.clearValidate();
     }
 );
+
+const switchMode = (registering: boolean) => {
+    router.push(registering ? '/register' : '/login');
+};
 
 const rememberUser = (data: any) => {
     localStorage.setItem('token', data.token);
@@ -170,11 +153,17 @@ const rememberUser = (data: any) => {
 };
 
 const submit = async () => {
-    if (!loginRef.value) {
+    errorMsg.value = '';
+    if (!form.username || !form.password) {
+        errorMsg.value = '请输入用户名和密码';
         return;
     }
-    const valid = await loginRef.value.validate().catch(() => false);
-    if (!valid) {
+    if (registerMode.value && form.password.length < 6) {
+        errorMsg.value = '密码至少 6 位';
+        return;
+    }
+    if (registerMode.value && form.password !== form.confirm) {
+        errorMsg.value = '两次输入的密码不一致';
         return;
     }
 
@@ -188,16 +177,14 @@ const submit = async () => {
             });
             const data = await login({ username: form.username, password: form.password });
             rememberUser(data);
-            ElMessage.success('注册成功，已登录');
         } else {
             const data = await login({ username: form.username, password: form.password });
             rememberUser(data);
-            ElMessage.success('登录成功');
         }
         (document.activeElement as HTMLElement)?.blur();
         router.push('/dashboard');
-    } catch (e) {
-        // 错误提示由请求拦截器统一处理
+    } catch (e: any) {
+        errorMsg.value = e?.response?.data?.message || e?.message || '登录失败';
     } finally {
         loading.value = false;
     }
@@ -206,182 +193,6 @@ const submit = async () => {
 const fillDemo = () => {
     form.username = 'admin';
     form.password = '123456';
-    loginRef.value?.clearValidate();
+    errorMsg.value = '';
 };
 </script>
-
-<style scoped>
-.auth {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    padding: 0 40px;
-    animation: page-in 520ms cubic-bezier(0.16, 0.84, 0.3, 1) both;
-}
-
-.auth-head {
-    display: flex;
-    align-items: center;
-    height: var(--sl-header-h);
-    border-bottom: 1px solid var(--sl-border);
-}
-.brand {
-    font-family: var(--sl-font-display);
-    font-size: 24px;
-    letter-spacing: -0.02em;
-    color: var(--sl-text);
-    text-decoration: none;
-}
-
-.auth-main {
-    width: 100%;
-    max-width: 380px;
-    margin: 72px auto 0;
-}
-
-.tabs {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--sl-line-strong);
-}
-.tab {
-    font-family: var(--sl-font-mono);
-    font-size: 11px;
-    letter-spacing: 0.1em;
-    color: var(--sl-muted);
-    text-decoration: none;
-}
-.tab.active {
-    color: var(--sl-primary);
-}
-.slash {
-    color: var(--sl-border);
-}
-
-.auth-main h1 {
-    margin: 28px 0 30px;
-    font-size: 34px;
-    font-weight: 400;
-    letter-spacing: -0.02em;
-}
-
-.field-label {
-    display: block;
-    margin-bottom: 6px;
-    font-family: var(--sl-font-mono);
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    color: var(--sl-muted);
-}
-.form :deep(.el-form-item) {
-    margin-bottom: 18px;
-}
-.form :deep(.el-input__wrapper) {
-    padding: 1px 0;
-    border-radius: 0;
-    background-color: transparent !important;
-    background: transparent !important;
-    box-shadow: none;
-    border-bottom: 1px solid var(--sl-line-strong);
-    transition: border-color 0.18s ease;
-}
-.form :deep(.el-input__wrapper:hover),
-.form :deep(.el-input__wrapper.is-focus) {
-    box-shadow: none;
-    border-bottom-color: var(--sl-primary);
-}
-.form :deep(.el-input__inner) {
-    height: 40px;
-    background: transparent;
-}
-.form :deep(.el-form-item__error) {
-    padding-top: 5px;
-    font-size: 11px;
-    color: var(--sl-danger);
-}
-
-.submit {
-    width: 100%;
-    margin-top: 10px;
-    padding: 14px 18px;
-    font-family: var(--sl-font-ui);
-    font-size: 14px;
-    color: var(--sl-surface);
-    background: var(--sl-text);
-    border: 1px solid var(--sl-text);
-    cursor: pointer;
-    transition: background 0.2s ease, border-color 0.2s ease;
-}
-.submit:hover:not(:disabled) {
-    background: var(--sl-primary);
-    border-color: var(--sl-primary);
-}
-.submit:disabled {
-    opacity: 0.5;
-    cursor: default;
-}
-
-.demo {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 24px;
-    padding-top: 14px;
-    font-size: 12px;
-    color: var(--sl-muted);
-    border-top: 1px solid var(--sl-border);
-}
-.demo code {
-    font-family: var(--sl-font-mono);
-    font-size: 11px;
-    color: var(--sl-text-secondary);
-}
-.fill {
-    margin-left: auto;
-    padding: 0;
-    font-size: 12px;
-    color: var(--sl-primary);
-    background: none;
-    border: 0;
-    cursor: pointer;
-}
-
-.switch {
-    margin: 18px 0 0;
-    font-size: 12px;
-    text-align: left;
-}
-.switch-link {
-    color: var(--sl-text-secondary);
-    text-decoration: none;
-    border-bottom: 1px solid var(--sl-border);
-}
-.switch-link:hover {
-    color: var(--sl-primary);
-    border-color: var(--sl-primary);
-}
-
-.auth-foot {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    max-width: var(--sl-content-w);
-    margin: auto auto 0;
-    padding: 22px 0 30px;
-    font-size: 12px;
-    color: var(--sl-muted);
-    border-top: 1px solid var(--sl-border);
-}
-
-@media (max-width: 640px) {
-    .auth {
-        padding: 0 20px;
-    }
-    .auth-main {
-        margin-top: 40px;
-    }
-}
-</style>

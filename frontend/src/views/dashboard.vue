@@ -1,64 +1,66 @@
 <template>
-    <div class="dash">
-        <el-skeleton v-if="loading" :rows="6" animated />
+    <div class="mx-auto max-w-5xl">
+        <div class="mb-5 flex items-end justify-between gap-4">
+            <div>
+                <p class="text-xs text-ink-muted">{{ today }}</p>
+                <h1 class="mt-1 text-2xl font-semibold tracking-tight text-ink-strong">概览</h1>
+            </div>
+            <span class="text-xs text-ink-muted">待复习 {{ dueCount }} 题</span>
+        </div>
 
-        <template v-else>
-            <header class="lede">
-                <div class="lede-meta">
-                    <span class="eyebrow">{{ today }}</span>
-                </div>
+        <section class="rounded-xl border border-line bg-surface p-6">
+            <p class="text-sm text-ink-muted">今天</p>
+            <h2 class="mt-2 text-3xl font-semibold tracking-tight text-ink-strong">
+                还有 {{ dueCount }} 道题
+            </h2>
+            <p v-if="pendingCount" class="mt-2 text-sm text-ink-muted">{{ pendingCount }} 个知识点到期。</p>
+            <div class="mt-5 flex items-center gap-3">
+                <RouterLink
+                    to="/practice"
+                    class="inline-flex h-9 items-center rounded-md bg-brand px-4 text-sm font-medium text-white no-underline hover:opacity-90"
+                >
+                    开始复习
+                </RouterLink>
+                <RouterLink
+                    to="/tools"
+                    class="inline-flex h-9 items-center rounded-md border border-line px-4 text-sm text-ink no-underline hover:bg-surface-2"
+                >
+                    资料与工具
+                </RouterLink>
+            </div>
+        </section>
 
-                <h1 v-if="dueCount" class="headline">
-                    今天还有 <em>{{ dueCount }}</em> 道题
-                </h1>
-                <h1 v-else class="headline">今天没有到期题目</h1>
+        <section class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="rounded-xl border border-line bg-surface p-4">
+                <p class="text-xs text-ink-muted">已掌握</p>
+                <p class="mt-2 text-2xl font-semibold text-ink-strong">{{ overview.masteredQuestions }}</p>
+                <p class="text-xs text-ink-subtle">个知识点</p>
+            </div>
+            <div class="rounded-xl border border-line bg-surface p-4">
+                <p class="text-xs text-ink-muted">今天已复习</p>
+                <p class="mt-2 text-2xl font-semibold text-ink-strong">{{ overview.reviewedToday }}</p>
+                <p class="text-xs text-ink-subtle">道题</p>
+            </div>
+            <div class="rounded-xl border border-line bg-surface p-4">
+                <p class="text-xs text-ink-muted">题库题量</p>
+                <p class="mt-2 text-2xl font-semibold text-ink-strong">{{ overview.totalQuestions }}</p>
+                <p class="text-xs text-ink-subtle">道</p>
+            </div>
+            <div class="rounded-xl border border-line bg-surface p-4">
+                <p class="text-xs text-ink-muted">连续复习</p>
+                <p class="mt-2 text-2xl font-semibold text-ink-strong">{{ overview.streakDays }}</p>
+                <p class="text-xs text-ink-subtle">天</p>
+            </div>
+        </section>
 
-                <p v-if="pendingCount" class="dek">{{ pendingCount }} 个知识点到期。</p>
-
-                <div class="lede-actions">
-                    <button v-if="dueCount" type="button" class="cta" @click="router.push('/practice')">
-                        开始复习 <span aria-hidden="true">→</span>
-                    </button>
-                    <button v-else type="button" class="cta" @click="router.push('/quiz')">
-                        做一组自测 <span aria-hidden="true">→</span>
-                    </button>
-                    <button type="button" class="ghost" @click="router.push('/tools')">资料与工具</button>
-                </div>
-            </header>
-
-            <section class="stats reveal">
-                <div class="stat">
-                    <span class="stat-label">已掌握</span>
-                    <b>{{ overview.masteredQuestions }}</b>
-                    <span class="stat-unit">个知识点</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-label">今天已复习</span>
-                    <b>{{ overview.reviewedToday }}</b>
-                    <span class="stat-unit">道题</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-label">题库题量</span>
-                    <b>{{ overview.totalQuestions }}</b>
-                    <span class="stat-unit">道</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-label">连续复习</span>
-                    <b>{{ overview.streakDays }}</b>
-                    <span class="stat-unit">天</span>
-                </div>
-            </section>
-
-            <section class="trend">
-                <div class="section-head">
-                    <h2>最近 14 天</h2>
-                    <span class="mono">复习次数 / 正确率</span>
-                </div>
-                <base-chart v-if="trend.length" :option="trendOption" height="240px" />
-                <p v-else class="empty-note">还没有复习记录。做完第一组题，这里会长出第一条曲线。</p>
-            </section>
-
-        </template>
+        <section class="mt-4 rounded-xl border border-line bg-surface p-5">
+            <div class="mb-3 flex items-center justify-between">
+                <h2 class="text-sm font-medium text-ink">最近 14 天</h2>
+                <span class="text-xs text-ink-muted">复习次数 / 正确率</span>
+            </div>
+            <BaseChart v-if="trend.length" :option="trendOption" height="240px" />
+            <p v-else class="py-10 text-center text-sm text-ink-muted">还没有复习记录。</p>
+        </section>
     </div>
 </template>
 
@@ -97,21 +99,21 @@ const trendOption = computed(() => ({
     xAxis: {
         type: 'category',
         data: trend.value.map((t: any) => t.statDate?.slice(5) ?? ''),
-        axisLine: { lineStyle: { color: '#ddd3c1' } },
+        axisLine: { lineStyle: { color: '#e5e7eb' } },
         axisTick: { show: false },
-        axisLabel: { color: '#8b8172', fontSize: 10, fontFamily: 'ui-monospace, monospace' }
+        axisLabel: { color: '#6b7280', fontSize: 10, fontFamily: 'ui-monospace, monospace' }
     },
     yAxis: [
         {
             type: 'value',
-            splitLine: { lineStyle: { color: '#e8dfcf', type: 'dotted' } },
-            axisLabel: { color: '#8b8172', fontSize: 10 }
+            splitLine: { lineStyle: { color: '#eef0f4', type: 'dotted' } },
+            axisLabel: { color: '#6b7280', fontSize: 10 }
         },
         {
             type: 'value',
             min: 0,
             max: 1,
-            axisLabel: { formatter: (v: number) => `${Math.round(v * 100)}%`, color: '#8b8172', fontSize: 10 },
+            axisLabel: { formatter: (v: number) => `${Math.round(v * 100)}%`, color: '#6b7280', fontSize: 10 },
             splitLine: { show: false }
         }
     ],
@@ -120,7 +122,7 @@ const trendOption = computed(() => ({
             name: '复习次数',
             type: 'bar',
             barMaxWidth: 14,
-            itemStyle: { color: '#e0d3bd' },
+            itemStyle: { color: '#dbe4ff' },
             data: trend.value.map((t: any) => t.reviewCount)
         },
         {
@@ -130,8 +132,8 @@ const trendOption = computed(() => ({
             smooth: true,
             symbol: 'circle',
             symbolSize: 5,
-            lineStyle: { width: 1.5, color: '#5f023e' },
-            itemStyle: { color: '#5f023e' },
+            lineStyle: { width: 1.5, color: '#4c6ef5' },
+            itemStyle: { color: '#4c6ef5' },
             data: trend.value.map((t: any) => t.accuracy ?? 0)
         }
     ]
@@ -157,166 +159,3 @@ const load = async () => {
 onMounted(load);
 </script>
 
-<style scoped>
-.dash {
-    padding-top: 64px;
-}
-
-.lede-meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    padding-bottom: 14px;
-    border-bottom: 1px solid var(--sl-line-strong);
-}
-
-.headline {
-    margin: 34px 0 0;
-    font-size: clamp(38px, 5vw, 58px);
-    line-height: 1.12;
-    font-weight: 400;
-    letter-spacing: -0.025em;
-    color: var(--sl-text);
-}
-.headline em {
-    font-style: italic;
-    color: var(--sl-primary);
-}
-
-.dek {
-    max-width: 560px;
-    margin: 18px 0 0;
-    font-size: 15px;
-    line-height: 1.9;
-    color: var(--sl-text-secondary);
-}
-
-.lede-actions {
-    display: flex;
-    align-items: center;
-    gap: 22px;
-    margin-top: 30px;
-}
-
-.cta {
-    display: inline-flex;
-    align-items: center;
-    gap: 14px;
-    padding: 14px 22px;
-    font-family: var(--sl-font-body);
-    font-size: 14px;
-    letter-spacing: 0.02em;
-    color: var(--sl-surface);
-    background: var(--sl-text);
-    border: 1px solid var(--sl-text);
-    cursor: pointer;
-    transition: background 0.2s ease, border-color 0.2s ease;
-}
-.cta span {
-    transition: transform 0.24s ease;
-}
-.cta:hover {
-    background: var(--sl-primary);
-    border-color: var(--sl-primary);
-}
-.cta:hover span {
-    transform: translateX(4px);
-}
-
-.ghost {
-    padding: 0 0 3px;
-    font-family: var(--sl-font-body);
-    font-size: 13px;
-    color: var(--sl-text-secondary);
-    background: none;
-    border: 0;
-    border-bottom: 1px solid var(--sl-line-strong);
-    cursor: pointer;
-    transition: color 0.2s ease, border-color 0.2s ease;
-}
-.ghost:hover {
-    color: var(--sl-primary);
-    border-color: var(--sl-primary);
-}
-
-.stats {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    margin-top: 64px;
-    border-top: 1px solid var(--sl-line-strong);
-    border-bottom: 1px solid var(--sl-border);
-}
-.stat {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding: 26px 24px 24px 0;
-}
-.stat + .stat {
-    padding-left: 24px;
-    border-left: 1px solid var(--sl-border);
-}
-.stat-label {
-    font-family: var(--sl-font-mono);
-    font-size: 10px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--sl-muted);
-}
-.stat b {
-    font-family: var(--sl-font-display);
-    font-size: 44px;
-    font-weight: 400;
-    line-height: 1;
-    color: var(--sl-text);
-    font-variant-numeric: tabular-nums;
-}
-.stat-unit {
-    font-size: 12px;
-    color: var(--sl-muted);
-}
-
-.trend {
-    margin-top: 56px;
-}
-.section-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    padding-bottom: 14px;
-    border-bottom: 1px solid var(--sl-line-strong);
-}
-.section-head h2 {
-    margin: 0;
-    font-size: 24px;
-    font-weight: 400;
-}
-.empty-note {
-    margin: 26px 0 0;
-    font-family: var(--sl-font-display);
-    font-size: 17px;
-    line-height: 1.8;
-    color: var(--sl-muted);
-}
-
-
-@media (max-width: 780px) {
-    .dash {
-        padding-top: 36px;
-    }
-    .stats {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        margin-top: 40px;
-    }
-    .stat {
-        padding: 20px 16px 18px 0;
-    }
-    .stat:nth-child(odd) {
-        border-left: 0;
-        padding-left: 0;
-    }
-    .stat b {
-        font-size: 34px;
-    }
-}
-</style>

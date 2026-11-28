@@ -1,0 +1,24 @@
+@layer legacy, theme, base, components, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "./quizzy-tokens.css";
+
+/* 没引 preflight：给新页面里的裸 button 一个中性底，避免浏览器默认边框 */
+@layer base {
+  button {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+  }
+}
+
+/* 新外壳里的标题不再继承旧编辑部的衬线字体 */
+.app-ui h1,
+.app-ui h2,
+.app-ui h3 {
+  font-family: var(--font-sans);
+}

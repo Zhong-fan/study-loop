@@ -12,6 +12,3 @@ import { useThemeStore } from './store/theme';
 const theme = useThemeStore();
 theme.initTheme();
 </script>
-<style>
-@import './assets/css/main.css';
-</style>

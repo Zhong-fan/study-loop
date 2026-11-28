@@ -1,0 +1,301 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Quizzy 设计 token（唯一真相源 · 第二版，2026-10-08）
+
+   本文件分**两节**，读的时候别混：
+
+     第一节 `@theme static { … }`  —— **我们的 token**。颜色 / 形状 / 字体 / 字阶 /
+                                     阴影 / 动效的真实值都在这。
+     第二节 `:root { … }` + `@theme inline`  —— **翻译给 shadcn-vue 的组件用**，
+                                     只做映射、不写颜色值。
+
+   ⚠️ **改颜色、改圆角、改字体 → 只改第一节。** 在第二节写死颜色 = 又造一份真相。
+
+   ── 引入方式（2026-10-08 起）──────────────────────────────────────────────
+   ⚠️ 本文件**不再自带 `@import "tailwindcss"`**——由入口决定引入哪几层：
+     · `src/styles/preview.css`：完整（theme + preflight + utilities + base）——预览页独立可用；
+     · `src/styles/app.css`：**过渡期**只引 theme + utilities（**不引 preflight / base**），
+       直到 Element Plus 退场（ADR 0031 的迁移里程碑）再换成完整引入。
+   理由：preflight 与 base 会全局重置，一进来就打乱未迁移的页面；拆开才能两套体系安全共存。
+   ⚠️ 另：shadcn-vue CLI 跑 `add` 会**回灌**「Inter 远程字体 + 文件尾 base 层」——跑完要手动删
+      （Web 字体禁引，见第一节；base 层归 `base.css`）。
+
+   ── 第二版改了什么（依据主人在 2026-10-08 的口味四问 + 一次改口）────────────
+     ① 冷中性：色相从暖（85）挪到冷（250–265）。
+     ② 宽松：字阶**配了行高**（正文 1.75），圆角整体调大一档。
+     ③ **L3 大面积彩色面**：页面底、区块、卡片**都带颜色**（新增 `--color-tint-*`）。
+        ⚠️ 但**留一处近白** —— `--color-reader`，专门给"读长文字的那块"（题干 / 解析）。
+        它是有意命名的：**以后谁也别把那一层上色**。
+     ④ 柔和阴影：不透明度提高、扩散加大，且**用冷调色相**（不是纯黑）。
+     ⑤ 挑版落定（同日稍晚）：色板**保留手写 5 色**（不升「由主色派生」的 Material 体系）；
+        主色**锁定蓝**；语义色补 **soft 浅底**三枚，状态色首次成对。
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ⚠️ `tailwindcss` 与 `tw-animate-css` 的引入已移到入口文件（见文件头的「引入方式」）。 */
+
+/* shadcn 的 `dark:` 变体约定：认 `<html class="dark">` 之下的元素 */
+@custom-variant dark (&:is(.dark *));
+
+/* ═══════════════════════ 第一节 · 我们的 token（唯一真相源）═══════════════════ */
+@theme static {
+  /* ── 面（L3：这些层**都带颜色**，但都保持高亮度、低彩度——有颜色而不打架）── */
+  --color-canvas:     oklch(96.5% 0.012 250); /* 页面底：冷调浅面 */
+  --color-surface:    oklch(99% 0.005 250);   /* 卡片 / 内容面：近白冷调 */
+  --color-surface-2:  oklch(94% 0.02 250);    /* 次级面：悬停 / 交替带 */
+
+  /* **有色区块面**：给不同区块上色（分类 / 分区 / 强调块）。这是"受控色板"——
+     5 个固定色，不许随手再加第 6 个。
+     ⚠️ 用法口径（2026-10-08 挑版定）：**蓝 = 默认容器色**（登录 / 结果这类表达型页面的
+        大块容器）；其余四色留给分区与装饰。 */
+  --color-tint-blue:   oklch(94.5% 0.035 255);
+  --color-tint-cyan:   oklch(95% 0.035 205);
+  --color-tint-violet: oklch(94.5% 0.035 300);
+  --color-tint-green:  oklch(95% 0.035 155);
+  --color-tint-amber:  oklch(96% 0.04 85);
+
+  /* ⚠️ **阅读面**：读长文字的那一层（题干 / 解析）。**有意留近白、不许上色**——
+     刷题时绝大多数时间在盯它，那是唯一该"干净"的地方。 */
+  --color-reader: oklch(100% 0 0);
+
+  /* ── 线 ── */
+  --color-line:      oklch(89% 0.015 250); /* 结构边框 / 分隔线 */
+  --color-line-soft: oklch(93% 0.01 250);  /* 更弱的分隔 */
+
+  /* ── 字 ── */
+  --color-ink-strong: oklch(16% 0.02 265);  /* 最重的字：底栏昵称等要有「纯黑感」的强调（2026-10-08 主人拍板） */
+  --color-ink:        oklch(23% 0.025 265); /* 正文 / 标题 */
+  --color-ink-muted:  oklch(48% 0.025 265); /* 次要文字 */
+  --color-ink-subtle: oklch(62% 0.02 265);  /* 占位符 / 辅助说明。
+     ⚠️ 用法口径（2026-10-08 定）：本档在任何浅面上只有 3.0–3.6:1，**只用于大字（≥19px 粗体）/ 装饰**；
+        有信息量的小字一律用 --color-ink-muted（全浅面 ≥5.4，达小字 AA）。 */
+
+  /* ── 主色与语义色 ──
+     ⚠️ **对 / 错不许只靠颜色**表达（2026-10-08 定）：必须同时给文字或图标
+        （"你的答案 / 正确答案"、对勾 / 叉）——色盲与高对比模式下才读得出来。
+     ok / warn / danger 各配一枚 **soft 浅底**（状态色的"容器面"）：**浅底上的小字用 ink**
+     （状态色本体达不到小字 AA）；别再写 `bg-ok/12` 这类临时透明度。 */
+  --color-brand:       oklch(55% 0.18 262);  /* 主色 */
+  --color-brand-soft:  oklch(93% 0.045 262); /* 主色的浅底 */
+  --color-brand-ink:   oklch(100% 0 0);      /* 主色之上的文字 */
+  --color-ok:          oklch(55% 0.14 155);  /* 对 / 成功 */
+  --color-ok-soft:     oklch(94.5% 0.05 155);/* 对的浅底：选项行 / 状态标 */
+  --color-warn:        oklch(66% 0.15 75);   /* 提醒 / 未作答 */
+  --color-warn-soft:   oklch(95% 0.05 75);   /* 提醒的浅底：提示条 / 状态标 */
+  --color-danger:      oklch(56% 0.19 25);   /* 错 / 删除 */
+  --color-danger-soft: oklch(95% 0.045 25);  /* 错的浅底 */
+  --color-danger-ink:  oklch(100% 0 0);      /* danger 实底上的文字（白） */
+  --color-focus:       oklch(55% 0.18 262);
+
+  /* ── 深字色：tint 底上的「彩色文字 / 图标」用（2026-10-08）──────────────────
+     题型 / 难度小标签、侧栏高亮项这类「浅底 + 彩字」的组合，语义色本体达不到
+     小字 AA（见 ink-subtle 的口径注释），所以每个色相配一枚**加深档**。
+     ⚠️ 每枚都在对应 tint 底上实测 ≥4.5（小字 AA）；加第 6 个 tint 时要照此补一枚。 */
+  --color-ink-blue:    oklch(46% 0.15 262);
+  --color-ink-green:   oklch(46% 0.13 155);
+  --color-ink-violet:  oklch(46% 0.14 300);
+  --color-ink-amber:   oklch(46% 0.12 75);
+  --color-ink-red:     oklch(46% 0.16 25);
+
+  /* ── 收藏两枚（主人 2026-10-08 指定色，非主题派生）──────────────────────
+     用途：favorite-star 星标 + 侧栏「收藏夹」导航图标。都是身份色（"收藏"这件事的色），
+     与主题语义色（warn/danger 等）无关，别拿它们互相替换。 */
+  --color-star:  #EAC54F; /* 收藏星标（favorite-star 的 hover / 已收藏态） */
+  --color-amber: #F59E0B; /* 侧栏「收藏夹」图标 */
+
+  /* ── 形状：宽松感的一部分——圆角整体比第一版大一档 ── */
+  --radius-xs: 5px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px; /* 浮层（玻璃）用 —— 参照图给的就是 24 */
+
+  /* ── 字体：先用系统栈；自托管中文子集是**后续增强**（见 docs/todo/）──
+     ⚠️ 不要在这里引入 Web 字体：国内加载会失败，也会拖慢首屏。 */
+  --font-sans: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei",
+    "Noto Sans SC", "Source Han Sans SC", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Consolas, monospace;
+
+  /* ── 字阶 + 行高：**行高是"宽松"的主要杠杆**（中文尤其需要）── */
+  --text-2xs:  0.6875rem; /* 11px */
+  --text-2xs--line-height: 1.45;
+  --text-xs:   0.75rem;   /* 12px */
+  --text-xs--line-height: 1.55;
+  --text-sm:   0.8125rem; /* 13px */
+  --text-sm--line-height: 1.65;
+  --text-base: 0.875rem;  /* 14px —— 正文 */
+  --text-base--line-height: 1.75;
+  --text-md:   1rem;      /* 16px */
+  --text-md--line-height: 1.75;
+  --text-lg:   1.125rem;  /* 18px */
+  --text-lg--line-height: 1.6;
+  --text-xl:   1.375rem;  /* 22px */
+  --text-xl--line-height: 1.4;
+  --text-2xl:  1.75rem;   /* 28px */
+  --text-2xl--line-height: 1.3;
+
+  /* ── 阴影：更柔、更明显，且**用冷调色相**（不是纯黑）——"浮起来"但不脏 ── */
+  --shadow-xs: 0 1px 2px 0 oklch(30% 0.03 260 / 0.05);
+  --shadow-sm: 0 2px 4px -1px oklch(30% 0.03 260 / 0.07), 0 1px 2px -1px oklch(30% 0.03 260 / 0.05);
+  --shadow-md: 0 8px 20px -6px oklch(30% 0.03 260 / 0.12), 0 2px 6px -2px oklch(30% 0.03 260 / 0.07);
+
+  /* ── 玻璃：半透明材质（**轻玻璃**，不模糊）─────────────────────────────
+     现状（2026-10-08 规范审查时拍板**以实现为准**，与 DESIGN.md 对齐）：
+       • **铺底**（页面底 / 卡片 / 表格 / 表单）用上面的「面」，**不用玻璃**；
+       • **浮层用玻璃或实底，逐件自定**（ADR 0032）：玻璃（`.glass`）给「想要透出背后内容」的浮层，
+         用不用看实体预览逐件拍板；首个使用者是「收藏夹信息」面板；
+       • **答题页面（作答中）一律实底，硬禁玻璃**——作答是最要「稳」的界面；
+       • **顶栏 / 侧栏**用更轻的一档（`.glass-bar`：半透明但**不模糊**，性能友好）；
+       • 遮罩只是轻微压暗（`bg-black/10`）。
+     ⚠️ 玻璃**背后必须有内容可透**；浮在纯白上几乎看不出来，等于白付性能代价。
+     ⚠️ **玻璃上不许放长正文**——正文永远在 `--color-reader` 上。
+     ⚠️ 系统开「减少透明度」时 `.glass` 会退化成 `--color-reader` 实底（见文件末尾的媒体查询）。
+     不透明度取 .68（参照图给的 .28 太透，文字压上去守不住 AA）。 */
+  --glass-surface: oklch(100% 0 0 / 0.68);
+  --glass-border:  oklch(100% 0 0 / 0.72);
+  --glass-blur:    18px;
+  --glass-shadow:  0 20px 55px -12px oklch(30% 0.05 285 / 0.22);
+
+  /* ── 动效 ── */
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* ═══════════════ 第二节 · 映射给 shadcn-vue 的组件（只翻译，不写值）═══════════════ */
+:root {
+  color-scheme: light;
+
+  --radius: var(--radius-lg);
+
+  --background: var(--color-canvas);
+  --foreground: var(--color-ink);
+  --card: var(--color-surface);
+  --card-foreground: var(--color-ink);
+  --popover: var(--color-reader); /* 浮层也是"读文字"的场景 —— 用阅读面，不上色 */
+  --popover-foreground: var(--color-ink);
+  --primary: var(--color-brand);
+  --primary-foreground: var(--color-brand-ink);
+  --secondary: var(--color-surface-2);
+  --secondary-foreground: var(--color-ink);
+  --muted: var(--color-surface-2);
+  --muted-foreground: var(--color-ink-muted);
+  --accent: var(--color-brand-soft);
+  --accent-foreground: var(--color-brand);
+  --destructive: var(--color-danger);
+  --destructive-foreground: var(--color-danger-ink);
+  --border: var(--color-line);
+  --input: var(--color-line);
+  --ring: var(--color-focus);
+
+  /* 本项目不做图表（统计看板在范围外），但 shadcn 组件可能引用这几个名字；
+     照样映射，免得页面里悄悄长出一套独立色板。 */
+  --chart-1: var(--color-brand);
+  --chart-2: var(--color-ok);
+  --chart-3: var(--color-warn);
+  --chart-4: var(--color-danger);
+  --chart-5: var(--color-ink-subtle);
+
+  /* 侧栏（我们的 MainLayout 有侧栏）——给它一个有色面，与页面底区分开 */
+  --sidebar: var(--color-surface-2);
+  --sidebar-foreground: var(--color-ink);
+  --sidebar-primary: var(--color-brand);
+  --sidebar-primary-foreground: var(--color-brand-ink);
+  --sidebar-accent: var(--color-surface);
+  --sidebar-accent-foreground: var(--color-ink);
+  --sidebar-border: var(--color-line);
+  --sidebar-ring: var(--color-focus);
+}
+
+/* 把上面那套变量注册成 Tailwind 的 `bg-primary` / `text-muted-foreground` 之类工具类。
+   ⚠️ CLI 生成时这里带了 `--radius-sm/md/lg/xl` 四行，会把第一节的圆角标尺顶掉，
+      已被删除——圆角只认第一节。 */
+@theme inline {
+  --font-heading: var(--font-sans);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/* ── 深色：**目前不启用** ────────────────────────────────────────────────────
+   启用时照第一节的办法补深色值，并在这一节把上面那套映射再写一遍（指向深色 token）。
+   ⚠️ L3 下深色的成本更高：**那一组面部色每一个都要重调**（浅色面在深底上完全是另一回事）。 */
+/* 浅色为默认：显式声明 color-scheme，滚动条 / 原生控件在浅色下也走浅色（深色档见下） */
+:root {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+/* ⚠️ shadcn 的基础层（`*` 边框色 + `body` 跟随主题）已**拆到 `src/styles/base.css`**——
+   过渡期主应用不引它（会把未迁移页面的 body 底色一起换掉），preview 与迁移完成后的入口才引。 */
+
+/* ── 浮层语言：只有"浮在页面之上"的东西才用这两个类 ────────────────────────── */
+@layer components {
+  /* 完整玻璃：弹窗 / 抽屉 / 下拉 / 提示 */
+  .glass {
+    background-color: var(--glass-surface);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+    backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--glass-shadow);
+  }
+
+  /* 轻玻璃：顶栏 / 侧栏 —— 半透明但**不模糊**（性能友好，滚动时仍看得到内容透过去） */
+  .glass-bar {
+    background-color: var(--glass-surface);
+    border-color: var(--glass-border);
+  }
+
+  /* 无障碍：系统开了"减少透明度"时，玻璃退化成实心面，别让文字压在不可控的底上 */
+  @media (prefers-reduced-transparency: reduce) {
+    .glass,
+    .glass-bar {
+      background-color: var(--color-reader);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+  }
+}
+
+/* ── 无障碍地板：尊重系统的"减少动态效果"（见 docs/ 的测试说明）──────────────
+   只降级**运动类**属性，保留颜色/透明度这类静态反馈，不做一刀切全砍。 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-property: opacity, color, background-color, border-color, box-shadow !important;
+    transition-duration: 120ms !important;
+    scroll-behavior: auto !important;
+  }
+}

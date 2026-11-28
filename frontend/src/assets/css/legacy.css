@@ -1,0 +1,5 @@
+/* 旧 Element Plus 页面的样式，优先级低于 Tailwind utilities，避免覆盖新组件 */
+@import "./tokens.css" layer(legacy);
+@import "./grid.css" layer(legacy);
+@import "./motion.css" layer(legacy);
+@import "./editorial.css" layer(legacy);
