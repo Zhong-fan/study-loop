@@ -31,6 +31,12 @@ public class GlobalExceptionHandler {
     }
 
     /** 参数校验失败：@NotBlank 之类没通过 */
+    /** 参数/文件格式问题：返回可读原因，而不是“系统繁忙” */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public Result<Void> handleIllegalArgument(IllegalArgumentException e) {
+        return Result.fail(ErrorCode.PARAM_ERROR.getCode(), e.getMessage());
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public Result<Void> handleValidException(MethodArgumentNotValidException e) {
         String message = ErrorCode.PARAM_ERROR.getMessage();
