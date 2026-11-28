@@ -109,7 +109,7 @@ async function main() {
 
     await step('侧栏导航', async () => {
         const items = await page.locator('.app-ui aside nav a').allInnerTexts();
-        assert.deepEqual(items.map((text) => text.trim()), ['概览', '做题', '题库', '资料', '统计']);
+        assert.deepEqual(items.map((text) => text.trim()), ['概览', '做题', '题库', '错题', '统计']);
     });
 
     await step('概览数据面板', async () => {
@@ -136,6 +136,12 @@ async function main() {
         await expectVisible(page.getByRole('heading', { name: '题库' }));
         assert.ok((await page.locator('tbody tr').count()) >= 1);
         await expectVisible(page.getByRole('button', { name: '导入' }));
+    });
+
+    await step('打开错题本', async () => {
+        await page.locator('aside nav a', { hasText: '错题' }).click();
+        await page.waitForURL('**/#/wrong-book');
+        await expectVisible(page.getByRole('heading', { name: '错题本' }));
     });
 
     await step('打开资料与工具', async () => {

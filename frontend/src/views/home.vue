@@ -100,7 +100,7 @@ import {
     BookOpenIcon,
     LayoutDashboardIcon,
     LogOutIcon,
-    WrenchIcon,
+    TriangleAlertIcon,
     ZapIcon
 } from '@lucide/vue';
 
@@ -122,7 +122,7 @@ const NAV_ITEMS: { to: string; label: string; icon: Component }[] = [
     { to: '/dashboard', label: '概览', icon: LayoutDashboardIcon },
     { to: '/practice', label: '做题', icon: ZapIcon },
     { to: '/questions', label: '题库', icon: ArchiveIcon },
-    { to: '/tools', label: '资料', icon: WrenchIcon },
+    { to: '/wrong-book', label: '错题', icon: TriangleAlertIcon },
     { to: '/stats', label: '统计', icon: BarChart3Icon }
 ];
 

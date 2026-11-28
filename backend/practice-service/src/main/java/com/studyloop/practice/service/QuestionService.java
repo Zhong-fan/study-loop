@@ -22,4 +22,7 @@ public interface QuestionService {
     QuestionVO get(Long id);
 
     PageResult<QuestionVO> page(long page, long size, Long courseId, String type, Integer status);
+
+    /** 错题本：最后一次作答未满分的题 */
+    java.util.List<QuestionVO> wrongBook();
 }
