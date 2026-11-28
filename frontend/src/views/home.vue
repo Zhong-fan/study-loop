@@ -11,13 +11,8 @@
         </main>
 
         <footer class="app-footer">
-            <span>
-                版式参考
-                <a href="https://overreacted.io" target="_blank" rel="noreferrer">overreacted.io</a>
-                ·
-                <a href="https://maggieappleton.com" target="_blank" rel="noreferrer">maggieappleton.com</a>
-            </span>
-            <span class="mono">{{ year }} · 学习手记</span>
+            <span>CMMR</span>
+            <span class="mono">{{ year }}</span>
         </footer>
     </div>
 </template>

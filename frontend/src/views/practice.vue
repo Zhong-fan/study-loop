@@ -15,9 +15,8 @@
         <el-skeleton v-if="loading" :rows="7" animated class="loading" />
 
         <section v-else-if="!questions.length" class="empty">
-            <p class="empty-mark mono">No questions due</p>
-            <h1>今天没有需要复习的题。</h1>
-            <p class="empty-dek">可以去补一些新题，或者直接做一组自测。</p>
+            <h1>没有到期题目</h1>
+            <p class="empty-dek">可以去补题，或做一组自测。</p>
             <div class="empty-actions">
                 <button type="button" class="cta" @click="router.push('/ai')">去 AI 出题 <span>→</span></button>
                 <button type="button" class="ghost" @click="router.push('/dashboard')">返回概览</button>
@@ -25,8 +24,7 @@
         </section>
 
         <section v-else-if="finished" class="done">
-            <p class="empty-mark mono">Session complete</p>
-            <h1>这一组做完了。</h1>
+            <h1>这一组完成</h1>
             <p class="done-line">
                 共作答 <b>{{ answered }}</b> 题，答对 <b>{{ correct }}</b> 题。
             </p>
@@ -74,7 +72,7 @@
                     v-model="subjectiveAnswer"
                     type="textarea"
                     :rows="4"
-                    placeholder="写下你的答案，再交给 AI 按评分点判分"
+                    placeholder="输入答案"
                     :disabled="!!result"
                 />
 

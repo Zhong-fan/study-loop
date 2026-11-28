@@ -1,9 +1,6 @@
 <template>
     <header class="masthead">
-        <router-link to="/dashboard" class="brand">
-            <span class="brand-mark">CMMR</span>
-            <span class="brand-sub">学习手记</span>
-        </router-link>
+        <router-link to="/dashboard" class="brand">CMMR</router-link>
 
         <nav class="mast-nav">
             <router-link
@@ -159,18 +156,11 @@ onMounted(async () => {
     gap: 10px;
     text-decoration: none;
 }
-.brand-mark {
+.brand {
     font-family: var(--sl-font-display);
     font-size: 24px;
     letter-spacing: -0.02em;
     color: var(--sl-text);
-}
-.brand-sub {
-    font-family: var(--sl-font-mono);
-    font-size: 10px;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--sl-muted);
 }
 
 .mast-nav {
@@ -311,7 +301,6 @@ onMounted(async () => {
         gap: 20px;
         padding: 0 18px;
     }
-    .brand-sub,
     .tool-link span:not(.badge) {
         display: none;
     }

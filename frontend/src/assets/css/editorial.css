@@ -102,8 +102,12 @@ a {
     --el-button-hover-text-color: var(--sl-primary);
 }
 
+.el-input__inner {
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
 .el-input__wrapper,
-.el-input__inner,
 .el-textarea__inner,
 .el-select__wrapper {
     --el-input-bg-color: var(--sl-surface-strong);

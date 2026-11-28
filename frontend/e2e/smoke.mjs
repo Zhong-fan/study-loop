@@ -78,19 +78,19 @@ async function main() {
     await step('切换到注册页', async () => {
         await page.getByRole('link', { name: '注册', exact: true }).click();
         await page.waitForURL('**/#/register');
-        await expectVisible(page.getByRole('heading', { name: '创建账号' }));
+        await expectVisible(page.getByRole('heading', { name: '注册', exact: true }));
         await expectVisible(page.locator('#nickname'));
         await expectVisible(page.locator('#confirm'));
     });
 
     await step('注册页校验（空提交 + 密码不一致）', async () => {
-        await page.getByRole('button', { name: '注册并登录' }).click();
+        await page.getByRole('button', { name: '注册', exact: true }).click();
         await expectVisible(page.locator('.el-form-item__error').first());
 
         await page.locator('#username').fill('e2e_user');
         await page.locator('#password').fill('123456');
         await page.locator('#confirm').fill('654321');
-        await page.getByRole('button', { name: '注册并登录' }).click();
+        await page.getByRole('button', { name: '注册', exact: true }).click();
         await expectVisible(page.getByText('两次输入的密码不一致'));
         // 不真正创建账号，避免污染数据
     });
