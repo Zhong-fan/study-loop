@@ -1,4 +1,4 @@
-import { http } from '@/utils/request';
+import { downloadFile, http } from '@/utils/request';
 
 /** 账号 */
 export const login = (data: { username: string; password: string }) =>
@@ -41,6 +41,15 @@ export const searchMaterial = (id: number, keyword: string) =>
 /** 题目 */
 export const getQuestions = (params: object) => http.get('/questions', params);
 
+export const importQuestions = (form: FormData) => http.post('/questions/import/excel', form);
+export const exportQuestions = (params: { courseId?: number | null; type?: string | null }) => {
+    const query = new URLSearchParams();
+    if (params.courseId) query.set('courseId', String(params.courseId));
+    if (params.type) query.set('type', params.type);
+    return downloadFile(`/questions/export?${query.toString()}`, 'questions.xlsx');
+};
+export const downloadQuestionTemplate = () =>
+    downloadFile('/questions/template/excel', 'question-import-template.xlsx');
 export const createQuestion = (data: object) => http.post('/questions', data);
 
 export const getQuestion = (id: number) => http.get(`/questions/${id}`);

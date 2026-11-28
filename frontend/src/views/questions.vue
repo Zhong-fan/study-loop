@@ -12,6 +12,8 @@
                             <el-option v-for="t in types" :key="t.value" :label="t.label" :value="t.value" />
                         </el-select>
                         <el-button style="margin-left: 8px" @click="load">查询</el-button>
+                        <el-button @click="openImport">导入</el-button>
+                        <el-button @click="exportAll">导出</el-button>
                         <el-button type="primary" @click="openCreate">新建题目</el-button>
                     </div>
                 </div>
@@ -183,6 +185,52 @@
                 </el-table>
             </div>
         </el-dialog>
+
+        <el-dialog v-model="importVisible" title="导入题目" width="620px">
+            <el-form label-width="90px">
+                <el-form-item label="课程">
+                    <el-select v-model="importCourseId" placeholder="选择课程" style="width: 100%">
+                        <el-option v-for="c in courses" :key="c.id" :label="c.name" :value="c.id" />
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="Excel">
+                    <input class="import-file" type="file" accept=".xlsx,.xls" @change="onImportFile" />
+                    <div class="hint">支持 .xlsx / .xls，单次最多 2000 行</div>
+                </el-form-item>
+                <el-form-item label="错误处理">
+                    <div class="error-mode">
+                        <el-checkbox v-model="skipInvalid">跳过错误行，只导入正确的行</el-checkbox>
+                        <div class="hint">默认整批导入：任何一行有错，整批都不写入</div>
+                    </div>
+                </el-form-item>
+            </el-form>
+
+            <el-alert
+                v-if="importResult"
+                :type="importResult.aborted ? 'error' : importResult.failed ? 'warning' : 'success'"
+                :closable="false"
+                :title="importSummary"
+            />
+            <el-table
+                v-if="importResult?.errors?.length"
+                :data="importResult.errors"
+                size="small"
+                max-height="240"
+                class="import-errors"
+            >
+                <el-table-column prop="row" label="行" width="60" />
+                <el-table-column prop="stem" label="题干" show-overflow-tooltip />
+                <el-table-column prop="message" label="原因" width="220" show-overflow-tooltip />
+            </el-table>
+
+            <template #footer>
+                <el-button @click="downloadTemplate">下载模板</el-button>
+                <el-button @click="importVisible = false">关闭</el-button>
+                <el-button type="primary" :loading="importing" :disabled="!importFile" @click="doImport">
+                    开始导入
+                </el-button>
+            </template>
+        </el-dialog>
     </div>
 </template>
 
@@ -190,7 +238,8 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { aiGradeQuestion, createQuestion, deleteQuestion, getChapters, getCourses, getKnowledgeByChapter, getQuestion, getQuestions, updateQuestion } from '@/api';
+import { downloadFile } from '@/utils/request';
+import { aiGradeQuestion, createQuestion, deleteQuestion, downloadQuestionTemplate, exportQuestions, getChapters, getCourses, getKnowledgeByChapter, getQuestion, getQuestions, importQuestions, updateQuestion } from '@/api';
 
 const route = useRoute();
 const router = useRouter();
@@ -213,6 +262,56 @@ const page = ref(1);
 const size = ref(10);
 
 const filter = reactive<any>({ courseId: null, type: null });
+
+const importVisible = ref(false);
+const importCourseId = ref<number | null>(null);
+const importFile = ref<File | null>(null);
+const importing = ref(false);
+const skipInvalid = ref(false);
+const importResult = ref<any>(null);
+
+const importSummary = computed(() => {
+    if (!importResult.value) return '';
+    const r = importResult.value;
+    if (r.aborted) return `共 ${r.total} 行，${r.failed} 行有错误，整批未写入`;
+    return `共 ${r.total} 行，成功 ${r.success} 行，失败 ${r.failed} 行`;
+});
+
+const openImport = () => {
+    importResult.value = null;
+    importFile.value = null;
+    importCourseId.value = filter.courseId || courses.value[0]?.id || null;
+    importVisible.value = true;
+};
+
+const onImportFile = (event: Event) => {
+    const input = event.target as HTMLInputElement;
+    importFile.value = input.files?.[0] || null;
+};
+
+const doImport = async () => {
+    if (!importCourseId.value || !importFile.value) {
+        ElMessage.warning('请选择课程和文件');
+        return;
+    }
+    importing.value = true;
+    try {
+        const form = new FormData();
+        form.append('courseId', String(importCourseId.value));
+        form.append('skipInvalid', String(skipInvalid.value));
+        form.append('file', importFile.value);
+        importResult.value = await importQuestions(form);
+        if (!importResult.value.aborted) {
+            await load();
+        }
+    } finally {
+        importing.value = false;
+    }
+};
+
+const downloadTemplate = () => downloadQuestionTemplate();
+
+const exportAll = () => exportQuestions({ courseId: filter.courseId, type: filter.type });
 const formVisible = ref(false);
 const chapters = ref<any[]>([]);
 const knowledges = ref<any[]>([]);
@@ -446,6 +545,21 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.import-file {
+    display: block;
+    width: 100%;
+    padding: 8px 0;
+    font-size: 13px;
+}
+.import-errors {
+    margin-top: 12px;
+}
+.error-mode {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
 .grade-stem {
     margin: 0 0 12px;
     font-weight: 600;

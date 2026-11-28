@@ -55,7 +55,7 @@ public class QuestionServiceImpl implements QuestionService {
     @Transactional
     public Long create(QuestionCreateRequest request) {
         Long userId = UserContext.requireUserId();
-        validate(request.getType(), request.getOptions(), request.getAnswer());
+        validateForSave(request);
 
         Question question = new Question();
         question.setUserId(userId);
@@ -168,6 +168,18 @@ public class QuestionServiceImpl implements QuestionService {
             records.add(toVO(question));
         }
         return PageResult.of(result.getTotal(), pageNo, pageSize, records);
+    }
+
+    @Override
+    public void validateForSave(QuestionCreateRequest request) {
+        if (request.getStem() == null || request.getStem().isBlank()) {
+            throw new BizException(ErrorCode.PARAM_ERROR, "题干不能为空");
+        }
+        if (request.getDifficulty() != null
+                && (request.getDifficulty() < 1 || request.getDifficulty() > 5)) {
+            throw new BizException(ErrorCode.PARAM_ERROR, "难度范围 1-5");
+        }
+        validate(request.getType(), request.getOptions(), request.getAnswer());
     }
 
     /**

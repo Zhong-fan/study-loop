@@ -10,6 +10,9 @@ import com.studyloop.practice.vo.QuestionVO;
  */
 public interface QuestionService {
 
+    /** 只校验不落库，供批量导入先做整批预检 */
+    void validateForSave(QuestionCreateRequest request);
+
     Long create(QuestionCreateRequest request);
 
     void update(Long id, QuestionUpdateRequest request);
